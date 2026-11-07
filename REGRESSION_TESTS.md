@@ -2969,6 +2969,32 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
   - Full suite 1183 passed; build and lint clean.
 - **Scope**: Train Solo only. No change to existing purchases, subscriptions, rules or accounts.
 
+### 188. Apple Health: blood pressure, heart rate and more on Progress — Train Solo and the coached app (owner request, 2026-11-07)
+- **Change**: Apple Health now also brings in, per day, heart rate (daily average), heart rate variability (SDNN), blood pressure (systolic and diastolic), blood oxygen, respiratory rate and VO2 max. They show on Progress for Train Solo members, coached clients, and the coach's view of a client, alongside steps, sleep and resting heart rate (unchanged).
+- **How**:
+  - **iPhone** (`ios/ApexCoach/HealthBridge.swift`, needs a new build):
+    - Each new measure is read as a daily average (`averagedReads`); blood oxygen is turned into a percentage.
+    - Someone who connected Apple Health before is asked once by iOS for just the new measures, the next time the app syncs (`getRequestStatusForAuthorization` → `requestAuthorization`).
+    - Results are gathered under a lock (HealthKit answers on its own queues).
+    - The permission text (`ios/project.yml` `NSHealthShareUsageDescription`) names the new measures.
+  - **Sync** (`src/lib/appleHealth.js`):
+    - The new fields go into the same per-day body-metrics doc (`bodyMetrics` / `soloBodyMetrics`), marked in its `appleHealth` map, by the same rule: a value typed in by hand is never overwritten.
+    - Plausible-range checks: a glitch or unit mix-up is never saved (e.g. blood oxygen 50–100%, systolic 40–260 mmHg).
+    - One decimal for respiratory rate and VO2 max; whole numbers otherwise.
+  - **Progress** (`src/components/ProgressWidgets.jsx` `HEALTH_METRICS_CONFIG` / `withHealthData`, one list for all three screens):
+    - A card per measure, shown only once there's at least one day of data, so no empty cards for anyone without Apple Health or a device that measures it.
+    - The same card, chart, history and manual log as Steps etc.
+    - Used by `ClientApp.jsx` `ProgressScreen`, `SoloProgressScreen.jsx` and `CoachClientDetail.jsx` `ProgressPanel`.
+  - **Not changed**: Firestore rules (no field restriction on these docs); Train Solo's Apple Health stays a Plus feature; nothing is written to Apple Health.
+- **Tests**:
+  - `src/lib/appleHealthVitals188.test.js` (7): each measure saved and rounded; a hand-typed value kept and Apple's own value updated; impossible readings never saved; the existing sync unchanged; the Swift reads every measure as a daily average with blood oxygen as a %; the one-time permission ask for existing users; the permission text.
+  - `src/solo/appleHealthVitalsProgress188.test.jsx` (2) and `src/client/appleHealthVitalsProgress188.test.jsx` (2), rendering the real Progress screens: every card with its latest value; no empty cards without data.
+  - `coachDailyMetrics.test.jsx` +1, rendering the real coach panel with `db` grouped by client: the client's blood pressure and blood oxygen; nothing for measures without data or from another client.
+  - 8 fail on the old code; the other 5 guard what must not change. Full suite 1195 passed; lint and build clean.
+- **Swift**: `HealthBridge.swift` type-checked with Swift 6.0.3 against a HealthKit stand-in (0 errors / 0 warnings).
+- **Browser**: the coach's client Progress panel (real `ProgressPanel`) opened in Chromium with sample data: all 10 daily cards drawn with their charts, no page errors.
+- **Verify on TestFlight (new build)**: open the app, accept the one-time Apple Health prompt for the new measures, then Progress shows blood pressure / heart rate / etc. for days Apple Health has them. Blood pressure needs a source that records it (a cuff app or a manual entry in Health).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

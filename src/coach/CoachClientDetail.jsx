@@ -35,6 +35,8 @@ import {
   ConsistencyHeatmap,
   PersonalBestsCard,
   axisStyleDark,
+  HEALTH_METRICS_CONFIG,
+  withHealthData,
 } from "../components/ProgressWidgets";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ReferenceLine, Tooltip, ResponsiveContainer } from "recharts";
 import { ThreadView } from "./CoachMessages";
@@ -4770,7 +4772,7 @@ export function ProgressPanel({ client, showToast }) {
 
   const personalBests = useMemo(() => computePersonalBests(logs, exercisesById), [logs, exercisesById]);
   const bodyMetricEntries = useMemo(
-    () => buildBodyMetricEntries(bodyMetrics, [...DAILY_METRICS_CONFIG, BODY_FAT_CONFIG, LEAN_MASS_CONFIG, ...BODY_MEASUREMENTS_CONFIG]),
+    () => buildBodyMetricEntries(bodyMetrics, [...DAILY_METRICS_CONFIG, ...HEALTH_METRICS_CONFIG, BODY_FAT_CONFIG, LEAN_MASS_CONFIG, ...BODY_MEASUREMENTS_CONFIG]),
     [bodyMetrics]
   );
   const latestWeighIn = weighIns[weighIns.length - 1];
@@ -4836,7 +4838,7 @@ export function ProgressPanel({ client, showToast }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {DAILY_METRICS_CONFIG.map((cfg) => (
+        {[...DAILY_METRICS_CONFIG, ...withHealthData(bodyMetricEntries)].map((cfg) => (
           <BodyMetricCard key={cfg.key} dark config={cfg} entries={bodyMetricEntries[cfg.key]} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
         ))}
       </div>

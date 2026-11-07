@@ -293,6 +293,13 @@ Do these together when the user is ready to submit a new App Store build
   (1320 x 2868 portrait). Screenshots must not show prices or buy buttons
   for Train Solo (3.1.1).
 
+- **Apple Health vitals (#188)**: heart rate, HRV, blood pressure, blood
+  oxygen, respiratory rate and VO2 max sync per day like steps/sleep
+  (`HealthBridge.averagedReads`, `APPLE_HEALTH_FIELDS` with range checks)
+  and show on all three Progress screens from ONE list
+  (`ProgressWidgets` `HEALTH_METRICS_CONFIG`, cards only once there's data,
+  `withHealthData`). Add a new Health measure there, not per screen. Needs
+  the build after 2026-11-07 (new read types + permission text).
 - **Apple Health (built and released in 1.0.3)**: native HealthKit bridge + web sync are on
   main (web side is hidden until a build with the native handler is
   installed). Needs the HealthKit capability ticked on the App ID

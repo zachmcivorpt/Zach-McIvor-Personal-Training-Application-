@@ -5,7 +5,7 @@
 // sees on their own phone, instead of two components drifting apart.
 import React, { useMemo, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { Plus, ChevronRight, Ruler, Percent, Activity, Check, X, Trophy } from "lucide-react";
+import { Plus, ChevronRight, Ruler, Percent, Activity, Check, X, Trophy, HeartPulse, Droplets, Wind, Gauge } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, PrimaryButton } from "./ui";
 import { MEASURE_BLUE, GOAL_GREEN } from "../theme";
 import { localDateKey } from "../lib/dateKey";
@@ -19,6 +19,27 @@ const tooltipStyleFor = (dark) =>
 
 export const BODY_FAT_CONFIG = { key: "bodyFatPct", label: "Body Fat", unit: "%", icon: Percent, placeholder: "e.g. 18.5" };
 export const LEAN_MASS_CONFIG = { key: "leanMassKg", label: "Lean Body Mass", unit: "kg", icon: Activity, placeholder: "e.g. 65.2" };
+
+// Heart and lung measures from Apple Health (#188): synced per day by
+// src/lib/appleHealth.js into the same body-metrics doc as steps and sleep
+// (Coaching's bodyMetrics, Train Solo's soloBodyMetrics). One list for the
+// client's Progress, Train Solo's Progress and the coach's view of a client.
+// A card shows only once that measure has at least one day of data
+// (`withHealthData`), so someone without Apple Health (or without a device
+// that measures it) never sees empty cards. Once shown, a day can also be
+// logged by hand, like any other metric.
+export const HEALTH_METRICS_CONFIG = [
+  { key: "heartRate", label: "Heart Rate", unit: "bpm", icon: HeartPulse, placeholder: "e.g. 72" },
+  { key: "bloodPressureSystolic", label: "Blood Pressure (Systolic)", unit: "mmHg", icon: Gauge, placeholder: "e.g. 120" },
+  { key: "bloodPressureDiastolic", label: "Blood Pressure (Diastolic)", unit: "mmHg", icon: Gauge, placeholder: "e.g. 80" },
+  { key: "heartRateVariability", label: "Heart Rate Variability", unit: "ms", icon: Activity, placeholder: "e.g. 45" },
+  { key: "bloodOxygen", label: "Blood Oxygen", unit: "%", icon: Droplets, placeholder: "e.g. 98" },
+  { key: "respiratoryRate", label: "Respiratory Rate", unit: "br/min", icon: Wind, placeholder: "e.g. 14" },
+  { key: "vo2Max", label: "VO2 Max", unit: "ml/kg/min", icon: HeartPulse, placeholder: "e.g. 42.5" },
+];
+export function withHealthData(entriesByKey) {
+  return HEALTH_METRICS_CONFIG.filter((cfg) => (entriesByKey?.[cfg.key] || []).length > 0);
+}
 
 // The full-body tape-measure set a coach tracks over a training block —
 // same set Trainerize's own "Body Measurements" breaks out into, all in cm.
