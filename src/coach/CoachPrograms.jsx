@@ -728,7 +728,7 @@ export default function CoachPrograms({ showToast }) {
       <p className="text-white text-sm mb-4 md:mb-0">{programs.length} total · reusable phase-based programs for a client's training</p>
 
       <div
-        className="flex flex-col md:flex-row md:h-[calc(100vh-200px)] md:min-h-[600px] md:mt-4 md:border md:rounded-2xl md:overflow-hidden"
+        className="flex flex-col md:flex-row md:h-[calc(100dvh-200px)] md:min-h-[600px] md:mt-4 md:border md:rounded-2xl md:overflow-hidden"
         style={{ borderColor: CLIENT_DARK_BORDER }}
       >
         {/* left: program list, with the active program's phases nested right below it */}

@@ -2994,6 +2994,65 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Swift**: `HealthBridge.swift` type-checked with Swift 6.0.3 against a HealthKit stand-in (0 errors / 0 warnings).
 - **Browser**: the coach's client Progress panel (real `ProgressPanel`) opened in Chromium with sample data: all 10 daily cards drawn with their charts, no page errors.
 - **Verify on TestFlight (new build)**: open the app, accept the one-time Apple Health prompt for the new measures, then Progress shows blood pressure / heart rate / etc. for days Apple Health has them. Blood pressure needs a source that records it (a cuff app or a manual entry in Health).
+### 189. Apple Watch: log a coached workout from the Watch (owner request, 2026-11-07)
+
+**Change**: clients can log the workout that's running on their iPhone from an
+Apple Watch. A native watchOS app (`ios/ApexWatch/`, SwiftUI, watchOS 9+)
+shows the workout's exercises and sets (with last time's numbers), sets reps
+and kg with the Digital Crown, logs the set (haptic), starts the rest
+countdown (Skip, haptic at the end) and can add a set. The workout stays on
+the phone's web page: `src/lib/watchBridge.js` sends it to the iPhone app on
+every change, and the Watch's actions come back as `apexWatch` events that
+`WorkoutSession` applies exactly as a tap (same PR check, live session for
+the coach, rest notification). `ios/ApexCoach/WatchBridge.swift` carries both
+ways over WatchConnectivity (application context + messages / queued
+transfers), keeps every Watch action until the page acks it (phone locked,
+page asleep) and re-sends on the next workout post or app return; the page
+drops repeats by id (`alreadyApplied`, kept on the phone). No session →
+`clear`: the Watch says "Start your workout in the APEX app on your iPhone".
+The Watch app is only built when Codemagic's `APEX_WATCH` is "true"
+(`ios/project-watch.yml`), so 1.0.4 keeps building until its App ID and
+profile exist (ROADMAP.txt step 2, item W).
+
+**Tests**: `src/client/watchLogging189.test.jsx` renders the real
+`WorkoutSession`: the workout is posted to the Watch; a Watch set logs with
+the PR flag, the coach's live update and an ack, and shows in the phone's own
+inputs; a repeated action applies once; rest starts/skips from the Watch with
+a wall-clock end; a set without reps or for another exercise is ignored;
+nothing breaks without the bridge; helper cases for `applyWatchSet`,
+`buildWatchWorkout`, `alreadyApplied`. Without the change (ClientApp.jsx
+stashed) the 4 WorkoutSession tests fail. The Swift side is compiled for the
+first time by Codemagic (no Swift toolchain here) — see manual testing.
+
+### 190. Coach console on iPhone, iPad and Mac (owner request, 2026-11-07)
+
+**Problem** (checked in a browser at iPhone 13, iPad 820×1180, iPad landscape
+1180×820 and a 1440×900 laptop): on iPad portrait the 256px sidebar left the
+Clients table cut off mid-column (sideways scroll) and Messages cramped; the
+table also overflowed iPad landscape; the shell, client page sidebar and
+Messages used `100vh`, which on iPad/iPhone Safari runs under the browser's
+bars (profile row / message box hidden); the mobile bars ignored the notch
+and home-bar safe areas (installed web app); switching tabs kept the previous
+tab's scroll position (Clients opened halfway down); tabs popped in.
+
+**Fix**: `CoachShell` — an icon rail with labels on iPad widths (md–xl,
+768–1279px), the full sidebar from xl (laptops); `coach-full-height`
+(`100dvh`, `100vh` fallback) for the shell and Messages, `h-full` for the
+client page's sidebar, `dvh` in the Programs / Train Solo editors; safe-area
+padding on the bars and content (Messages' full-height offsets match);
+every tab opens at its top; content centred at max 1440px on big screens;
+a 160ms opacity-only fade per tab (no transform / fill-mode, so overlays
+inside a tab stay full-screen); press feedback on nav. Clients shows its
+cards below lg (iPad portrait) and the table from lg (min width 1000px, fits
+iPad landscape with the rail).
+
+**Tests**: `src/coach/coachShellDevices190.test.jsx` renders the real
+`CoachShell` with real-shaped `db` (#167): tab change resets the scroll to the
+top; rail/full sidebar classes and labelled rail buttons; dvh + safe-area
+padding, no `h-screen`; the fade's keyframes have no transform and no
+fill-mode. All 4 fail with CoachShell.jsx / index.css stashed. Browser check:
+no page-level sideways overflow on any tab at all four sizes, and the
+client page opened at each (screenshots in the session).
 
 ## What still requires manual testing
 
@@ -3031,6 +3090,7 @@ sandbox):
   4. TestFlight 1.0.4, Sandbox Apple ID: buy Plus, upgrade to All Access (one subscription in Settings → Subscriptions), Restore purchases on a second device signed into the same Train Solo account, cancel in Settings → Free on return to the app; a website subscriber sees "Your plan can't be changed in the app".
   5. After the first functions deploy containing #159: Firebase console → Functions shows `soloFreeSessionLimit`; with the switch live, a Free test account writing a 4th session directly sees it removed.
 - **Train Solo subscriptions end to end** (#120): on the website with a test account (Stripe live, 100%-off promotion code): subscribe yearly with the trial, upgrade Plus to All Access (one subscription, pro rata), start/switch/resume programs and check the calendar, cancel in the customer portal, and a card that fails on renewal drops to Free. On TestFlight 1.0.4 with a Sandbox Apple ID: Apple prices on the paywall, buy, trial, upgrade, Restore purchases on a second device, cancel, billing failure to Free; the Codemagic build itself is the first compile of PurchasesBridge.swift.
+- **Apple Watch logging on a real Watch** (#189, after `APEX_WATCH` is on): the Codemagic build compiles the Watch app; on TestFlight the APEX Watch app installs with the iPhone app; start a workout on the phone → it shows on the Watch; log sets with the Crown (shown on the phone, PR trophy, the coach's live view); rest countdown + Skip; Add set; with the phone locked in a pocket, log two sets → they appear on the phone after unlocking (once each); finish on the phone → the Watch says no workout running.
 - **Apple Health on a real iPhone** (1.0.3): the HealthKit permission sheet, the numbers HealthBridge.swift reads (steps, sleep, resting heart rate, weight) against the Health app, and that they appear on the client's Progress, the coach's client Progress panel and Train Solo Progress. Only a TestFlight build on a device can exercise this.
 - **Apple App Store distribution path** (per `CLAUDE.md`'s product
   status: APEX is a published App Store app — the native WKWebView shell,

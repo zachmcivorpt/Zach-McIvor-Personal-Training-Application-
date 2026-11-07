@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTextEntryFocused } from "../lib/textEntryFocus";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
@@ -161,19 +161,32 @@ export default function CoachShell() {
     return last && last.from === "client" && last.date > (c.coachMessagesSeenAt || 0);
   });
 
+  // Every tab opens at its top (#190): the one scrolling area is shared by
+  // all tabs, so a long Overview scrolled down used to open Clients halfway
+  // down the list.
+  const mainRef = useRef(null);
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+  }, [tab]);
+
+  // iPad (md–xl, 768–1279px) gets a slim icon rail instead of the full
+  // 256px sidebar (#190), so Clients, Messages and the rest keep their
+  // width; laptops/desktops (xl+) keep the full sidebar.
   function NavButton({ item }) {
     const Icon = item.icon;
     const active = tab === item.id;
     return (
       <button
         onClick={() => setTab(item.id)}
-        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+        aria-label={item.label}
+        aria-current={active ? "page" : undefined}
+        className={`relative w-full flex flex-col xl:flex-row items-center gap-1 xl:gap-3 px-1 xl:px-3.5 py-2 xl:py-2.5 rounded-lg text-[10px] xl:text-sm font-medium transition-colors duration-150 active:scale-[0.97] ${
           active ? "bg-white text-black" : "text-white hover:bg-white/8 hover:text-white"
         }`}
       >
         <Icon size={17} strokeWidth={active ? 2.4 : 2} />
-        <span className="flex-1 text-left">{item.label}</span>
-        {item.id === "messages" && unreadMessages && <span className="w-2 h-2 rounded-full bg-blue-400" />}
+        <span className="xl:flex-1 text-center xl:text-left leading-tight truncate max-w-full">{item.label}</span>
+        {item.id === "messages" && unreadMessages && <span className="absolute top-1.5 right-2 xl:static w-2 h-2 rounded-full bg-blue-400" />}
       </button>
     );
   }
@@ -187,22 +200,23 @@ export default function CoachShell() {
   // scrolls. Only the "main content" div below now scrolls internally,
   // so the bars never need to track anything.
   return (
-    <div className="coach-shell w-full h-screen font-sans flex fixed inset-0 overflow-hidden" style={{ backgroundColor: CLIENT_DARK_BG }}>
-      {/* desktop sidebar */}
-      <div className="dark-chrome hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col bg-[#0A0A0C]">
-        <div className="px-5 pt-7 pb-6">
-          <Logo variant="mark" tone="white" className="h-10 w-auto" />
+    <div className="coach-shell w-full coach-full-height font-sans flex fixed inset-0 overflow-hidden" style={{ backgroundColor: CLIENT_DARK_BG }}>
+      {/* desktop sidebar (xl+) / icon rail (iPad, md–xl) */}
+      <div className="dark-chrome hidden md:flex w-20 xl:w-64 shrink-0 h-full sticky top-0 flex-col bg-[#0A0A0C] pt-safe">
+        <div className="px-5 pt-7 pb-6 flex justify-center xl:justify-start">
+          <Logo variant="mark" tone="white" className="h-8 xl:h-10 w-auto" />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4">
-          <p className="text-white text-[10px] font-semibold tracking-[0.15em] px-3.5 mb-2">MAIN MENU</p>
+        <div className="flex-1 overflow-y-auto overscroll-contain px-2 xl:px-4">
+          <p className="hidden xl:block text-white text-[10px] font-semibold tracking-[0.15em] px-3.5 mb-2">MAIN MENU</p>
           <div className="space-y-1">
             {MAIN_MENU.map((item) => (
               <NavButton key={item.id} item={item} />
             ))}
           </div>
 
-          <p className="text-white text-[10px] font-semibold tracking-[0.15em] px-3.5 mt-6 mb-2">OTHER</p>
+          <p className="hidden xl:block text-white text-[10px] font-semibold tracking-[0.15em] px-3.5 mt-6 mb-2">OTHER</p>
+          <div className="xl:hidden mx-3 my-3 border-t border-white/10" />
           <div className="space-y-1">
             {OTHER_MENU.map((item) => (
               <NavButton key={item.id} item={item} />
@@ -210,9 +224,9 @@ export default function CoachShell() {
           </div>
         </div>
 
-        <div className="m-3 p-3 rounded-lg bg-white/[0.04] border border-white/8 flex items-center gap-2.5">
+        <div className="m-2 xl:m-3 p-2 xl:p-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] xl:pb-3 rounded-lg bg-white/[0.04] border border-white/8 flex flex-col xl:flex-row items-center gap-2 xl:gap-2.5">
           <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={36} onClick={() => setTab("more")} />
-          <div className="flex-1 min-w-0">
+          <div className="hidden xl:block flex-1 min-w-0">
             <p className="text-white text-sm font-semibold truncate">{currentUser?.name}</p>
             <p className="text-white text-[11px] truncate">Coach</p>
           </div>
@@ -237,7 +251,7 @@ export default function CoachShell() {
           since WebKit otherwise repaints it as part of the normal scroll
           pipeline rather than compositing it independently every frame. */}
       <div
-        className="dark-chrome md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0A0A0C]/90 backdrop-blur-md border-b border-white/[0.06]"
+        className="dark-chrome md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0A0A0C]/90 backdrop-blur-md border-b border-white/[0.06] pt-safe"
         style={{ transform: "translateZ(0)" }}
       >
         <div className="flex items-center justify-between px-4 py-3">
@@ -269,7 +283,12 @@ export default function CoachShell() {
           above); overflow-y-auto also gives this flex item an automatic
           min-height of 0 per the flexbox spec, so it's clipped/scrollable
           instead of growing the (now non-scrolling) root to fit it. */}
-      <div className="flex-1 min-w-0 pt-14 pb-16 md:pt-0 md:pb-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
+      <div
+        ref={mainRef}
+        className="flex-1 min-w-0 pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(4rem+env(safe-area-inset-bottom))] md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+      >
+        {/* Centred on very wide screens (#190); keyed so each tab fades in. */}
+        <div key={tab} className="coach-tab-in mx-auto w-full max-w-[1440px]">
         {tab === "dashboard" && (
           <CoachDashboard onNavigate={setTab} onOpenClient={openClient} onOpenLibrary={openLibrary} showToast={showToast} />
         )}
@@ -294,6 +313,7 @@ export default function CoachShell() {
         {tab === "trainsolo" && <CoachTrainSolo showToast={showToast} />}
         {tab === "messages" && <CoachMessages />}
         {tab === "more" && <CoachMore onNavigate={setTab} onLogout={doLogout} showToast={showToast} />}
+        </div>
       </div>
 
       {/* mobile bottom tab bar — see the top bar above for why translateZ(0) */}
@@ -305,10 +325,10 @@ export default function CoachShell() {
             const Icon = item.icon;
             const active = tab === item.id;
             return (
-              <button key={item.id} onClick={() => setTab(item.id)} className="flex-1 flex flex-col items-center gap-1 py-2.5 relative">
+              <button key={item.id} onClick={() => setTab(item.id)} aria-label={item.label} aria-current={active ? "page" : undefined} className="flex-1 min-w-0 flex flex-col items-center gap-1 py-2.5 relative active:opacity-60 transition-opacity">
                 {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full" style={{ backgroundColor: MEASURE_BLUE }} />}
                 <Icon size={19} className={active ? "text-white" : "text-white"} strokeWidth={active ? 2.4 : 2} />
-                <span className={`text-[9px] font-medium leading-none ${active ? "text-white" : "text-white"}`}>
+                <span className={`text-[9px] font-medium leading-none truncate max-w-full px-0.5 ${active ? "text-white" : "text-white"}`}>
                   {item.label}
                 </span>
                 {item.id === "messages" && unreadMessages && (

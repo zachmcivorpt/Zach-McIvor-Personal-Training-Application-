@@ -28,14 +28,24 @@ workflows:
         BUNDLE_ID: "com.apexcoaching.platform"
         XCODE_PROJECT: "ApexCoach.xcodeproj"
         XCODE_SCHEME: "ApexCoach"
+        # "true" once com.apexcoaching.platform.watchkitapp has an App Store
+        # profile (ROADMAP.txt); builds the Apple Watch app in (#189).
+        APEX_WATCH: "false"
       xcode: latest
     scripts:
       - name: Install xcodegen
         script: |
           brew install xcodegen
       - name: Generate Xcode project from ios/project.yml
+        # APEX_WATCH=true adds the Apple Watch app (ios/project-watch.yml,
+        # #189) — only once its App ID + App Store profile exist, or signing fails.
         script: |
-          cd ios && xcodegen generate
+          cd ios
+          if [ "$APEX_WATCH" = "true" ]; then
+            xcodegen generate --spec project-watch.yml
+          else
+            xcodegen generate
+          fi
       - name: Set up code signing (using the stored APEX certificate + profile)
         script: |
           xcode-project use-profiles

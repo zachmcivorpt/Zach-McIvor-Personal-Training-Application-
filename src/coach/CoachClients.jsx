@@ -502,14 +502,14 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
         />
       </div>
 
-      {/* desktop table — horizontally scrollable on any viewport narrower than
+      {/* desktop table (lg+; iPad portrait gets the cards, #190) — horizontally scrollable on any viewport narrower than
           its min-width, with momentum scrolling on iOS Safari so a swipe
           actually glides instead of just nudging a pixel at a time */}
       <div
-        className="hidden md:block border rounded-2xl overflow-x-auto"
+        className="hidden lg:block border rounded-2xl overflow-x-auto"
         style={{ WebkitOverflowScrolling: "touch", backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}
       >
-        <table className="w-full min-w-[1080px] text-left border-collapse">
+        <table className="w-full min-w-[1000px] text-left border-collapse">
           <thead>
             <tr className="border-b" style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}>
               <th className="w-10 px-3 py-3" />
@@ -620,7 +620,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
       </div>
 
       {/* mobile card list */}
-      <div className="md:hidden space-y-2.5">
+      <div className="lg:hidden space-y-2.5">
         {clients.length === 0 && (
           <DarkPanel className="px-5 py-10 text-center text-white text-sm">
             {dbReady ? "No clients yet — add your first one to get started." : "Loading your clients…"}

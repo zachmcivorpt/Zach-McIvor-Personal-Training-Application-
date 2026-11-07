@@ -842,7 +842,7 @@ function CoachSoloPrograms({ showToast }) {
   return (
     <div>
       <div
-        className="flex flex-col md:flex-row md:h-[calc(100vh-260px)] md:min-h-[520px] md:border md:rounded-2xl md:overflow-hidden"
+        className="flex flex-col md:flex-row md:h-[calc(100dvh-260px)] md:min-h-[520px] md:border md:rounded-2xl md:overflow-hidden"
         style={{ borderColor: CLIENT_DARK_BORDER }}
       >
         {/* left: program list */}

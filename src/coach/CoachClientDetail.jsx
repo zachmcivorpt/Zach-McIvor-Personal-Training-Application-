@@ -5840,7 +5840,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
   return (
     <div className="fixed inset-0 z-[80] flex flex-col md:flex-row" style={{ backgroundColor: CLIENT_DARK_BG }}>
       {/* client mini-sidebar (desktop) */}
-      <div className="hidden md:flex w-64 shrink-0 h-screen flex-col border-r" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
+      <div className="hidden md:flex w-64 shrink-0 h-full flex-col border-r" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
         <div className="p-5 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
           <div className="flex items-center gap-3">
             <Avatar name={client.name} url={client.avatarUrl} size={48} dark />

@@ -98,6 +98,7 @@ import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
 import { hasFoodLogged, buildFrequentFoods, baseFoodName, entryAmountLabel, entrySourceFood, sourceSnapshot } from "../lib/nutritionLog";
 import { scheduleRestNotification, cancelRestNotification } from "../lib/restNotification";
+import { watchBridgeAvailable, buildWatchWorkout, sendWorkoutToWatch, clearWatchWorkout, ackWatchAction, alreadyApplied, onWatchAction, applyWatchSet } from "../lib/watchBridge";
 import { useVoiceRecorder, voiceNotesSupported, nativeMicAllowed } from "../lib/voiceNote";
 import { VoiceRecordingBar, VoiceNotePlayer } from "../components/VoiceNote";
 import { formCheckSet, formCheckMessageText, formCheckLabel, latestFormFeedback } from "../lib/formCheck";
@@ -2916,8 +2917,10 @@ export function WorkoutSession({
     });
   }
 
-  function handleBlurKg(exMeta, idx) {
-    const arr = activeLog[exMeta.exerciseId] || [];
+  // `logOverride`: the log a Watch set was just written into (#189) — this
+  // render's `activeLog` doesn't have it yet.
+  function handleBlurKg(exMeta, idx, logOverride) {
+    const arr = (logOverride || activeLog)[exMeta.exerciseId] || [];
     const row = arr[idx];
     if (!row) return;
     const reps = parseInt(row.reps, 10);
@@ -2976,8 +2979,8 @@ export function WorkoutSession({
     });
   }
 
-  function handleStartRest(exMeta) {
-    unlockTimerAudio();
+  function handleStartRest(exMeta, fromWatch = false) {
+    if (!fromWatch) unlockTimerAudio();
     const rest = exMeta.restSeconds ?? 90;
     restEndAtRef.current = performance.now() + rest * 1000;
     setRestTime(rest);
@@ -2986,6 +2989,57 @@ export function WorkoutSession({
     setResting(true);
     scheduleRestNotification(rest, exercisesById[exMeta.exerciseId]?.name);
   }
+
+  // Apple Watch (#189): the Watch shows this workout and logs sets into it
+  // through the iPhone app; every Watch action is applied here exactly as a
+  // tap on the phone would be. Handled through a ref so the listener always
+  // sees this render's log and exercises.
+  const watchActionRef = useRef(null);
+  watchActionRef.current = (action) => {
+    if (action.type === "requestState") return;
+    if (alreadyApplied(action.id)) {
+      ackWatchAction(action.id);
+      return;
+    }
+    const exMeta = action.exerciseId ? exercisesForSession.find((e) => e.exerciseId === action.exerciseId) : null;
+    if (action.type === "logSet" && exMeta) {
+      const applied = applyWatchSet(activeLog, exMeta.exerciseId, action.setIndex, action);
+      if (applied) {
+        setActiveLog(applied.log);
+        handleBlurKg(exMeta, applied.index, applied.log);
+      }
+    } else if (action.type === "addSet" && exMeta) {
+      addSet(exMeta);
+    } else if (action.type === "startRest" && exMeta) {
+      handleStartRest(exMeta, true);
+    } else if (action.type === "skipRest") {
+      setResting(false);
+    }
+    ackWatchAction(action.id);
+  };
+  useEffect(() => onWatchAction((action) => watchActionRef.current?.(action)), []);
+
+  useEffect(() => {
+    if (!watchBridgeAvailable()) return;
+    const restMsLeft = resting && restEndAtRef.current ? restEndAtRef.current - performance.now() : 0;
+    sendWorkoutToWatch(
+      buildWatchWorkout({
+        sessionId: daySession.workoutLogId || `${daySession.id || ""}:${daySession.label || ""}`,
+        label: daySession.label,
+        exercises: exercisesForSession.map((exMeta) => ({
+          id: exMeta.exerciseId,
+          name: exercisesById[exMeta.exerciseId]?.name,
+          target: `${exMeta.targetSets} × ${formatTargetReps(exMeta)}`,
+          timed: exMeta.targetType === "time",
+          restSeconds: exMeta.restSeconds ?? 90,
+          rows: rowsFor(exMeta),
+          previousSets: getPreviousSets(logsForClient, exMeta.exerciseId),
+        })),
+        rest: restMsLeft > 0 ? { endsAt: Date.now() + restMsLeft, total: restTotal, label: restLabel } : null,
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLog, exercisesForSession, resting, restTotal, restLabel, exercisesById, logsForClient]);
 
   return (
     <FullScreenOverlay>
@@ -8975,6 +9029,12 @@ export default function ClientApp() {
   const persistedSession = persistedSessionIsStale ? null : rawPersistedSession;
   const [tab, setTab] = useState(() => loadLastTab(currentUser.id));
   const [activeLog, setActiveLog] = useState(persistedSession?.activeLog || null); // {exerciseId: [sets]} while a session is open
+  // No session (finished, discarded, never started): the Apple Watch shows
+  // "Start on iPhone" and the iPhone app drops any Watch actions still
+  // waiting for this page (#189).
+  useEffect(() => {
+    if (!activeLog) clearWatchWorkout();
+  }, [activeLog]);
   // Which session is actually being run right now — defaults to todaySession
   // (the Home/Training-tab "Start" flow never passes one explicitly) but lets
   // the calendar hand in a DIFFERENT day's workout (e.g. running Friday's
