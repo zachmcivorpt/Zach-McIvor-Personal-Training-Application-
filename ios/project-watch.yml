@@ -1,0 +1,38 @@
+# The iPhone app WITH the Apple Watch app (REGRESSION_TESTS.md #188).
+# Codemagic generates from this file when the APEX_WATCH variable is "true"
+# (codemagic.yaml), otherwise from project.yml alone, so builds keep working
+# until the Watch App ID and its App Store profile exist:
+#   App ID: com.apexcoaching.platform.watchkitapp (no capabilities needed)
+#   Profile: App Store, for that App ID, available to Codemagic.
+# Keep the Watch app's version in step with the iPhone app's (project.yml).
+include:
+  - project.yml
+targets:
+  ApexCoach:
+    dependencies:
+      - target: ApexWatch
+  ApexWatch:
+    type: application
+    platform: watchOS
+    deploymentTarget: "9.0"
+    sources:
+      - ApexWatch
+    info:
+      path: ApexWatch-Info.plist
+      properties:
+        CFBundleDisplayName: APEX
+        CFBundleShortVersionString: "1.0.4"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.apexcoaching.platform
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.apexcoaching.platform.watchkitapp
+        MARKETING_VERSION: "1.0.4"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "4"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: false
+        SKIP_INSTALL: YES

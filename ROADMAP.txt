@@ -262,6 +262,18 @@ OWNER TO DO, in order
        fine) and that subscriptions renew automatically; submit.
    21. Once 1.0.4 is approved and out: Subscriptions > Go live, then start
        marketing (the launch).
+   W. APPLE WATCH APP (#188, built 2026-11-07, OFF until these are done —
+      clients log their coached workout's sets from the Watch):
+      a. developer.apple.com > Identifiers > + App ID
+         "com.apexcoaching.platform.watchkitapp" (no capabilities).
+      b. Profiles > + App Store profile for that App ID; make it available
+         to Codemagic (as the iPhone app's profile is).
+      c. codemagic.yaml: APEX_WATCH: "true" (ships with the next iOS build:
+         decide whether that's 1.0.4 or a later version — adding it to an
+         already-submitted 1.0.4 means a new build + review).
+      d. TestFlight: the Watch check in REGRESSION_TESTS.md
+         ("Apple Watch logging on a real Watch"). App Store Connect: add
+         Apple Watch screenshots for that version.
 
 Known limits (for later)
   - Resuming a paused All Access program re-lays its earlier weeks from the

@@ -296,7 +296,9 @@ export default function CoachMessages() {
 
   return (
     <div
-      className={`h-screen md:h-screen flex flex-col -mt-14 -mb-16 pt-14 ${typing ? "pb-0" : "pb-16"} md:mt-0 md:mb-0 md:pt-0 md:pb-0`}
+      // Fills the visible screen under CoachShell's bars, safe areas included
+      // (#189: 100vh ran under Safari's bars on iPad/iPhone).
+      className={`coach-full-height flex flex-col -mt-[calc(3.5rem+env(safe-area-inset-top))] -mb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top))] ${typing ? "pb-0" : "pb-[calc(4rem+env(safe-area-inset-bottom))]"} md:-mt-[env(safe-area-inset-top)] md:-mb-[env(safe-area-inset-bottom)] md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)]`}
       style={{ backgroundColor: CLIENT_DARK_BG }}
     >
       <div className={`px-4 pt-5 pb-4 md:px-8 md:pt-8 shrink-0 ${openClientId ? "hidden md:block" : ""}`}>

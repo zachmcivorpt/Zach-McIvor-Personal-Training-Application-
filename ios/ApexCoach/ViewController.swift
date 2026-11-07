@@ -154,6 +154,8 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         config.userContentController.add(self, name: "apexTheme")
         config.userContentController.add(self, name: "apexHealth")
         config.userContentController.add(self, name: "apexRest")
+        // Apple Watch workout logging (#188, WatchBridge.swift).
+        config.userContentController.add(self, name: "apexWatch")
         if PurchasesConfig.isConfigured {
             config.userContentController.add(self, name: "apexPurchases")
         }
@@ -199,6 +201,11 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         NotificationCenter.default.addObserver(
             self, selector: #selector(checkPageAlive), name: UIApplication.didBecomeActiveNotification, object: nil
         )
+        // Watch sets logged while the phone was locked reach the page now (#188).
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(watchCatchUp), name: UIApplication.didBecomeActiveNotification, object: nil
+        )
+        WatchBridge.shared.activate()
 
         spinner.color = isDarkBackground ? .lightGray : .gray
         spinner.center = view.center
@@ -222,6 +229,8 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         wv.scrollView.bounces = !isEdgeToEdge
         health.webView = wv
         purchases.webView = wv
+        WatchBridge.shared.webView = wv
+        WatchBridge.shared.webViewReplaced()
         return wv
     }
 
@@ -440,6 +449,10 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         webView.evaluateJavaScript("window.__apexNativePush && window.__apexNativePush.setToken(\"\(escaped)\");")
     }
 
+    @objc private func watchCatchUp() {
+        WatchBridge.shared.pageMayHaveMissedActions()
+    }
+
     // window.webkit.messageHandlers.apexTheme.postMessage({ dark }) —
     // src/App.jsx posts this once on mount and again every time the
     // active route changes.
@@ -450,6 +463,10 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         }
         if message.name == "apexRest" {
             if let body = message.body as? [String: Any] { RestTimerBridge.handle(body) }
+            return
+        }
+        if message.name == "apexWatch" {
+            if let body = message.body as? [String: Any] { WatchBridge.shared.handle(body) }
             return
         }
         if message.name == "apexPurchases" {
@@ -478,6 +495,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexTheme")
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexHealth")
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexRest")
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexWatch")
         if PurchasesConfig.isConfigured {
             webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexPurchases")
         }

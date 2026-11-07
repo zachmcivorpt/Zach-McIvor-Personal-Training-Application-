@@ -613,6 +613,32 @@ any Train Solo work from now on:
 - The logo shows this phone's last confirmed answer immediately
   (`appLogo.js`); only a first-ever open waits for the server.
 
+## Apple Watch logging (#188)
+
+- The Watch app (`ios/ApexWatch/`) never holds the workout: the phone's
+  `WorkoutSession` does. Every change goes to the Watch through
+  `src/lib/watchBridge.js` → `WatchBridge.swift`; every Watch action comes
+  back as an `apexWatch` event applied exactly like a tap (same PR check,
+  live session, rest notification). Never add a second save path from the
+  Watch.
+- Watch actions are kept natively until the page acks them and can arrive
+  twice; the page drops repeats by id (`alreadyApplied`). Keep new actions
+  safe to repeat and acked.
+- Built only when Codemagic's `APEX_WATCH` is "true" (`ios/project-watch.yml`
+  includes project.yml); keep its version in step with project.yml.
+
+## Coach console on iPhone, iPad and Mac (#189)
+
+- Breakpoints: phone (< md) top bar + bottom tab bar; iPad (md–xl,
+  768–1279px) a labelled icon rail; laptop/desktop (xl+) the full sidebar.
+  Clients: cards below lg, table from lg. Check new coach screens at
+  390, 820, 1180 and 1440 wide.
+- Full-height coach screens use `coach-full-height` (dvh) or `h-full` of a
+  fixed parent, never `h-screen`/`100vh` (it runs under Safari's bars).
+  Bars and content keep the safe-area insets.
+- The tab fade is opacity-only with no fill-mode: a transform or a filled
+  animation on the tab wrapper would trap the full-screen overlays inside it.
+
 ## Bottom sheets and the keyboard (#138)
 
 - `BottomSheet` continues its own surface (and backdrop) below the visible
