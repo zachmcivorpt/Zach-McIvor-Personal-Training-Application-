@@ -61,12 +61,16 @@ function stripeSourceFromSubscriptions(subs, now = Date.now()) {
     .map((sub) => {
       const plan = planOfSubscription(sub);
       if (!plan) return null;
-      const cancelled = ACTIVE_STRIPE.has(sub.status) && !!(sub.cancel_at_period_end || sub.cancel_at);
+      // Cancelled (cancel at period end / a cancel date): still paid up
+      // until it ends (owner decision 2026-11-07, #187 — replaces #156's
+      // "ends straight away"); it just won't renew.
+      const periodEnd = periodEndMs(sub);
+      const cancelAtMs = sub.cancel_at ? sub.cancel_at * 1000 : null;
       return {
         tier: PLANS[plan].tier,
         plan,
-        status: cancelled ? "cancelled" : sub.status,
-        expiresAt: periodEndMs(sub),
+        status: sub.status,
+        expiresAt: cancelAtMs && (periodEnd == null || cancelAtMs < periodEnd) ? cancelAtMs : periodEnd,
         cancelAtPeriodEnd: !!sub.cancel_at_period_end,
         cancelAt: sub.cancel_at ? sub.cancel_at * 1000 : null,
         trialEnd: sub.trial_end ? sub.trial_end * 1000 : null,
@@ -118,12 +122,13 @@ function appleSourceFromSubscriber(subscriber, now = Date.now()) {
     const expiresAt = expires ? Date.parse(expires) : null; // null = lifetime / promotional without end
     const sub = subs[productId] || {};
     const refunded = !!sub.refunded_at;
-    const cancelled = !refunded && !!sub.unsubscribe_detected_at;
     const notExpired = expiresAt == null || expiresAt > now;
-    const paidUp = !refunded && !cancelled && notExpired;
+    // Cancelled (auto-renew off): still paid up until it expires (#187 —
+    // replaces #156's "ends straight away"); willRenew false says so.
+    const paidUp = !refunded && notExpired;
     const source = {
       tier,
-      status: refunded ? "refunded" : cancelled && notExpired ? "cancelled" : !paidUp ? (sub.billing_issues_detected_at ? "billing_issue" : "expired") : sub.period_type === "trial" ? "trialing" : "active",
+      status: refunded ? "refunded" : !paidUp ? (sub.billing_issues_detected_at ? "billing_issue" : "expired") : sub.period_type === "trial" ? "trialing" : "active",
       expiresAt,
       productId: productId || null,
       store: sub.store || null,
@@ -235,18 +240,9 @@ async function syncStripeCustomer(db, stripe, customerId, uidHint) {
       }
     }
   }
-  // Cancelled from the portal (cancel at period end / a cancel date): end it
-  // in Stripe now, so nothing lingers as "active" (#156). No refund.
-  for (const s of subs) {
-    if (ACTIVE_STRIPE.has(s.status) && (s.cancel_at_period_end || s.cancel_at)) {
-      try {
-        const ended = await stripe.subscriptions.cancel(s.id);
-        s.status = ended?.status || "canceled";
-      } catch (err) {
-        console.error("immediate cancel failed", s.id, err.message);
-      }
-    }
-  }
+  // Cancelled from the portal (cancel at period end / a cancel date): left
+  // to run to the end of the period they paid for (#187). Stripe ends it
+  // then by itself, and its webhook makes the account Free.
   const source = stripeSourceFromSubscriptions(subs);
   await writeSource(db, uid, "stripe", source, { stripeCustomerId: customerId });
   return uid;

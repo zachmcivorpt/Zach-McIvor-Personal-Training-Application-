@@ -2922,6 +2922,25 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Tests**: `functions/soloSubscriptions.test.js` "subscribing again after a cancel (#185)" (5): cancelled, cancel at period end / cancel date, past_due / unpaid → allowed; still paid up (webhook pending) → refused; Stripe unreachable → refused. 3 fail on the old code; the 2 refusal cases pass on both. The existing #158 priorCheckout tests are unchanged.
 - **Scope**: Train Solo website subscriptions (server) only.
 
+### 187. Train Solo: cancelling keeps the plan until the period ends; one suggested program (owner, 2026-11-07)
+- **Change 1** (owner decision, replaces #156): cancelling Plus or All Access no longer ends it at once. The plan stays until the end of the period already paid for ("Won't renew · ends …" in Profile and the membership sheet), then becomes Free. Refunds, failed payments and expiry still lock at once.
+  - Server (`functions/soloSubscriptions.js`, functions workflow):
+    - **Stripe:** a subscription set to cancel at period end, or with a cancel date, keeps its real status (active / trialing). Its `expiresAt` is the period end, or the cancel date if earlier.
+    - **Stripe:** `syncStripeCustomer` no longer ends a cancelled subscription in Stripe straight away; Stripe ends it at the period end and its webhook makes the account Free.
+    - **Apple:** `unsubscribe_detected_at` inside the period stays paid up until expiry, with `willRenew: false`.
+  - App (`soloAccess.js` `sourceActive`): a won't-renew / cancel-at-period-end source is paid up until `expiresAt`; a `cancelAt` in the past ends it.
+  - Wording: the membership sheet says "If you cancel, it stays until the end of the period you've paid for."; the fine print before buying says the same; Terms section 17 updated, effective 7 November 2026. Deleting an account still cancels a website subscription at once (unchanged).
+  - Firestore rules unchanged: `allAccessUntil` / `plusUntil` now run to the period end, so paid content stays readable until then.
+- **Change 2** (owner): the Catalogue and the consultation screen suggest ONE program (the best match), not two. `recommendForAnswers` defaults to `limit: 1`; the "Closest to your answers" line reads "this is the nearest".
+- **Tests**: 7 rewritten to the new rule, all failing on the old code:
+  - **Server:** a Stripe cancel at period end / cancel date / cancelled trial runs to its end, then Free; Apple won't-renew runs to expiry, then Free.
+  - **Server:** a cancelled subscription is not ended in Stripe early.
+  - **App:** both stores, trial or paid; refund / billing issue / expiry still lock; Profile shows "Won't renew · ends …"; new wording, no "straight away".
+  - **Membership lifecycle:** server and app agree on every store state.
+
+  Recommendations: 2 new (one by default; both screens ask for one); both fail on the old code; the tie-break test now asks for 2 explicitly. Full suite 1160 passed.
+- **Scope**: Train Solo only. Existing members whose Stripe subscription was already ended under #156 aren't affected; Apple members are re-read on their next open.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

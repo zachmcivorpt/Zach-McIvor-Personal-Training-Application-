@@ -54,13 +54,13 @@ export function tierAtLeast(tier, needed) {
 
 // One store's section is paid up when it names a real tier, its status is
 // active or trialing, and its expiry (when it has one) hasn't passed.
-// Cancelled is not paid up (#156, owner rule: cancelling ends access
-// straight away), even before the server marks it "cancelled": Apple's
-// willRenew false, or a Stripe cancel at period end / cancel date.
+// A cancelled plan (Apple's willRenew false, a Stripe cancel at period end)
+// stays paid up until the end of the period it was paid for (owner decision
+// 2026-11-07, #187 — replaces #156); a Stripe cancel date ends it then.
 export function sourceActive(source, now = Date.now()) {
   if (!source || !RANK[source.tier]) return false;
   if (source.status && source.status !== "active" && source.status !== "trialing") return false;
-  if (source.willRenew === false || source.cancelAtPeriodEnd || source.cancelAt) return false;
+  if (source.cancelAt != null && !(Number(source.cancelAt) > now)) return false;
   if (source.expiresAt != null && !(Number(source.expiresAt) > now)) return false;
   return true;
 }
