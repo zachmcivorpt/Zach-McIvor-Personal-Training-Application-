@@ -525,7 +525,7 @@ any Train Solo work from now on:
   the member's for good, whatever their plan (purchases win over All Access
   enrolments, never locked). Never the website's price inside the iPhone
   app (3.1.1).
-- **Single programs in the iPhone app** (#189): an App Store
+- **Single programs in the iPhone app** (#191): an App Store
   non-consumable per program, product id `apex_solo_program_<programId>`
   (created by the owner in App Store Connect). The app asks Apple for
   prices (`loadProgramPrices` → bridge `programPrices`) and shows Apple's

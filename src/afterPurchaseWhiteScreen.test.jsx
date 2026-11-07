@@ -91,7 +91,7 @@ describe("the native fix itself (ViewController.swift, #161)", () => {
   const swift = () => readFileSync("ios/ApexCoach/ViewController.swift", "utf8");
   it("after every purchase sheet: a solid screen at once, then a brand-new web view on the same page", () => {
     const body = swift().match(/private func purchaseSheetDidFinish\(outcome: \[String: Any\]\?\) \{[\s\S]*?\n {4}\}\n/)[0];
-    // (#189: "Confirming your purchase" for a single program.)
+    // (#191: "Confirming your purchase" for a single program.)
     expect(body).toMatch(/showPurchaseStageCover\(title: bought \? \(isProgram \? "Confirming your purchase" : "Confirming your membership"\)/);
     expect(body).toMatch(/rebuildWebView\(\)/);
     // (#166: or Train Solo Home after Manage Subscriptions)

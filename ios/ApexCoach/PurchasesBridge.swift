@@ -212,7 +212,7 @@ final class PurchasesBridge {
         }
     }
 
-    // Single programs bought in the app (#189): one App Store non-consumable
+    // Single programs bought in the app (#191): one App Store non-consumable
     // per program, `apex_solo_program_<programId>`, created in App Store
     // Connect. A program without one simply has no price in the app.
     static let programPrefix = "apex_solo_program_"

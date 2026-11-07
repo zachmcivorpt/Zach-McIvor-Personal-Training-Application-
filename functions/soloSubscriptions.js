@@ -384,7 +384,7 @@ async function syncApple(db, uid) {
   await recordApplePrograms(db, uid, subscriber);
 }
 
-// Single programs bought in the iPhone app (#189): App Store
+// Single programs bought in the iPhone app (#191): App Store
 // non-consumables named `apex_solo_program_<programId>`, which RevenueCat
 // lists under the subscriber's non_subscriptions. One entry per program
 // (the first purchase), from the App Store only.

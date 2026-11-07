@@ -790,7 +790,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         PurchaseTrace.log("sheet closed · bought \(bought) · app \(UIApplication.shared.applicationState.rawValue) · picture check \(pictureCheckName)")
         freshPageURL = nil
         purchaseSheetOpen = false
-        // A single program (#189) says so; a membership as before.
+        // A single program (#191) says so; a membership as before.
         let isProgram = outcome?["kind"] as? String == "program"
         showPurchaseStageCover(title: bought ? (isProgram ? "Confirming your purchase" : "Confirming your membership") : "One moment", detail: bought ? "One moment." : "")
         awaitingFreshPage = true
