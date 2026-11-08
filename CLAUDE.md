@@ -715,6 +715,7 @@ any Train Solo work from now on:
 - **Order**: signed-out visitors see the first page (`/start`): a glowing see-through APEX mark, "Train solo. Train smarter." with a faded echo, page dots and a ring arrow. Then the chooser (`/start?step=choose`, `START_CHOOSER`), then the log-in screens.
 - **Back links**: every log-in screen's Back goes to the chooser, and Coaching's `/login` has one too.
 - **Shared parts**: use `LitLogo`, `GlowLogo` and `EchoHeading` from `src/components/LoginHero.jsx`. Never put a CSS drop-shadow on the mark PNG: it draws a box.
+- **Chooser** (#208): `LitLogo crisp` (glow from blurred copies, no reflection) and frosted-glass buttons (`GLASS`/`GLASS_STRONG`). Logo PNGs must have no faint near-transparent pixels (they show as a box).
 - **Styling only**: buttons and fields are unchanged. The coach's login background still shows when one is set.
 
 ## Bottom sheets and the keyboard (#138)

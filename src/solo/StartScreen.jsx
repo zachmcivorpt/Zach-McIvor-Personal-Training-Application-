@@ -53,28 +53,46 @@ function FirstPage({ appDesign }) {
   );
 }
 
+// The chooser's two buttons are frosted glass (#208, owner): see-through
+// fill, hairline border, a lit top edge; Coaching a little brighter.
+const GLASS = {
+  background: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))",
+  border: "1px solid rgba(255,255,255,0.16)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
+  WebkitBackdropFilter: "blur(24px)",
+};
+const GLASS_STRONG = {
+  background: "linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.08))",
+  border: "1px solid rgba(255,255,255,0.32)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.35), 0 0 24px rgba(255,255,255,0.10)",
+  WebkitBackdropFilter: "blur(24px)",
+};
+
 function Chooser({ appDesign }) {
   return (
     <SoloBackgroundFrame appDesign={appDesign}>
       <div className="flex-1 flex items-center justify-center pt-10">
-        <LitLogo width={200} reflection />
+        <LitLogo width={200} crisp />
       </div>
 
       <div className="flex flex-col gap-4 w-full max-w-sm mx-auto pb-4">
         <Link
           to="/login"
-          className="block bg-white text-black font-bold py-4 rounded-2xl text-center active:scale-[0.98] transition-transform"
-          style={{ boxShadow: "0 0 22px rgba(255,255,255,0.35)" }}
+          className="block text-white font-bold py-4 rounded-2xl text-center backdrop-blur-xl active:scale-[0.98] transition-transform"
+          style={GLASS_STRONG}
+          data-testid="choose-coaching"
         >
           <span className="flex items-center justify-center gap-2">
             Coaching <ChevronRight size={18} />
           </span>
-          <span className="block text-black/50 text-xs font-medium mt-1">Train with your coach</span>
+          <span className="block text-white/60 text-xs font-medium mt-1">Train with your coach</span>
         </Link>
 
         <Link
           to="/solo/register"
-          className="block bg-white/10 border border-white/15 text-white font-bold py-4 rounded-2xl text-center active:scale-[0.98] transition-transform"
+          className="block text-white font-bold py-4 rounded-2xl text-center backdrop-blur-xl active:scale-[0.98] transition-transform"
+          style={GLASS}
+          data-testid="choose-solo"
         >
           <span className="flex items-center justify-center gap-2">
             Train Solo <ChevronRight size={18} />
