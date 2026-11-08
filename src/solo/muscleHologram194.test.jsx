@@ -25,10 +25,11 @@ describe("3D muscle map (#194)", () => {
     expect(buf.subarray(0, 4).toString()).toBe("glTF");
     const jsonLen = buf.readUInt32LE(12);
     const json = JSON.parse(buf.subarray(20, 20 + jsonLen).toString());
-    const prims = json.meshes.flatMap((m) => m.primitives);
+    // #206: Z-Anatomy, one mesh per muscle chunk, every muscle vertex tagged.
     const muscles = json.meshes.filter((m) => m.name !== "skin");
-    expect(muscles.length).toBeGreaterThan(30);
-    expect(prims.filter((p) => p.attributes._REGION).length).toBe(prims.length);
+    expect(muscles.length).toBeGreaterThan(20);
+    for (const m of muscles) for (const p of m.primitives) expect(p.attributes._REGION, m.name).toBeDefined();
+    expect(json.extensionsRequired).toContain("EXT_meshopt_compression");
     expect(buf.length).toBeLessThan(8 * 1024 * 1024);
   });
 
