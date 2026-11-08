@@ -276,10 +276,23 @@ export default function SoloCalendarScreen() {
                 className={`${i > 0 ? "mt-6" : ""} rounded-2xl transition-colors duration-150`}
                 style={{ scrollMarginTop: 8, ...(isDropTarget ? { boxShadow: `0 0 0 2px ${MEASURE_BLUE}`, backgroundColor: `${MEASURE_BLUE}14` } : null) }}
               >
-                <p className="font-bold text-base mb-2" style={{ color: isToday ? accent : t.text }}>
-                  {isToday ? "Today, " : ""}
-                  {date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-                </p>
+                {/* The date as a large figure, today ringed and lit (#196). */}
+                <div className="flex items-center gap-3 mb-2">
+                  <span
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-[17px] font-extrabold tabular-nums shrink-0"
+                    style={{
+                      color: isToday ? accent : t.text,
+                      border: `1.5px solid ${isToday ? accent : "transparent"}`,
+                      boxShadow: isToday && t.bg !== "#FFFFFF" ? `0 0 12px ${accent}66` : "none",
+                    }}
+                  >
+                    {date.getDate()}
+                  </span>
+                  <p className="font-bold text-[12px] uppercase tracking-[0.12em]" style={{ color: isToday ? accent : t.textMuted }}>
+                    {isToday ? "Today, " : ""}
+                    {date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+                  </p>
+                </div>
                 <div className="mb-3" style={{ borderBottom: `1px solid ${t.panelBorder}` }} />
                 <div className="space-y-2.5">
                   {items.length === 0 && (

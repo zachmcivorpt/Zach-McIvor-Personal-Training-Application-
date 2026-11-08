@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { visibleCategories, visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, recommendForAnswers, formatAudPrice } from "./recommendations";
@@ -181,24 +181,31 @@ export default function SoloCatalogueScreen() {
               {recommended.map((p) => {
                 const weeks = p.weekOnePreview?.totalWeeks || 0;
                 return (
+                  // The match, full width (#196): its artwork large, a blue
+                  // glow, YOUR MATCH, the name in capitals.
                   <button
                     key={p.id}
                     onClick={() => openProgram(p.id)}
-                    className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
-                    style={soloGlass(t)}
+                    className="relative w-full block rounded-[26px] overflow-hidden text-left"
+                    style={{ border: "1px solid rgba(47,143,255,0.6)", boxShadow: t.bg === "#FFFFFF" ? "0 10px 30px rgba(47,143,255,0.18)" : "0 0 36px rgba(47,143,255,0.32)" }}
                   >
-                    <SoloArtwork program={p} t={t} className="w-16 h-16 rounded-xl shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold leading-snug">{p.name}</p>
-                      <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
-                        {p.level}
-                        {weeks > 0 ? ` · ${weeks} weeks` : ""}
-                      </p>
-                    </div>
-                    {priceLabel(p, { live, allAccess: soloHasAllAccess, owned: boughtIds.has(p.id), applePrices }) && (
-                      <p className="text-sm font-bold whitespace-nowrap">{priceLabel(p, { live, allAccess: soloHasAllAccess, owned: boughtIds.has(p.id), applePrices })}</p>
-                    )}
-                    <ChevronRight size={16} color={t.textFaint} className="shrink-0 -ml-1" />
+                    <SoloArtwork program={p} t={t} logoClassName="h-9 w-auto" className="w-full aspect-[4/3]" />
+                    <span aria-hidden="true" className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(5,5,6,0) 40%, rgba(5,5,6,0.88) 100%)" }} />
+                    <span className="absolute left-4 top-4 px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-[0.12em] text-white" style={{ backgroundColor: "#2F8FFF" }}>
+                      Your match
+                    </span>
+                    <span className="absolute left-4 right-4 bottom-4 flex items-end justify-between gap-3 text-white">
+                      <span className="min-w-0">
+                        <span className="block text-[24px] font-extrabold uppercase leading-[1.02]">{p.name}</span>
+                        <span className="block text-[11px] font-bold uppercase tracking-[0.12em] mt-1.5 text-white/70">
+                          {p.level}
+                          {weeks > 0 ? ` · ${weeks} weeks` : ""}
+                        </span>
+                      </span>
+                      {priceLabel(p, { live, allAccess: soloHasAllAccess, owned: boughtIds.has(p.id), applePrices }) && (
+                        <span className="text-sm font-bold whitespace-nowrap">{priceLabel(p, { live, allAccess: soloHasAllAccess, owned: boughtIds.has(p.id), applePrices })}</span>
+                      )}
+                    </span>
                   </button>
                 );
               })}

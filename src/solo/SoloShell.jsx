@@ -34,7 +34,7 @@ const TABS = [
 // (the first tab and the default).
 // The tab bar's height (10px padding + icon, label and gaps + 10px + the
 // home-indicator inset), reserved under the page content.
-const NAV_SPACE = "calc(68px + env(safe-area-inset-bottom,0px))";
+const NAV_SPACE = "calc(96px + env(safe-area-inset-bottom,0px))";
 
 export default function SoloShell() {
   const location = useLocation();
@@ -97,13 +97,20 @@ export default function SoloShell() {
           sticky, blurred bar could come loose and float up the screen
           during a momentum scroll. The content above reserves NAV_SPACE so
           nothing sits hidden behind it. */}
-      <div
-        className="fixed left-0 right-0 bottom-0 z-40 flex backdrop-blur-xl"
+      {/* A floating glass bar (#196, the approved mock-up): uppercase
+          labels, the open tab bright with a glowing blue dot. */}
+      <nav
+        aria-label="Train Solo"
+        className="fixed z-40 grid grid-cols-5 items-center backdrop-blur-xl"
         style={{
-          borderTop: `1px solid ${t.navBorder}`,
+          left: 12,
+          right: 12,
+          bottom: "calc(14px + env(safe-area-inset-bottom,0px))",
+          height: 64,
+          borderRadius: 32,
+          border: `1px solid ${t.navBorder}`,
           backgroundColor: t.navBg,
-          paddingBottom: "calc(10px + env(safe-area-inset-bottom,0px))",
-          paddingTop: 10,
+          boxShadow: dark ? "0 10px 40px rgba(0,0,0,0.5)" : "0 10px 30px rgba(20,19,15,0.08)",
         }}
       >
         {TABS.map((item) => {
@@ -112,6 +119,7 @@ export default function SoloShell() {
           return (
             <button
               key={item.id}
+              aria-current={active ? "page" : undefined}
               onClick={() => {
                 setTab(item.id);
                 // Remembered on this history entry, so coming back from a
@@ -119,16 +127,17 @@ export default function SoloShell() {
                 // rather than the default.
                 navigate(location.pathname, { replace: true, state: { soloTab: item.id } });
               }}
-              className="flex-1 flex flex-col items-center gap-1 py-1"
+              className="h-full flex flex-col items-center justify-center gap-1"
             >
-              <Icon size={20} color={active ? t.text : t.textFaint} strokeWidth={active ? 2.3 : 2} />
-              <span className="text-[10px] font-semibold" style={{ color: active ? t.text : t.textFaint }}>
+              <Icon size={19} color={active ? t.text : t.textFaint} strokeWidth={active ? 2.2 : 1.8} style={active && dark ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.7))" } : undefined} />
+              <span className="text-[8.5px] font-bold uppercase tracking-[0.1em] leading-none" style={{ color: active ? t.text : t.textFaint }}>
                 {item.label}
               </span>
+              <span className="w-1 h-1 rounded-full" style={{ background: active ? "#2F8FFF" : "transparent", boxShadow: active ? "0 0 8px #2F8FFF" : "none" }} />
             </button>
           );
         })}
-      </div>
+      </nav>
     </div>
   );
 }

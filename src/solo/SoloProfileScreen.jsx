@@ -30,7 +30,7 @@ import SoloPurchaseLog from "./SoloPurchaseLog";
 // Train Solo's one notification: a weekly push to log body stats and take
 // progress photos (soloWeeklyCheckInReminder in functions/index.js).
 export default function SoloProfileScreen() {
-  const { soloCurrentUser, soloLogout, soloPurchases, soloPrograms, deleteMySoloAccount, setSoloReminderPref, soloAccess, soloTier, soloGatesLive, soloEntitlement, soloTestAccount } = useSoloApp();
+  const { soloCurrentUser, soloLogout, soloPurchases, soloPrograms, soloWorkoutLogs, deleteMySoloAccount, setSoloReminderPref, soloAccess, soloTier, soloGatesLive, soloEntitlement, soloTestAccount } = useSoloApp();
   const { openPaywall, membershipChecking } = useSoloPaywall();
   // Apple Health on Progress is a Plus feature once subscriptions launch.
   const healthAllowed = canUse("appleHealthProgress", soloAccess);
@@ -130,11 +130,52 @@ export default function SoloProfileScreen() {
         }
       />
 
-      <div className="rounded-2xl px-4 py-4 mb-5" style={soloGlass(t)}>
-        <p className="text-sm font-bold">{soloCurrentUser?.name || "there"}</p>
-        <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+      {/* Ringed initials, the name large, then their own totals (#196). */}
+      <div className="flex flex-col items-center text-center pt-2 pb-5">
+        <span className="relative w-[104px] h-[104px] flex items-center justify-center" style={{ filter: dark ? "drop-shadow(0 0 12px rgba(255,255,255,0.45))" : "none" }}>
+          <svg aria-hidden="true" viewBox="0 0 86 86" className="absolute inset-0 w-full h-full" style={{ color: t.text }}>
+            <circle cx="43" cy="43" r="38" fill="none" stroke="currentColor" strokeOpacity=".25" strokeWidth="1" />
+            <path d="M43 5 A38 38 0 0 1 81 43" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M43 81 A38 38 0 0 1 5 43" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="43" cy="43" r="30" fill="none" stroke="currentColor" strokeOpacity=".5" strokeWidth="1" strokeDasharray="2 5" />
+          </svg>
+          <span className="text-[24px] font-extrabold">{initials(soloCurrentUser?.name)}</span>
+        </span>
+        <p className="text-[22px] font-extrabold uppercase tracking-[0.02em] mt-3 leading-tight">{soloCurrentUser?.name || "there"}</p>
+        <p className="text-xs mt-1" style={{ color: t.textMuted }}>
           {soloCurrentUser?.email}
         </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="rounded-2xl px-4 py-3" style={soloGlass(t)}>
+          <p className="text-[26px] font-bold leading-none tabular-nums">{(soloWorkoutLogs || []).length}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] mt-1.5" style={{ color: t.textMuted }}>
+            Sessions logged
+          </p>
+        </div>
+        <div className="rounded-2xl px-4 py-3" style={soloGlass(t)}>
+          <p className="text-[26px] font-bold leading-none tabular-nums">{kgLifted(soloWorkoutLogs).toLocaleString()}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] mt-1.5" style={{ color: t.textMuted }}>
+            Kg lifted
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center justify-between py-3 mb-5 border-y" style={{ borderColor: t.panelBorder }}>
+        <span className="text-sm font-semibold">Appearance</span>
+        <span className="flex gap-1.5" role="group" aria-label="Appearance">
+          {[["Black", true], ["White", false]].map(([label, isDark]) => (
+            <button
+              key={label}
+              type="button"
+              aria-pressed={dark === isDark}
+              onClick={() => dark !== isDark && toggleSoloTheme()}
+              className="h-7 px-3 rounded-full text-[10px] font-extrabold uppercase tracking-[0.1em]"
+              style={dark === isDark ? { backgroundColor: t.text, color: t.bg } : { border: `1px solid ${t.panelBorder}`, color: t.textMuted }}
+            >
+              {label}
+            </button>
+          ))}
+        </span>
       </div>
 
       {flagged && (
@@ -319,4 +360,16 @@ export default function SoloProfileScreen() {
       {purchaseLogOpen && <SoloPurchaseLog onClose={() => setPurchaseLogOpen(false)} />}
     </div>
   );
+}
+
+function initials(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] || "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase() || "–";
+}
+
+// Total kg lifted from their own logged sets, in full kg (#151).
+function kgLifted(logs) {
+  let kg = 0;
+  for (const log of logs || []) for (const e of log.entries || []) for (const set of e.sets || []) kg += (Number(set.weight) || 0) * (Number(set.reps) || 0);
+  return Math.round(kg);
 }

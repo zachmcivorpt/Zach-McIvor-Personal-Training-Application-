@@ -19,6 +19,7 @@ vi.mock("../client/ClientApp", async () => {
   return {
     ClientThemeContext: React.createContext(false),
     RestBar: () => null,
+    useClientDark: () => true,
     ExerciseDetailSheet: () => null,
     AddExerciseSheet: () => null,
     sectionedExercises: (list) => [{ key: "main", showHeader: false, items: list.map((exMeta, i) => ({ exMeta, i })) }],

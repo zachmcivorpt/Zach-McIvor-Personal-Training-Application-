@@ -161,8 +161,13 @@ rather than inventing new colors per screen:
   fallback), glass detail card from `muscleDetail` (own logs only).
 - **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
   of Progress, not in My Training.
+- **Interface style** (#196, owner-approved mock-up, ACG-inspired, blue not
+  yellow): logo centred and lit, titles/labels in capitals, floating glass tab
+  bar with a blue dot, black-and-white gym photo on the day's session with a
+  lit ring Start, the rest timer as a blue ring (`SoloRestRing`), the
+  suggested program full width with a blue glow, today ringed. Both themes.
 - **Tab headers** (#174): every tab opens with `SoloPageHeader`
-  (SoloUI.jsx): the APEX mark top left, then the title at one size and
+  (SoloUI.jsx): the APEX mark centred at the top (#196), then the title at one size and
   position — "Welcome, <first name>" on My Training, then Progress,
   Calendar, Catalogue, Profile. Spacing is tight (#176): logo → title
   10px, title → first section 8px; My Training's day heading 16px
