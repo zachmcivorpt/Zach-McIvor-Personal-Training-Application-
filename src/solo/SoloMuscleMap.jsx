@@ -3,7 +3,7 @@ import { Card } from "../components/ui";
 import { SOLO_THEMES } from "./SoloThemeContext";
 import { MuscleBody, TRAINED_RED, READY_BLUE } from "./MuscleBody";
 import { trainedMuscles, intensity, muscleSummary, muscleDetail, MUSCLE_LABELS } from "./muscleMap";
-import MuscleHologram, { webglAvailable } from "./MuscleHologram";
+import MuscleHologram, { webglAvailable, STAGE_RED, STAGE_ORANGE } from "./MuscleHologram";
 
 // The muscle map on Progress (#148): one glass card with the body (Front /
 // Back), two large figures, and what's trained (red) and ready (blue).
@@ -37,6 +37,15 @@ const HOLO_LIGHT = {
 };
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+// 2 = trained in the last 48 h, 1 = 48–72 h (almost recovered), 0 = ready.
+export function recoveryStage(entry, now) {
+  if (!(entry?.sets > 0) || !entry.last) return 0;
+  const h = (now - entry.last) / 3600000;
+  if (h < 48) return 2;
+  if (h < 72) return 1;
+  return 0;
+}
+
 function lastTrainedDay(ts, now) {
   if (!ts) return "–";
   const d = new Date(ts);
@@ -61,14 +70,16 @@ const pill = (HOLO) => ({
   WebkitBackdropFilter: "blur(14px)",
 });
 
-function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready, since, now, onUnavailable, dark = true }) {
+function MuscleMap3DPanel({ logs, exercisesById, trained, worked, ready, since, now, onUnavailable, dark = true }) {
   const HOLO = dark ? HOLO_DARK : HOLO_LIGHT;
   const [view, setView] = useState("front");
   const [spin, setSpin] = useState(false);
   const [selected, setSelected] = useState(() => worked[0] || "chest");
   const detail = useMemo(() => muscleDetail(selected, logs, exercisesById, { now }), [selected, logs, exercisesById]); // eslint-disable-line react-hooks/exhaustive-deps
-  const recovering = trained[selected]?.sets > 0;
-  const hoursAgo = recovering ? Math.max(0, Math.round((now - trained[selected].last) / 3600000)) : 0;
+  // Recovery stage per muscle (#202): last 48 h red, 48–72 h orange, else ready.
+  const stages = useMemo(() => Object.fromEntries(Object.keys(trained).map((m) => [m, recoveryStage(trained[m], now)])), [trained]); // eslint-disable-line react-hooks/exhaustive-deps
+  const stage = stages[selected] || 0;
+  const hoursAgo = stage ? Math.max(0, Math.round((now - trained[selected].last) / 3600000)) : 0;
   const turn = (v) => {
     setSpin(false);
     setView(v);
@@ -109,8 +120,12 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
       <div className="relative -mx-5 mt-2">
         <div className="absolute left-5 top-3 z-10 flex flex-col gap-1.5 text-[11px] pointer-events-none" style={{ color: HOLO.muted }}>
           <span className="flex items-center gap-1.5">
-            <i className="inline-block w-2 h-2 rounded-full" style={{ background: HOLO.recovering, boxShadow: dark ? "0 0 8px #fff" : "none" }} />
-            Recovering
+            <i className="inline-block w-2 h-2 rounded-full" style={{ background: STAGE_RED, boxShadow: `0 0 8px ${STAGE_RED}` }} />
+            Recently trained
+          </span>
+          <span className="flex items-center gap-1.5">
+            <i className="inline-block w-2 h-2 rounded-full" style={{ background: STAGE_ORANGE, boxShadow: `0 0 8px ${STAGE_ORANGE}` }} />
+            Almost recovered
           </span>
           <span className="flex items-center gap-1.5">
             <i className="inline-block w-2 h-2 rounded-full" style={{ background: READY_BLUE, boxShadow: `0 0 8px ${READY_BLUE}` }} />
@@ -128,7 +143,7 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
             {spin ? "STOP" : "SPIN"}
           </button>
         </div>
-        <MuscleHologram key={dark ? "dark" : "light"} light={!dark} view={view} levels={levels} selected={selected} onSelect={setSelected} spin={spin} onUserTurn={() => setSpin(false)} onUnavailable={onUnavailable} />
+        <MuscleHologram key={dark ? "dark" : "light"} light={!dark} view={view} levels={stages} selected={selected} onSelect={setSelected} spin={spin} onUserTurn={() => setSpin(false)} onUnavailable={onUnavailable} />
       </div>
 
       <section
@@ -146,9 +161,15 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
           <h3 className="m-0 text-[17px] font-bold leading-tight">{MUSCLE_LABELS[selected]}</h3>
           <span
             className="text-[10px] font-bold tracking-[0.08em] uppercase rounded-lg px-2 py-1 whitespace-nowrap"
-            style={recovering ? (dark ? { background: "rgba(255,255,255,0.16)", color: "#fff" } : { background: "#0A0A0B", color: "#fff" }) : { background: "rgba(47,143,255,0.18)", color: dark ? "#9FD0FF" : "#1C6FD9" }}
+            style={
+              stage === 2
+                ? { background: "rgba(255,77,87,0.18)", color: dark ? "#FF8A90" : "#D9343D" }
+                : stage === 1
+                ? { background: "rgba(255,159,67,0.2)", color: dark ? "#FFC08A" : "#C46A12" }
+                : { background: "rgba(47,143,255,0.18)", color: dark ? "#9FD0FF" : "#1C6FD9" }
+            }
           >
-            {recovering ? `Recovering · ${hoursAgo} h` : "Ready"}
+            {stage === 2 ? `Trained · ${hoursAgo} h ago` : stage === 1 ? `Almost recovered · ${hoursAgo} h` : "Ready"}
           </span>
         </div>
         <div className="grid grid-cols-3 gap-2 mt-2">

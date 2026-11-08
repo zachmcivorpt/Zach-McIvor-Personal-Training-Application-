@@ -4,6 +4,11 @@ import { READY_BLUE } from "./MuscleBody";
 
 // Recovering (trained in the last 72 h) glows white, brighter with sets (#195).
 export const RECOVERING_WHITE = "#FFFFFF";
+// Recovery stages (#202, owner): trained in the last 48 h red, 48–72 h
+// orange (almost recovered), recovered blue. `levels` carries the stage:
+// 2 red, 1 orange, 0 ready.
+export const STAGE_RED = "#FF4D57";
+export const STAGE_ORANGE = "#FF9F43";
 
 // The 3D muscle map (#194): a real anatomical body (BodyParts3D, CC BY 4.0,
 // via open-anatomy-3d — credit shown on the card) drawn as a blue hologram.
@@ -151,7 +156,8 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn, light 
     uSel: { value: -1 },
     uScanY: { value: -1 },
     uLevels: { value: levelArr },
-    uRed: { value: hexToVec(THREE, RECOVERING_WHITE) },
+    uRed: { value: hexToVec(THREE, STAGE_RED) },
+    uOrange: { value: hexToVec(THREE, STAGE_ORANGE) },
     uBlue: { value: hexToVec(THREE, READY_BLUE) },
   };
   const N = MUSCLES.length;
@@ -163,16 +169,16 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn, light 
       void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); vP = position; vKey = aKey; gl_Position = projectionMatrix * mv; }`,
     fragmentShader: `
       uniform float uTime; uniform float uSel; uniform float uScanY; uniform float uLevels[${N}];
-      uniform vec3 uRed; uniform vec3 uBlue;
+      uniform vec3 uRed; uniform vec3 uBlue; uniform vec3 uOrange;
       varying vec3 vN; varying vec3 vV; varying vec3 vP; varying float vKey;
       void main(){
         float f = pow(1.0 - abs(dot(vN, vV)), 1.8);
         float level = 0.0;
         for (int i = 0; i < ${N}; i++) { if (abs(float(i) - vKey) < 0.5) level = uLevels[i]; }
         vec3 ice = vec3(0.62, 0.84, 1.0);
-        vec3 c = vKey < -0.5 ? ice * 0.5 : (level > 0.0 ? mix(ice, uRed, 0.4 + 0.6 * level) : uBlue);
+        vec3 c = vKey < -0.5 ? ice * 0.5 : (level > 1.5 ? uRed : (level > 0.5 ? uOrange : uBlue));
         float fibre = 0.5 + 0.5 * sin(vP.y * 260.0 + vP.x * 90.0 + vP.z * 40.0);
-        float a = 0.12 + f * 0.9 + (vKey > -0.5 ? fibre * 0.08 + level * 0.18 : 0.0);
+        float a = 0.12 + f * 0.9 + (vKey > -0.5 ? fibre * 0.08 + min(level, 1.0) * 0.18 : 0.0);
         float sel = (uSel > -0.5 && abs(vKey - uSel) < 0.5) ? 1.0 : 0.0;
         float pulse = 0.85 + 0.15 * sin(uTime * 3.0);
         if (sel > 0.5) { c = mix(c, vec3(1.0), 0.55); a = 0.45 + f * 0.55 + fibre * 0.12; }
@@ -192,14 +198,14 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn, light 
     vertexShader: material.vertexShader,
     fragmentShader: `
       uniform float uTime; uniform float uSel; uniform float uScanY; uniform float uLevels[${N}];
-      uniform vec3 uBlue;
+      uniform vec3 uBlue; uniform vec3 uRed; uniform vec3 uOrange;
       varying vec3 vN; varying vec3 vV; varying vec3 vP; varying float vKey;
       void main(){
         float f = pow(1.0 - abs(dot(vN, vV)), 1.6);
         float level = 0.0;
         for (int i = 0; i < ${N}; i++) { if (abs(float(i) - vKey) < 0.5) level = uLevels[i]; }
         vec3 ink = vec3(0.04, 0.05, 0.08);
-        vec3 c = vKey < -0.5 ? vec3(0.62, 0.68, 0.78) : (level > 0.0 ? mix(uBlue, ink, 0.45 + 0.55 * level) : uBlue);
+        vec3 c = vKey < -0.5 ? vec3(0.62, 0.68, 0.78) : (level > 1.5 ? uRed : (level > 0.5 ? uOrange : uBlue));
         float fibre = 0.5 + 0.5 * sin(vP.y * 260.0 + vP.x * 90.0 + vP.z * 40.0);
         float a = (vKey < -0.5 ? 0.18 : 0.38) + f * 0.45 + (vKey > -0.5 ? fibre * 0.06 : 0.0);
         float sel = (uSel > -0.5 && abs(vKey - uSel) < 0.5) ? 1.0 : 0.0;

@@ -3213,6 +3213,17 @@ into the white page (no grey square).
 lines (`line-clamp-2`; the full name is on the program page).
 **Tests**: `src/solo/catalogueMatchName201.test.js` (fails on the old size).
 
+### 202. Train Solo: muscle map recovery colours, map first on Progress, no Estimated Max (owner, 2026-11-08)
+
+**Change**: the 3D muscle map colours by recovery — trained in the last 48 h
+red, 48–72 h orange ("almost recovered"), recovered the normal blue (no more
+white / black); legend and the muscle card say the same ("Trained · N h
+ago" / "Almost recovered" / "Ready"), both themes. Progress now opens with
+the muscle map, then Strength Personal Bests, then everything else. The
+Estimated Max chart (#150) is removed (component, helper and its test).
+**Tests**: `recoveryStage` in `muscleHologram194.test.jsx` (48 h / 72 h edges);
+`src/solo/progressOrder202.test.js` (order + no chart). Both fail without the change.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

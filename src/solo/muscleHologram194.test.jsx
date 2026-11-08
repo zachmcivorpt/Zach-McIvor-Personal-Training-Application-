@@ -59,3 +59,17 @@ describe("3D map detail card (#195)", () => {
     expect(muscleDetail("quads", logs, ex, { now })).toEqual({ sets7: 0, last: null, bestKg: null, exercises: [] });
   });
 });
+
+describe("recovery stages (#202)", () => {
+  it("red for the last 48 h, orange 48–72 h, ready after", async () => {
+    const { recoveryStage } = await import("./SoloMuscleMap");
+    const now = 1_000_000_000_000;
+    const h = 3600000;
+    expect(recoveryStage({ sets: 4, last: now - 5 * h }, now)).toBe(2);
+    expect(recoveryStage({ sets: 4, last: now - 47 * h }, now)).toBe(2);
+    expect(recoveryStage({ sets: 4, last: now - 50 * h }, now)).toBe(1);
+    expect(recoveryStage({ sets: 4, last: now - 71 * h }, now)).toBe(1);
+    expect(recoveryStage({ sets: 0, last: null }, now)).toBe(0);
+    expect(recoveryStage(undefined, now)).toBe(0);
+  });
+});

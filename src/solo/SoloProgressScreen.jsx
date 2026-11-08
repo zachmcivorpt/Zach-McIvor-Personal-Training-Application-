@@ -4,7 +4,6 @@ import { Trophy, Lock } from "lucide-react";
 import { canUse } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
 import { SoloMuscleMapCard } from "./SoloMuscleMap";
-import { SoloEstMaxChart } from "./SoloEstMaxChart";
 import { SoloSessionHistory } from "./SoloSessionHistory";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
@@ -186,6 +185,28 @@ export default function SoloProgressScreen() {
       <div className="pb-10">
         <SoloPageHeader t={SOLO_THEMES[dark ? "dark" : "light"]} title="Progress" />
 
+        {/* The muscle map leads Progress, then Strength Personal Bests (#202). */}
+        <div className="px-3 space-y-4 max-w-md mx-auto mb-4">
+          <SoloMuscleMapCard logs={soloWorkoutLogs} exercisesById={exercisesById} dark={dark} />
+          {fullStats && (
+          <Card dark={dark}>
+            <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Strength Personal Bests</p>
+            <div className="space-y-2.5">
+              {personalBests.map((s) => (
+                <div key={s.name} className="flex items-center justify-between">
+                  <span className={dark ? "text-white/70 text-sm flex items-center gap-2" : "text-black/70 text-sm flex items-center gap-2"}>
+                    <Trophy size={14} className={s.value ? (dark ? "text-white" : "text-black") : dark ? "text-white/25" : "text-black/25"} /> {s.name}
+                  </span>
+                  <span className={s.value ? (dark ? "text-white text-sm font-semibold" : "text-black text-sm font-semibold") : dark ? "text-white/30 text-xs" : "text-black/30 text-xs"}>
+                    {s.value || "Not yet logged"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+          )}
+        </div>
+
         {/* The shared timeline paints its own solid band; inside Train Solo it
             sits in a glass card instead (index.css clears the inner fill). */}
         {fullStats ? (
@@ -224,27 +245,6 @@ export default function SoloProgressScreen() {
             </div>
           </div>
 
-          {fullStats && (
-          <Card dark={dark}>
-            <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Strength Personal Bests</p>
-            <div className="space-y-2.5">
-              {personalBests.map((s) => (
-                <div key={s.name} className="flex items-center justify-between">
-                  <span className={dark ? "text-white/70 text-sm flex items-center gap-2" : "text-black/70 text-sm flex items-center gap-2"}>
-                    <Trophy size={14} className={s.value ? (dark ? "text-white" : "text-black") : dark ? "text-white/25" : "text-black/25"} /> {s.name}
-                  </span>
-                  <span className={s.value ? (dark ? "text-white text-sm font-semibold" : "text-black text-sm font-semibold") : dark ? "text-white/30 text-xs" : "text-black/30 text-xs"}>
-                    {s.value || "Not yet logged"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Card>
-          )}
-
-          {fullStats && <SoloEstMaxChart logs={soloWorkoutLogs} exercisesById={exercisesById} dark={dark} />}
-
-          <SoloMuscleMapCard logs={soloWorkoutLogs} exercisesById={exercisesById} dark={dark} />
 
           <ConsistencyHeatmap logs={soloWorkoutLogs} scheduledWorkouts={[]} dark={dark} />
 

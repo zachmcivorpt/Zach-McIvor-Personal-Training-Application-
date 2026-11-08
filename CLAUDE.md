@@ -157,10 +157,12 @@ rather than inventing new colors per screen:
   scan if the model changes. three.js + model load only when the card mounts,
   draw only while on screen; no WebGL → the 2D MuscleBody. Layout is the
   approved mock-up (#195): its own dark panel (light mode too), FRONT/BACK/SPIN
-  pills, Recovering = WHITE / Ready = blue in 3D (red stays only in the 2D
-  fallback), glass detail card from `muscleDetail` (own logs only). Light
-  mode (#198): `HOLO_LIGHT` panel + `MuscleHologram light` (normal blending,
-  recovering in ink) — never the dark panel on a light page.
+  pills, glass detail card from `muscleDetail` (own logs only). Colours by
+  recovery (#202, owner — orange approved here): trained < 48 h red
+  (`STAGE_RED`), 48–72 h orange (`STAGE_ORANGE`), recovered blue
+  (`recoveryStage`), both themes. Progress opens with this map, then
+  Strength Personal Bests. Light
+  mode (#198): `HOLO_LIGHT` panel + `MuscleHologram light` (normal blending) — never the dark panel on a light page.
 - **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
   of Progress, not in My Training.
 - **Interface style** (#196, owner-approved mock-up, ACG-inspired, blue not
@@ -198,9 +200,7 @@ rather than inventing new colors per screen:
   Every suggestion goes through `recommendForAnswers`.
 - **Workout set rows** (#170): Reps left of Kg; rest/set timers are
   `MEASURE_BLUE` (as in the client app), never the coach's branding accent.
-- **Estimated Max chart** (#150, `estMax.js`, `SoloEstMaxChart.jsx`): under
-  Strength Personal Bests on Progress, one point per session from the
-  best set's `e1rm`; only real logged weights, never estimated points.
+- **Estimated Max chart** removed from Progress (#202, owner).
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
 
