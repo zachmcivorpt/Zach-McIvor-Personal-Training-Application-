@@ -3299,6 +3299,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change**: the mark is traced into a vector (`ApexMarkSvg`, two shapes, same 384 x 384 framing) with a tight SVG glow (blur 3.8 under the sharp shape) — mock-up B, chosen by the owner. Used on the first page (`GlowLogo`), the chooser and both log-in screens (`LitLogo crisp`); each mark has its own filter id.
 - **Tests**: `src/solo/apexMark210.test.jsx` (3): two white shapes with the tight glow; chooser, log-in and first page draw the vector, no image; unique filter ids. They fail on the old code (no `ApexMarkSvg`). `startChooser208` / `loginClean209` read the vector instead of the glow image. Full suite 1252 passed; build clean.
 
+### 211. Train Solo: "Manage" no longer tells members to dig through iPhone Settings (owner, 2026-11-08)
+
+- **Problem**: the membership sheet showed "Manage it in iPhone Settings → your name → Subscriptions." when Manage couldn't open Apple's sheet (website / app without the in-app bridge), and the plan small print and the delete-account warning gave the same Settings path. The owner found it confusing.
+- **Fix**: without the bridge, Manage opens Apple's own subscriptions page (`APPLE_SUBSCRIPTIONS_URL`, apps.apple.com/account/subscriptions) — in the app it still opens Apple's sheet directly; the small print says "Manage or cancel any time from Profile" everywhere; the delete warning says "Profile → Subscription → Manage".
+- **Tests**: `src/solo/manageWording211.test.js` (3), all failing on the old code. Full suite 1255 passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -7,6 +7,9 @@ import { useSoloTheme, SOLO_THEMES, soloClearSheetGlass } from "./SoloThemeConte
 import { BottomSheet, PrimaryButton } from "../components/ui";
 import { PLANS, TIER_LABELS, formatPlanPrice, formatRenewalDate, activeStore, planRenewal, renewalText } from "./soloAccess";
 import { inIosApp } from "./appShell";
+
+// Apple's own page for an Apple ID's subscriptions (#211).
+export const APPLE_SUBSCRIPTIONS_URL = "https://apps.apple.com/account/subscriptions";
 import { SoloPurchaseStage, SoloWelcomeScreen } from "./SoloPurchaseScreens";
 import { uploadPurchaseTrace } from "./purchaseTraceUpload";
 import { inAppPurchasesAvailable, loadStoreProducts, purchasePlan, purchaseProgram, restorePurchases, manageAppleSubscription } from "../lib/purchases";
@@ -592,7 +595,12 @@ function SoloPaywallSheet({ request, onClose }) {
           await manageAppleSubscription();
           // Back from Apple's screen: a cancel there ends access now (#156).
           await refreshSoloEntitlement().catch(() => {});
-        } else setMessage("Manage it in iPhone Settings → your name → Subscriptions.");
+        } else {
+          // No in-app bridge (website, or an older app build): straight to
+          // Apple's own subscriptions page, never a Settings path to follow (#211).
+          setMessage("Opening your App Store subscriptions…");
+          window.location.href = APPLE_SUBSCRIPTIONS_URL;
+        }
         return;
       }
       // Busy from the tap until the page has gone to Stripe (#181): it gave
@@ -797,7 +805,7 @@ function SoloPaywallSheet({ request, onClose }) {
                   {trialDays > 0 ? `${trialDays} days free, then ${price} a ${per}. ` : `${price} a ${per}. `}
                   {changeHere && !alreadyThis ? "Your plan changes now; the difference is charged or credited pro rata. " : ""}
                   Renews automatically until you cancel; cancel at least 24 hours before it renews to avoid the next charge. If you cancel, your membership stays until the end of the period you've paid for.
-                  {iosApp ? " Manage or cancel in iPhone Settings." : " Manage or cancel any time from Profile."}
+                  {" Manage or cancel any time from Profile."}
                 </p>
               )}
             </div>
