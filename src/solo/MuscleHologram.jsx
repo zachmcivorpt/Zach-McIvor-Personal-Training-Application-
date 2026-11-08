@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { MUSCLES } from "./muscleMap";
-import { TRAINED_RED, READY_BLUE } from "./MuscleBody";
+import { READY_BLUE } from "./MuscleBody";
+
+// Recovering (trained in the last 72 h) glows white, brighter with sets (#195).
+export const RECOVERING_WHITE = "#FFFFFF";
 
 // The 3D muscle map (#194): a real anatomical body (BodyParts3D, CC BY 4.0,
 // via open-anatomy-3d — credit shown on the card) drawn as a blue hologram.
 // Swipe sideways to turn it, tap a muscle to pick it. Trained muscles glow
-// TRAINED_RED (deeper with sets), ready ones READY_BLUE, untracked ones
+// white (RECOVERING_WHITE, brighter with sets — #195), ready ones READY_BLUE, untracked ones
 // (neck, hands, feet, adductors, tibialis) stay a faint neutral.
 //
 // The model (public/models/muscle-map.glb) carries a body-scan region per
@@ -57,7 +60,7 @@ function loadModel(libs) {
 
 const hexToVec = (THREE, hex) => new THREE.Color(hex);
 
-export default function MuscleHologram({ view = "front", levels = {}, selected = null, onSelect, onUnavailable, height = 400 }) {
+export default function MuscleHologram({ view = "front", levels = {}, selected = null, onSelect, onUnavailable, spin = false, onUserTurn, height = 520 }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const apiRef = useRef(null);
@@ -76,7 +79,7 @@ export default function MuscleHologram({ view = "front", levels = {}, selected =
       .then((libs) => loadModel(libs).then((gltf) => ({ libs, gltf })))
       .then(({ libs, gltf }) => {
         if (disposed) return;
-        cleanup = buildScene(libs, gltf, canvasRef.current, wrapRef.current, apiRef, (key) => onSelectRef.current?.(key));
+        cleanup = buildScene(libs, gltf, canvasRef.current, wrapRef.current, apiRef, (key) => onSelectRef.current?.(key), () => onUserTurnRef.current?.());
         setState("ready");
       })
       .catch(() => {
@@ -103,17 +106,14 @@ export default function MuscleHologram({ view = "front", levels = {}, selected =
   useEffect(() => {
     apiRef.current?.turnTo(view === "back" ? Math.PI : 0);
   }, [view, state]);
+  useEffect(() => {
+    apiRef.current?.setSpin(spin);
+  }, [spin, state]);
+  const onUserTurnRef = useRef(onUserTurn);
+  onUserTurnRef.current = onUserTurn;
 
   return (
-    <div ref={wrapRef} data-testid="muscle-hologram" className="relative w-full overflow-hidden rounded-2xl" style={{ height, background: "#03060C" }}>
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: "linear-gradient(rgba(47,143,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(47,143,255,0.06) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-        }}
-      />
+    <div ref={wrapRef} data-testid="muscle-hologram" className="relative w-full" style={{ height }}>
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" aria-label="3D muscle map. Swipe sideways to turn the body, tap a muscle for details." />
       {state === "loading" && (
         <div data-apex-loading className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold tracking-[0.12em] uppercase" style={{ color: "rgba(160,210,255,0.75)" }}>
@@ -124,13 +124,13 @@ export default function MuscleHologram({ view = "front", levels = {}, selected =
   );
 }
 
-function buildScene(libs, gltf, canvas, wrap, apiRef, onPick) {
+function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn) {
   const { THREE, OrbitControls } = libs;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 50);
-  camera.position.set(0, 0.95, 3.15);
+  camera.position.set(0, 0.95, 3.6);
   const controls = new OrbitControls(camera, canvas);
   controls.target.set(0, 0.93, 0);
   controls.enablePan = false;
@@ -149,7 +149,7 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick) {
     uSel: { value: -1 },
     uScanY: { value: -1 },
     uLevels: { value: levelArr },
-    uRed: { value: hexToVec(THREE, TRAINED_RED) },
+    uRed: { value: hexToVec(THREE, RECOVERING_WHITE) },
     uBlue: { value: hexToVec(THREE, READY_BLUE) },
   };
   const N = MUSCLES.length;
@@ -168,7 +168,7 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick) {
         float level = 0.0;
         for (int i = 0; i < ${N}; i++) { if (abs(float(i) - vKey) < 0.5) level = uLevels[i]; }
         vec3 ice = vec3(0.62, 0.84, 1.0);
-        vec3 c = vKey < -0.5 ? ice * 0.5 : (level > 0.0 ? mix(uBlue, uRed, 0.55 + 0.45 * level) : uBlue);
+        vec3 c = vKey < -0.5 ? ice * 0.5 : (level > 0.0 ? mix(ice, uRed, 0.4 + 0.6 * level) : uBlue);
         float fibre = 0.5 + 0.5 * sin(vP.y * 260.0 + vP.x * 90.0 + vP.z * 40.0);
         float a = 0.12 + f * 0.9 + (vKey > -0.5 ? fibre * 0.08 + level * 0.18 : 0.0);
         float sel = (uSel > -0.5 && abs(vKey - uSel) < 0.5) ? 1.0 : 0.0;
@@ -269,6 +269,22 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick) {
     ringGeo.push(geo, mat);
   });
   disposables.push(...ringGeo);
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(0.7, 64), new THREE.MeshBasicMaterial({ color: 0x2f8fff, transparent: true, opacity: 0.08 }));
+  disc.rotation.x = -Math.PI / 2;
+  scene.add(disc);
+  disposables.push(disc.geometry, disc.material);
+  // Floating particles.
+  const pg = new THREE.BufferGeometry();
+  const pts = new Float32Array(220 * 3);
+  for (let i = 0; i < 220; i++) {
+    pts[i * 3] = (Math.random() - 0.5) * 2.4;
+    pts[i * 3 + 1] = Math.random() * 2.1;
+    pts[i * 3 + 2] = (Math.random() - 0.5) * 1.6;
+  }
+  pg.setAttribute("position", new THREE.BufferAttribute(pts, 3));
+  const particles = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0x7cc4ff, size: 0.01, transparent: true, opacity: 0.55 }));
+  scene.add(particles);
+  disposables.push(pg, particles.material);
 
   // Tap → muscle (only the surface tapped; nothing seen through a gap >5 cm under the skin).
   const ray = new THREE.Raycaster();
@@ -313,6 +329,11 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick) {
       turnTarget = angle;
       wake();
     },
+    setSpin(on) {
+      controls.autoRotate = !!on && !reduceMotion;
+      controls.autoRotateSpeed = 1.6;
+      wake();
+    },
   };
 
   function resize() {
@@ -340,6 +361,7 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick) {
     const t = (performance.now() - start) / 1000;
     uniforms.uTime.value = t;
     uniforms.uScanY.value = reduceMotion ? -1 : (Math.sin(t * 0.8) * 0.5 + 0.5) * 1.85;
+    if (!reduceMotion) particles.rotation.y = t * 0.05;
     if (turnTarget != null) {
       const a = angleNow();
       let d = turnTarget - a;
@@ -361,6 +383,7 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick) {
   document.addEventListener("visibilitychange", onVis);
   controls.addEventListener("start", () => {
     turnTarget = null;
+    if (controls.autoRotate) onUserTurn?.();
     wake();
   });
   wake();

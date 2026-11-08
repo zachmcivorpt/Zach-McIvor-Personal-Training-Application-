@@ -155,7 +155,10 @@ rather than inventing new colors per screen:
   as a hologram — swipe sideways to turn, tap a muscle. Muscle groups come only
   from the model's baked `_REGION` (body scan) via `REGION_KEYS`; re-run the
   scan if the model changes. three.js + model load only when the card mounts,
-  draw only while on screen; no WebGL → the 2D MuscleBody.
+  draw only while on screen; no WebGL → the 2D MuscleBody. Layout is the
+  approved mock-up (#195): its own dark panel (light mode too), FRONT/BACK/SPIN
+  pills, Recovering = WHITE / Ready = blue in 3D (red stays only in the 2D
+  fallback), glass detail card from `muscleDetail` (own logs only).
 - **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
   of Progress, not in My Training.
 - **Tab headers** (#174): every tab opens with `SoloPageHeader`
