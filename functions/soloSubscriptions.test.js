@@ -570,3 +570,21 @@ describe("Apple program purchases (#191)", () => {
     expect(fn).toMatch(/await recordApplePrograms\(db, uid, subscriber\)/);
   });
 });
+
+// #212: Stripe sends charge.refunded for partial refunds too, and the webhook
+// marked the bought program refunded (locked) on any of them.
+describe("program refunds: only a full refund takes the program away (#212)", () => {
+  it("a partial refund keeps the program; a full one doesn't", () => {
+    expect(solo.chargeFullyRefunded({ amount: 7499, amount_refunded: 1000, refunded: false })).toBe(false);
+    expect(solo.chargeFullyRefunded({ amount: 7499, amount_refunded: 7499, refunded: true })).toBe(true);
+    expect(solo.chargeFullyRefunded({ amount: 7499, amount_refunded: 7499 })).toBe(true);
+    expect(solo.chargeFullyRefunded({ amount: 0, amount_refunded: 0, refunded: false })).toBe(false);
+    expect(solo.chargeFullyRefunded(null)).toBe(false);
+  });
+
+  it("the webhook checks it before marking a purchase refunded", () => {
+    const src = require("node:fs").readFileSync(new URL("./index.js", import.meta.url), "utf8");
+    const handler = src.slice(src.indexOf('event.type === "charge.refunded"'), src.indexOf("refunded: true, refundedAt"));
+    expect(handler).toMatch(/solo\.chargeFullyRefunded\(charge\)/);
+  });
+});

@@ -544,7 +544,9 @@ any Train Solo work from now on:
   "It's yours"; 15 s cap → "Payment received… no need to pay again";
   `?checkout=cancelled` → "You haven't been charged". A bought program is
   the member's for good, whatever their plan (purchases win over All Access
-  enrolments, never locked). Never the website's price inside the iPhone
+  enrolments, never locked). Only a FULL refund marks it refunded
+  (`chargeFullyRefunded`, #212): Stripe sends `charge.refunded` for partial
+  refunds too. Never the website's price inside the iPhone
   app (3.1.1).
 - **Single programs in the iPhone app** (#191): an App Store
   non-consumable per program, product id `apex_solo_program_<programId>`

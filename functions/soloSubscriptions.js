@@ -357,6 +357,17 @@ async function recordProgramPurchase(db, session) {
   });
 }
 
+// Stripe sends charge.refunded for partial refunds too (#212). Only a charge
+// refunded in full takes a bought program away: a partial refund (goodwill,
+// a price adjustment) leaves the member owning what they paid for. A later
+// refund of the rest sends charge.refunded again with `refunded: true`.
+function chargeFullyRefunded(charge) {
+  if (!charge) return false;
+  if (charge.refunded === true) return true;
+  const amount = Number(charge.amount);
+  return Number.isFinite(amount) && amount > 0 && Number(charge.amount_refunded) >= amount;
+}
+
 // An All Access member already has every program: never sold one (#186).
 function hasAllAccessNow(entitlement, now = Date.now()) {
   return Number(entitlement?.allAccessUntil || 0) > now;
@@ -453,6 +464,7 @@ module.exports = {
   rememberCheckout,
   customerFromCheckout,
   recordProgramPurchase,
+  chargeFullyRefunded,
   hasAllAccessNow,
   applePurchasesFromSubscriber,
   recordApplePrograms,

@@ -3305,6 +3305,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: without the bridge, Manage opens Apple's own subscriptions page (`APPLE_SUBSCRIPTIONS_URL`, apps.apple.com/account/subscriptions) — in the app it still opens Apple's sheet directly; the small print says "Manage or cancel any time from Profile" everywhere; the delete warning says "Profile → Subscription → Manage".
 - **Tests**: `src/solo/manageWording211.test.js` (3), all failing on the old code. Full suite 1255 passed; build clean.
 
+### 212. Weekly QA audit — a partial Stripe refund took a bought Train Solo program away (2026-11-08)
+
+- **Problem**: found in the 2026-11-08 weekly audit. `soloStripeWebhook` marked the `soloPurchases` doc `refunded: true` on every `charge.refunded` event, but Stripe sends that event for partial refunds too. A partial refund (goodwill, a price adjustment) locked the program the member still paid for.
+- **Fix**: `chargeFullyRefunded(charge)` (`functions/soloSubscriptions.js`): only a charge refunded in full (`refunded: true`, or `amount_refunded >= amount`) marks the purchase refunded. Refunding the rest later sends `charge.refunded` again with `refunded: true`, which still locks it.
+- **Tests**: `functions/soloSubscriptions.test.js` "program refunds: only a full refund takes the program away (#212)" (2): partial vs full refund, and the webhook checks it before writing. Both fail on the old code. Full suite passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
