@@ -9,7 +9,7 @@ describe("start chooser look (#208)", () => {
   it("uses the crisp glowing mark and no reflection", () => {
     expect(start()).toContain("<LitLogo width={200} crisp />");
     expect(start()).not.toMatch(/LitLogo[^>]*reflection/);
-    expect(readFileSync("src/components/LoginHero.jsx", "utf8")).toMatch(/crisp \? \([\s\S]*MOUNTAIN_GLOW/); // glow image since #209
+    expect(readFileSync("src/components/LoginHero.jsx", "utf8")).toMatch(/crisp \? \([\s\S]*<ApexMarkSvg/); // vector mark since #210
   });
   it("both buttons are frosted glass, not a solid white button", () => {
     const s = start();

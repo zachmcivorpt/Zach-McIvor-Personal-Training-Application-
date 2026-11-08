@@ -3293,6 +3293,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: the halo is gone; the glow is one baked image (`/brand/app-logo-mountain-glow.png`, same canvas as the mark) for LitLogo and the first page's GlowLogo, with no CSS blur; the mark file is renamed `app-logo-dark-mountain-v2.png` so phones fetch the clean one; Coaching and Train Solo log-in screens use `LitLogo crisp`; the login background is 103% tall, pinned to the top and clipped (`MEDIA_BOX`).
 - **Tests**: `src/solo/loginClean209.test.js` (4), all failing on the old code; `appLogo.test.js` and `startChooser208.test.js` read the new file name.
 
+### 210. Login area: APEX mark drawn as a sharp vector with a tight glow (owner, 2026-11-08)
+
+- **Problem**: after #209 the mark looked soft: a 384 px picture stretched 3x on the phone, under a wide baked glow.
+- **Change**: the mark is traced into a vector (`ApexMarkSvg`, two shapes, same 384 x 384 framing) with a tight SVG glow (blur 3.8 under the sharp shape) — mock-up B, chosen by the owner. Used on the first page (`GlowLogo`), the chooser and both log-in screens (`LitLogo crisp`); each mark has its own filter id.
+- **Tests**: `src/solo/apexMark210.test.jsx` (3): two white shapes with the tight glow; chooser, log-in and first page draw the vector, no image; unique filter ids. They fail on the old code (no `ApexMarkSvg`). `startChooser208` / `loginClean209` read the vector instead of the glow image. Full suite 1252 passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
