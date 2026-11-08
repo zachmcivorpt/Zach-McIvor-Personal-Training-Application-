@@ -8,6 +8,6 @@ describe("muscle card (#204)", () => {
     const map = src("./SoloMuscleMap.jsx");
     expect(map).not.toMatch(/detail\.exercises\.join/);
     expect(map).not.toMatch(/Anatomy: BodyParts3D/);
-    expect(src("./SoloProfileScreen.jsx")).toMatch(/BodyParts3D © DBCLS \(CC BY 4\.0\), via open-anatomy-3d/);
+    expect(src("./SoloProfileScreen.jsx")).toMatch(/Z-Anatomy \(CC BY-SA 4\.0\), based on BodyParts3D © DBCLS/);
   });
 });
