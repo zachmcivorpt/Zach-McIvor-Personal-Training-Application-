@@ -619,6 +619,9 @@ any Train Solo work from now on:
   the minute after a purchase (`lastUncoverAt`, `checkShownAfterPurchase`).
   Plain loading frames must carry `data-apex-loading` so they're never
   taken for a white page.
+- The phone's purchase log is copied to `soloUsers/{uid}.purchaseTrace`
+  (#193, `purchaseTraceUpload.js`): read it from there (sign in as the test
+  account) before changing the purchase hand-back again.
 - "/" opens Train Solo for a member signed in only to Train Solo
   (`apexSoloSignedIn`, App.jsx RootRedirect, #161).
 - Every return to the app also checks what's really on screen (#162,

@@ -3095,6 +3095,12 @@ client page opened at each (screenshots in the session).
 - **Tests**: `src/solo/purchaseWhiteScreen192.test.jsx` (4): looked at until 20 s; screen changes in the minute after a purchase looked at; white → cover back, twice then Continue; loading placeholders skipped and the two plain frames marked. All 4 fail on the old code. `purchaseWhiteScreen183.test.jsx` and `nativeAppleSheets166.test.js` read the recovery from its new function (same assertions). Swift type-checked against stand-ins, 0 errors / 0 warnings.
 - **Needs a new iOS build** (native change): select the new 1.0.4 build in App Store Connect in place of 238. **Verify on TestFlight**: buy a program and a membership; the screen never stays white (if a white frame appears, "One moment" comes up and the page returns within a few seconds).
 
+### 193. Purchase log sent to the member's own profile (owner, 2026-11-08)
+
+- **Problem**: the white screen after "Confirming your purchase" came back on build 239 (#192). Every fix since #153 was made without the phone's step-by-step log (Profile → Purchase log), which only the member could read.
+- **Change**: in the iPhone app, Train Solo copies that log to the member's own profile (`soloUsers/{uid}.purchaseTrace`: lines + uploadedAt) on open, 30 s and 90 s later (a page that isn't drawn still runs) and when the app comes back to the front; only when it changed; failures ignored (`src/solo/purchaseTraceUpload.js`, called from `SoloPaywallProvider`). Only the member can read/write their profile (existing rule). Web only: reaches build 239 on its next open.
+- **Tests**: `src/solo/purchaseTraceUpload193.test.js` (4): written to the profile; once per change; nothing with no log / user / app and never throws; wired into the provider. Full suite 1229 passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

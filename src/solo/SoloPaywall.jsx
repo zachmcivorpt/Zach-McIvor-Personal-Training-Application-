@@ -8,6 +8,7 @@ import { BottomSheet, PrimaryButton } from "../components/ui";
 import { PLANS, TIER_LABELS, formatPlanPrice, formatRenewalDate, activeStore, planRenewal, renewalText } from "./soloAccess";
 import { inIosApp } from "./appShell";
 import { SoloPurchaseStage, SoloWelcomeScreen } from "./SoloPurchaseScreens";
+import { uploadPurchaseTrace } from "./purchaseTraceUpload";
 import { inAppPurchasesAvailable, loadStoreProducts, purchasePlan, purchaseProgram, restorePurchases, manageAppleSubscription } from "../lib/purchases";
 
 // The Train Solo paywall (ROADMAP.txt step 2): Plus and All Access, yearly
@@ -153,6 +154,22 @@ export function SoloPaywallProvider({ children }) {
   const navigate = useNavigate();
   const [outcome] = useState(readPurchaseOutcome);
   const signedIn = !!soloAuthUser;
+  // #193: the iPhone app's purchase log goes to the member's own profile —
+  // on open, 30 s and 90 s later (a page that isn't being drawn still runs)
+  // and whenever the app comes back to the front.
+  const traceUid = soloAuthUser?.uid || null;
+  useEffect(() => {
+    if (!traceUid || !inAppPurchasesAvailable()) return;
+    const send = () => uploadPurchaseTrace(traceUid);
+    send();
+    const timers = [30000, 90000].map((ms) => setTimeout(send, ms));
+    const onVisible = () => document.visibilityState === "visible" && send();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      timers.forEach(clearTimeout);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [traceUid]);
   // After the reload: "confirming" while the server is asked, then the
   // welcome screen for the plan it confirms (#136).
   const [confirming, setConfirming] = useState(() => !!outcome?.ok);
