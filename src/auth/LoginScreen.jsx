@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { PinnedLoginBackdrop } from "../components/LoginBackground";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
-import { Logo, Tagline } from "../components/ui";
+import { Tagline } from "../components/ui";
 import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "./authUi";
-import { ChevronRight, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { EchoHeading, LitLogo, START_CHOOSER } from "../components/LoginHero";
 import { COACH_SETUP_CODE } from "../lib/config";
 
 function CoachSignupForm() {
@@ -261,12 +262,17 @@ export default function LoginScreen() {
           clear of it now that the webview itself extends up behind it
           (see NativeStatusBarSync in App.jsx). */}
       <div className="relative min-h-dvh w-full flex flex-col px-6 py-8 pt-safe">
-        <div className="flex justify-center pt-2">
-          <Logo variant="mark" tone="white" className="h-14 w-auto" />
+        {/* Back to the Coaching / Train Solo chooser (#207, owner). */}
+        <Link to={START_CHOOSER} className="flex items-center gap-1 text-white/50 text-sm font-medium self-start">
+          <ChevronLeft size={16} /> Back
+        </Link>
+        <div className="flex justify-center pt-6">
+          <LitLogo width={104} />
         </div>
 
         <div className="flex-1 flex flex-col justify-center">
         <div className="w-full max-w-sm mx-auto">
+          <EchoHeading size={28} className="mb-6">Coaching</EchoHeading>
           <div className="flex bg-white/10 backdrop-blur-sm border border-white/10 rounded-full p-1 mb-6">
             {[
               { id: "client", label: "Client" },

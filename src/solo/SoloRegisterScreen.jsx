@@ -4,6 +4,7 @@ import { useSoloApp } from "../lib/SoloAppContext";
 import { Logo } from "../components/ui";
 import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "../auth/authUi";
 import { SoloBackgroundFrame } from "./SoloBackground";
+import { START_CHOOSER } from "../components/LoginHero";
 import { ChevronLeft, UserPlus } from "lucide-react";
 import { LEGAL_DOCS } from "../legal/legalContent";
 import { SoloCheckbox } from "./SoloUI";
@@ -113,7 +114,7 @@ export default function SoloRegisterScreen() {
 
   return (
     <SoloBackgroundFrame appDesign={soloAppDesign}>
-      <Link to="/start" className="flex items-center gap-1 text-white/50 text-sm font-medium">
+      <Link to={START_CHOOSER} className="flex items-center gap-1 text-white/50 text-sm font-medium">
         <ChevronLeft size={16} /> Back
       </Link>
 

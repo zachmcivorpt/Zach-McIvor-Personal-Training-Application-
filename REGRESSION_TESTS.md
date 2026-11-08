@@ -3271,6 +3271,16 @@ surfaces). Credit on Profile updated. Build: `scripts/muscle-map/build-model.mjs
 Browser check (WebGL): tapping the abs, obliques, upper back, lats and glutes
 each lights exactly that muscle's outline (screenshots in the session).
 
+### 207. Login area: first page + lit logo look, Back on Coaching's log-in (owner, 2026-11-08)
+
+- **Change**: the owner asked for the login area to look like the Nike CG ADAPT reference. A new first page now comes before the Coaching / Train Solo chooser. It has a see-through glowing APEX mark, "Train solo. Train smarter." with a larger faded echo, page dots and a ring arrow. The arrow opens the chooser at `/start?step=choose`.
+- **Chooser and log-in screens**: the chooser and both log-in screens use the lit mark (`LitLogo`, with a reflection on the chooser) and echo headings, from `src/components/LoginHero.jsx`.
+- **Back button**: Coaching's `/login` gets a Back link to the chooser; it had none. The Back links on Train Solo's log-in and register screens now go to the chooser rather than the first page.
+- **Unchanged**: every button, field and step works as before. The coach's login background (Design Settings) still shows when one is set.
+- **Tests**: `src/solo/loginLook207.test.jsx` checks three things. The first page shows, and its arrow opens the chooser. Coaching's log-in has Back to the chooser and keeps its form. Train Solo's Back goes to the chooser. All 3 fail without the change.
+- **Updated tests**: `appRouting.test.jsx` and `afterPurchaseWhiteScreen.test.jsx` now expect the first page at `/`.
+- **Browser check**: the real screens were checked in Chromium. The arrow opens the chooser and Back on `/login` returns to it.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
