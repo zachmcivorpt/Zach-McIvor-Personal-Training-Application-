@@ -10,8 +10,9 @@ export const RECOVERING_WHITE = "#FFFFFF";
 export const STAGE_RED = "#FF4D57";
 export const STAGE_ORANGE = "#FF9F43";
 
-// The 3D muscle map (#194): a real anatomical body (BodyParts3D, CC BY 4.0,
-// via open-anatomy-3d — credit shown on the card) drawn as a blue hologram.
+// The 3D muscle map (#194, #206): Z-Anatomy's body (CC BY-SA 4.0, from
+// BodyParts3D; credit on Profile) — every muscle its own clean shape — drawn
+// as a blue hologram.
 // Swipe sideways to turn it, tap a muscle to pick it. Trained muscles glow
 // white (RECOVERING_WHITE, brighter with sets — #195), ready ones READY_BLUE, untracked ones
 // (neck, hands, feet, adductors, tibialis) stay a faint neutral.
@@ -47,7 +48,8 @@ function loadLibs() {
       import("three"),
       import("three/examples/jsm/loaders/GLTFLoader.js"),
       import("three/examples/jsm/controls/OrbitControls.js"),
-    ]).then(([THREE, { GLTFLoader }, { OrbitControls }]) => ({ THREE, GLTFLoader, OrbitControls }));
+      import("three/examples/jsm/libs/meshopt_decoder.module.js"),
+    ]).then(([THREE, { GLTFLoader }, { OrbitControls }, { MeshoptDecoder }]) => ({ THREE, GLTFLoader, OrbitControls, MeshoptDecoder }));
   }
   return libPromise;
 }
@@ -55,7 +57,7 @@ function loadLibs() {
 let modelPromise = null;
 function loadModel(libs) {
   if (!modelPromise) {
-    modelPromise = new Promise((resolve, reject) => new libs.GLTFLoader().load(MODEL_URL, resolve, undefined, reject));
+    modelPromise = new Promise((resolve, reject) => new libs.GLTFLoader().setMeshoptDecoder(libs.MeshoptDecoder).load(MODEL_URL, resolve, undefined, reject));
     modelPromise.catch(() => {
       modelPromise = null;
     });
@@ -177,7 +179,7 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn, light 
         for (int i = 0; i < ${N}; i++) { if (abs(float(i) - vKey) < 0.5) level = uLevels[i]; }
         vec3 ice = vec3(0.62, 0.84, 1.0);
         vec3 c = vKey < -0.5 ? ice * 0.5 : (level > 1.5 ? uRed : (level > 0.5 ? uOrange : uBlue));
-        float fibre = 0.5 + 0.5 * sin(vP.y * 260.0 + vP.x * 90.0 + vP.z * 40.0);
+        float fibre = 0.0;
         float a = 0.12 + f * 0.9 + (vKey > -0.5 ? fibre * 0.08 + min(level, 1.0) * 0.18 : 0.0);
         float sel = (uSel > -0.5 && abs(vKey - uSel) < 0.5) ? 1.0 : 0.0;
         float pulse = 0.85 + 0.15 * sin(uTime * 3.0);
@@ -206,7 +208,7 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn, light 
         for (int i = 0; i < ${N}; i++) { if (abs(float(i) - vKey) < 0.5) level = uLevels[i]; }
         vec3 ink = vec3(0.04, 0.05, 0.08);
         vec3 c = vKey < -0.5 ? vec3(0.62, 0.68, 0.78) : (level > 1.5 ? uRed : (level > 0.5 ? uOrange : uBlue));
-        float fibre = 0.5 + 0.5 * sin(vP.y * 260.0 + vP.x * 90.0 + vP.z * 40.0);
+        float fibre = 0.0;
         float a = (vKey < -0.5 ? 0.18 : 0.38) + f * 0.45 + (vKey > -0.5 ? fibre * 0.06 : 0.0);
         float sel = (uSel > -0.5 && abs(vKey - uSel) < 0.5) ? 1.0 : 0.0;
         if (sel > 0.5) { c = mix(c, ink, 0.35); a = 0.82 + fibre * 0.1; }

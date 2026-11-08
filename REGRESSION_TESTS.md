@@ -3251,6 +3251,26 @@ model-prep scripts are now in `scripts/muscle-map/` (`body-scan.mjs` bakes
 **Tests**: #194's model test still passes (glTF, `_REGION` on every
 primitive, under 8 MB). Browser check (WebGL, light theme): groin smooth.
 
+### 206. Train Solo: muscle map — every muscle its real shape (owner, 2026-11-08)
+
+**Problem**: the selected muscle looked ragged ("fuzzy") and the abs, obliques,
+upper back and lats weren't their real muscles: the old model (open-anatomy-3d)
+merged many muscles into one mesh, so groups were cut by position.
+**Fix**: the model is rebuilt from Z-Anatomy (CC BY-SA 4.0, from BodyParts3D;
+via @authorod/svitylo-3d-anatomy-data, standard quality), where every muscle
+is a separate named structure (`_ID`): each vertex takes its own muscle's group
+(rectus abdominis = Abs; external/internal oblique + serratus anterior =
+Obliques, their front aponeurosis trimmed so the abs show; trapezius +
+rhomboids + levator scapulae + rotator cuff + teres = Upper back; latissimus
+dorsi = Lats; rectus femoris + vastus ×3 = Quads; …). Bursae, fasciae,
+tendons, ligaments, perineal/genital structures dropped; the skin is Z-Anatomy's
+body-region surfaces without genitals or hair. Meshopt-compressed (5.5 MB);
+the app loads three's meshopt decoder. The fibre stripes are gone (clean
+surfaces). Credit on Profile updated. Build: `scripts/muscle-map/build-model.mjs`.
+**Tests**: #194 model test updated (meshopt, `_REGION` on every muscle mesh).
+Browser check (WebGL): tapping the abs, obliques, upper back, lats and glutes
+each lights exactly that muscle's outline (screenshots in the session).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

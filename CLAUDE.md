@@ -151,11 +151,11 @@ rather than inventing new colors per screen:
   session, muscle groups ready (blue). Last 72 h of their own logs, helpers
   count half; muscles come only from `exerciseMuscles.js` (#149).
 - **3D muscle map** (#194, `MuscleHologram.jsx`): the body on that card is the
-  BodyParts3D model (`public/models/muscle-map.glb`; its CC BY credit is at the foot of Profile, #204 — keep it)
+  Z-Anatomy model (#206, CC BY-SA 4.0, from BodyParts3D; `public/models/muscle-map.glb`, credit at the foot of Profile — keep it), one structure per muscle
   as a hologram — swipe sideways to turn, tap a muscle. Muscle groups come only
-  from the model's baked `_REGION` (body scan) via `REGION_KEYS`; re-run the
-  scan if the model changes (`scripts/muscle-map/body-scan.mjs`, then
-  `cut-groin.mjs`: no genitals on the body, #205). three.js + model load only when the card mounts,
+  from the model's baked `_REGION` (body scan) via `REGION_KEYS`; rebuild with
+  `scripts/muscle-map/build-model.mjs` (muscle → group rules, drops
+  bursae/fasciae/genitals, trims the oblique aponeurosis); never group by position. three.js + model load only when the card mounts,
   draw only while on screen; no WebGL → the 2D MuscleBody. Layout is the
   approved mock-up (#195): its own dark panel (light mode too), FRONT/BACK/SPIN
   pills, glass detail card from `muscleDetail` (own logs only). Colours by
