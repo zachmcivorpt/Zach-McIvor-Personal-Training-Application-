@@ -102,16 +102,18 @@ describe("Apple's answer goes to the fresh page directly (#183)", () => {
 });
 
 describe("after the cover comes off (#183)", () => {
-  it("the page is checked at 1.2 s, 3 s and 6 s, each for this uncover only", () => {
+  it("the page is checked after the cover comes off, each look for this uncover only (until 20 s since #192)", () => {
     const v = fn(vc(), "verifyShownAfterPurchase");
-    expect(v).toMatch(/for delay in \[1\.2, 3\.0, 6\.0\]/);
-    expect(v).toMatch(/self\.uncoverGeneration == generation/);
-    expect(v).toMatch(/guard blank else \{ return \}[\s\S]*showPurchaseStageCover[\s\S]*revealAfterPurchase\(tries: 1\)/);
+    expect(v).toMatch(/for delay in \[1\.2, 3\.0, 6\.0, /);
+    expect(v).toContain("checkShownAfterPurchase(generation: generation");
+    expect(fn(vc(), "checkShownAfterPurchase")).toMatch(/uncoverGeneration == generation/);
+    const r = fn(vc(), "recoverIfBlankAfterPurchase");
+    expect(r).toMatch(/guard blank else \{ return \}[\s\S]*showPurchaseStageCover[\s\S]*revealAfterPurchase\(tries: 1\)/);
     // Checks that keep disagreeing can't cover and uncover in a loop: twice, then Continue.
-    expect(v).toMatch(/if self\.verifyRecoveries >= 2 \{ return self\.offerContinue\(\) \}\s*\n\s*self\.verifyRecoveries \+= 1/);
+    expect(r).toMatch(/if verifyRecoveries >= 2 \{ return offerContinue\(\) \}\s*\n\s*verifyRecoveries \+= 1/);
     expect(fn(vc(), "coverPageForPurchase")).toMatch(/verifyRecoveries = 0/);
     expect(fn(vc(), "continueAfterPurchase")).toMatch(/verifyRecoveries = 0/);
-    expect(fn(vc(), "uncoverAfterPurchase")).toMatch(/self\.uncoverGeneration \+= 1\s*\n\s*self\.verifyShownAfterPurchase\(generation: self\.uncoverGeneration\)/);
+    expect(fn(vc(), "uncoverAfterPurchase")).toMatch(/self\.uncoverGeneration \+= 1\s*\n[\s\S]*self\.verifyShownAfterPurchase\(generation: self\.uncoverGeneration\)/);
   });
 });
 
@@ -121,7 +123,7 @@ describe("never stuck on the purchase screen (#183)", () => {
     expect(arm).toMatch(/fallbackGeneration \+= 1[\s\S]*asyncAfter\(deadline: \.now\(\) \+ 15\)[\s\S]*self\.fallbackGeneration == generation[\s\S]*self\.offerContinue\(\)/);
     expect(fn(vc(), "purchaseSheetDidFinish")).toContain("armContinueFallback()");
     expect(fn(vc(), "continueAfterPurchase")).toMatch(/armContinueFallback\(\)\s*\n\s*rebuildWebView\(\)/);
-    expect(fn(vc(), "verifyShownAfterPurchase")).toMatch(/self\.verifyRecoveries \+= 1\s*\n\s*self\.armContinueFallback\(\)/);
+    expect(fn(vc(), "recoverIfBlankAfterPurchase")).toMatch(/verifyRecoveries \+= 1\s*\n\s*armContinueFallback\(\)/);
   });
 });
 
@@ -143,7 +145,7 @@ describe("force-quit during Confirming (#183)", () => {
 describe("every step is recorded on the phone (#183)", () => {
   it("from the sheet to the cover coming off, including every check's answer and which check was used", () => {
     expect(fn(vc(), "coverPageForPurchase")).toMatch(/PurchaseTrace\.start\(/);
-    for (const name of ["purchaseSheetDidFinish", "rebuildWebView", "revealAfterPurchase", "uncoverAfterPurchase", "retryFreshPageOrContinue", "offerContinue", "verifyShownAfterPurchase"]) {
+    for (const name of ["purchaseSheetDidFinish", "rebuildWebView", "revealAfterPurchase", "uncoverAfterPurchase", "retryFreshPageOrContinue", "offerContinue", "recoverIfBlankAfterPurchase"]) {
       expect(fn(vc(), name), name).toMatch(/PurchaseTrace\.log\(/);
     }
     expect(fn(vc(), "revealAfterPurchase")).toMatch(/screen blank \\\(blank\) \(\\\(self\.pictureCheckName\)\)/);

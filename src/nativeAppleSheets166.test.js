@@ -55,7 +55,7 @@ describe("waking WebKit (what leaving and reopening the app did)", () => {
     expect(reveal).toMatch(/if tries == 0 \{ wakeWebKit\(\) \}/);
     // A blank page is woken and checked again before another rebuild.
     expect(reveal).toMatch(/if blank \{[\s\S]*?self\.wakeWebKit\(\)[\s\S]*?stillBlank[\s\S]*?retryFreshPageOrContinue/);
-    expect(fn(vc(), "verifyShownAfterPurchase")).toMatch(/self\.wakeWebKit\(\)/);
+    expect(fn(vc(), "recoverIfBlankAfterPurchase")).toMatch(/wakeWebKit\(\)/);
     expect(fn(vc(), "checkPageVisible")).toMatch(/self\.wakeWebKit\(\)\s*\n\s*self\.reattachWebView\(\)/);
   });
 });

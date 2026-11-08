@@ -315,7 +315,9 @@ export default function SoloProgramDetailsScreen() {
   const confirmingStage = checkoutReturn === "confirming" ? <SoloPurchaseStage instant title="Confirming your purchase" detail="One moment." /> : null;
   if (!program && !soloProgramsLoaded) {
     return (
-      <div className="min-h-dvh w-full" style={{ backgroundColor: t.bg }}>
+      // A loading screen (#192): the iPhone app's white-page checks after a
+      // purchase skip data-apex-loading, never a page that stopped drawing.
+      <div className="min-h-dvh w-full" style={{ backgroundColor: t.bg }} data-apex-loading="">
         {confirmingStage}
       </div>
     );
