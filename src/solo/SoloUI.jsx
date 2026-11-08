@@ -49,17 +49,21 @@ export function SoloTextButton({ t, children, className = "", ...props }) {
 // Tight spacing (#176): logo → title 10px, title → first section 8px.
 export function SoloPageHeader({ t, title, sub, right = null, className = "" }) {
   return (
-    <div className={`px-3 pt-5 pb-2 ${className}`} data-testid="solo-page-header">
+    <div className={`px-3 pt-3 pb-1.5 ${className}`} data-testid="solo-page-header">
       {/* Logo centred and lit, as in the approved mock-up (#196). */}
       <img
         src={t.logo}
         alt="APEX"
         className="block w-auto mx-auto"
-        style={{ height: 21, filter: t.bg === "#FFFFFF" ? "none" : "drop-shadow(0 0 10px rgba(255,255,255,0.55))" }}
+        style={
+          t.bg === "#FFFFFF"
+            ? { height: 18, mixBlendMode: "multiply" }
+            : { height: 18, filter: "drop-shadow(0 0 10px rgba(255,255,255,0.55))" }
+        }
       />
-      <div className="mt-2.5 flex items-start justify-between gap-3">
+      <div className="mt-1.5 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-[22px] font-extrabold uppercase tracking-[0.02em] leading-tight">{title}</h1>
+          <h1 className="text-[19px] font-extrabold uppercase tracking-[0.02em] leading-tight">{title}</h1>
           {sub}
         </div>
         {right}

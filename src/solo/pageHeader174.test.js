@@ -33,8 +33,10 @@ describe("Train Solo tab headers (#174)", () => {
 describe("Train Solo header spacing (#176)", () => {
   it("logo → title and title → first section are tight", () => {
     const ui = src("./SoloUI.jsx");
-    expect(ui).toMatch(/px-3 pt-5 pb-2 \$\{className\}/);
-    expect(ui).toMatch(/mt-2\.5 flex items-start/);
+    expect(ui).toMatch(/px-3 pt-3 pb-1\.5 \$\{className\}/);
+    expect(ui).toMatch(/mt-1\.5 flex items-start/);
+    // #200: the title only slightly bigger than section headings (18px).
+    expect(ui).toMatch(/text-\[19px\] font-extrabold uppercase/);
     const mt = src("./SoloMyTrainingScreen.jsx");
     expect(mt).toMatch(/max-w-md mx-auto px-3 pb-10">/);
     expect(mt).toMatch(/<div className="mt-4">\s*<h2 className="text-lg font-bold leading-tight mb-3">\{heading\}/);
