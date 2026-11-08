@@ -9,6 +9,28 @@ engaged with regular updates (step 4). Step 2's plan and prices were
 APPROVED by the owner on 2026-10-28 and its code is BUILT (2026-10-28,
 switched off until launch) — what's left is the owner's setup and testing.
 
+STATUS — 2026-11-08 (1.0.4 App Store submission, where we stopped)
+-----------------------------------------------------------------
+  DONE: Paid Apps Agreement active. 7 single-program products (apex_solo_
+  program_<id>, non-consumable, A$49.99–74.99, review screenshot each),
+  4 subscriptions and the subscription group all added to ONE draft
+  submission. 1.0.4 version page created (What's New, sign-in notes).
+  White screen after a purchase: #192 (native checks, build 239+) and
+  #193 (phone's purchase log copied to soloUsers/{uid}.purchaseTrace).
+  Build 240 tested on TestFlight: program purchase on tylah worked;
+  tylah is on Free (needed for the reviewer).
+  10 App Store screenshots (1320 x 2868) made from the live app.
+
+  TO DO (owner was locked out of App Store Connect, 2026-11-08):
+    1. 1.0.4 → Build: remove 238, add 240 → Save.
+    2. Upload the 10 screenshots under iPhone 6.9".
+    3. "Manually release this version" selected → Save.
+    4. Add for Review → Draft Submission (13 items) → Submit for Review.
+    5. After approval: switch Go live on (coach console → Train Solo →
+       Subscriptions) and release 1.0.4 manually, same day.
+  Open bug (low): a mistyped /solo/<x> address loops ".../register" in
+  the URL (SoloRoutes catch-all Navigate is relative).
+
 STATUS — 2026-11-07 (Watch app + coach console, PR #39)
 ------------------------------------------------------
   1. DONE — PR #39 merged. Main's newest changes merged in first (#188 was
