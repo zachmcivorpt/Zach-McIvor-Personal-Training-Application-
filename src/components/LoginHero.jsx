@@ -17,7 +17,9 @@ const markShade = {
 };
 
 // Solid lit mark with a radial glow behind (chooser + log-in screens).
-export function LitLogo({ width = 104, reflection = false }) {
+// `crisp` (chooser, #208): the mark at full strength with a white glow from
+// blurred copies of itself, no fade.
+export function LitLogo({ width = 104, reflection = false, crisp = false }) {
   const glow = Math.round(width * 2.2);
   return (
     <div className="relative flex flex-col items-center" data-testid="lit-logo">
@@ -33,7 +35,15 @@ export function LitLogo({ width = 104, reflection = false }) {
           background: "radial-gradient(closest-side, rgba(255,255,255,0.16), rgba(255,255,255,0))",
         }}
       />
-      <Logo variant="mark" tone="white" className="relative h-auto" style={{ width, ...markShade }} />
+      {crisp ? (
+        <div className="relative" style={{ width }} data-testid="lit-logo-crisp">
+          <Logo variant="mark" tone="white" className="absolute inset-0 h-auto" style={{ width, filter: "blur(22px)", opacity: 0.55 }} />
+          <Logo variant="mark" tone="white" className="absolute inset-0 h-auto" style={{ width, filter: "blur(7px)", opacity: 0.6 }} />
+          <Logo variant="mark" tone="white" className="relative h-auto" style={{ width }} />
+        </div>
+      ) : (
+        <Logo variant="mark" tone="white" className="relative h-auto" style={{ width, ...markShade }} />
+      )}
       {reflection && (
         <div aria-hidden="true" className="relative pointer-events-none overflow-hidden" style={{ height: Math.round(width * 0.4) }}>
           <Logo

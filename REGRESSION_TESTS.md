@@ -3281,6 +3281,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Updated tests**: `appRouting.test.jsx` and `afterPurchaseWhiteScreen.test.jsx` now expect the first page at `/`.
 - **Browser check**: the real screens were checked in Chromium. The arrow opens the chooser and Back on `/login` returns to it.
 
+### 208. Login area: start chooser logo crisp and glowing, glass buttons (owner, 2026-11-08)
+
+- **Problem**: on the chooser (`/start?step=choose`) the mirrored copy of the APEX mark under it was clipped (looked "blocked off" at the bottom); a faint rectangle showed around the mark (the bundled logo PNG had near-invisible pixels across its whole box); the mark was soft (a 384 px file drawn 200 pt wide at 3x) and faded; the Coaching button was solid white.
+- **Change**: `LitLogo crisp` (no fade, white glow from two blurred copies), no reflection; `public/brand/app-logo-dark-mountain.png` redrawn at 1152 px with sharp edges and the faint pixels removed (also sharper on the log-in screens); `mark-white.png` faint pixels removed; both buttons frosted glass (`GLASS` / `GLASS_STRONG`, Coaching brighter).
+- **Tests**: `src/solo/startChooser208.test.js` (3): crisp glowing mark, no reflection; both buttons glass, no solid white button; logo file ≥ 1152 px. All 3 fail on the old code. `loginLook207.test.jsx` unchanged and passing.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
