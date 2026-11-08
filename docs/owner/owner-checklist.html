@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8"><title>APEX Owner Checklist</title>
+<style>
+@page{size:A4;margin:16mm 16mm}
+*{box-sizing:border-box}
+body{font-family:-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;color:#141414;margin:0;font-size:11pt;line-height:1.45}
+.brand{color:#2563eb;font-weight:700;letter-spacing:.3em;font-size:9pt}
+h1{font-size:26pt;margin:4px 0 6px;font-weight:700;letter-spacing:-.01em}
+.sub{color:#555;margin:0 0 18px}
+h2{font-size:14pt;margin:0;padding:10px 0 8px;border-top:2px solid #141414;display:flex;align-items:baseline;gap:10px}
+h2 span{color:#2563eb;font-size:8.5pt;letter-spacing:.15em;font-weight:700}
+ul{list-style:none;margin:0 0 18px;padding:0}
+li{display:flex;gap:10px;padding:8px 0;border-top:1px solid #ddd}
+li:first-child{border-top:none}
+.box{flex:none;width:13px;height:13px;border:1.5px solid #141414;border-radius:2px;margin-top:3px}
+b{font-weight:700}.where{color:#555}
+</style></head><body>
+<div class="brand">APEX</div>
+<h1>Owner Checklist</h1>
+<p class="sub">What to check once the app is live: daily, weekly, monthly, and what to do when something goes wrong.</p>
+<h2>Daily <span>2 MINUTES</span></h2>
+<ul>
+<li><i class="box"></i><div><b>Email:</b> anything from Apple (App Store Connect), Stripe or RevenueCat: reviews, refunds, disputes, billing problems, contract notices.</div></li>
+<li><i class="box"></i><div><b>Member emails:</b> reply within a day.</div></li>
+<li><i class="box"></i><div><b>App reviews</b> <span class="where">App Store Connect → Ratings and Reviews:</span> reply to any 1–3 star review that mentions a problem.</div></li>
+</ul>
+<h2>Weekly <span>15 MINUTES</span></h2>
+<ul>
+<li><i class="box"></i><div><b>RevenueCat dashboard:</b> iPhone revenue, active subscribers, trials, cancellations.</div></li>
+<li><i class="box"></i><div><b>Stripe dashboard:</b> website sales, refunds, failed payments and <b>disputes</b> (answer before Stripe's deadline).</div></li>
+<li><i class="box"></i><div><b>Coach console → Train Solo:</b> new members; paying members show the right plan.</div></li>
+<li><i class="box"></i><div><b>App Store Connect → In-App Purchases / Subscriptions:</b> everything still "Approved"; nothing "Developer Action Needed".</div></li>
+<li><i class="box"></i><div><b>TestFlight / Codemagic:</b> if a new build was expected, check it arrived.</div></li>
+</ul>
+<h2>Monthly</h2>
+<ul>
+<li><i class="box"></i><div><b>Apple payment</b> <span class="where">App Store Connect → Payments and Financial Reports:</span> paid ~33 days after month end. Save the report.</div></li>
+<li><i class="box"></i><div><b>Stripe payouts:</b> match to your bank. Save the monthly report.</div></li>
+<li><i class="box"></i><div><b>Tax / BAS:</b> give both reports to your accountant.</div></li>
+<li><i class="box"></i><div><b>Agreements</b> <span class="where">App Store Connect → Business:</span> Paid Apps Agreement active; bank and tax details current.</div></li>
+<li><i class="box"></i><div><b>Prices:</b> website price (coach console) matches the iPhone price (App Store Connect) for every program.</div></li>
+</ul>
+</body></html>
