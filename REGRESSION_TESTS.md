@@ -3167,6 +3167,15 @@ Black and white both covered (the existing Solo theme).
 screen test unchanged. Browser check of the session card and rest ring in
 both themes (built bundle). Needs a look on a real iPhone (manual list).
 
+### 197. Train Solo: tab bar floated above the bottom with the page showing under it (owner, 2026-11-08)
+
+**Problem**: #196's floating tab bar sat 14 px above the bottom edge, so the
+page scrolled visibly underneath it (owner's iPhone screenshot).
+**Fix**: docked to the bottom edge, full width, the home-bar inset inside the
+bar; same glass, uppercase labels and blue dot. Pages reserve exactly its
+height (Shell and Calendar `NAV_SPACE` 64 px + inset).
+**Tests**: `src/solo/tabBarDocked197.test.js` (fails on #196's floating bar).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
