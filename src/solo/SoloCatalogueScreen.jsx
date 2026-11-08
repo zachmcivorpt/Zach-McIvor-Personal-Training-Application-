@@ -126,7 +126,7 @@ export default function SoloCatalogueScreen() {
     <div className="w-full max-w-md mx-auto">
       <SoloPageHeader t={t} title="Catalogue" />
 
-      <div className="px-3 pt-2 pb-1">
+      <div className="px-3 pt-1 pb-1">
         {/* Website only: how buying works. The iOS app shows no prices and
             never points to the website (guideline 3.1.1), so this never
             renders there. */}

@@ -3197,6 +3197,16 @@ panel's bottom padding drops to 8 px. About 40% shorter. Same data.
 **Tests**: `src/solo/muscleCardCompact199.test.js` (fails on the old card).
 Browser check (WebGL, dark): card flush with the page's other boxes.
 
+### 200. Train Solo: page titles too big, gaps too wide (owner, 2026-11-08)
+
+**Fix**: tab titles 22 → 19 px (just above the 18 px section headings), logo
+21 → 18 px, header spacing tightened (top 20 → 12 px, logo → title 10 → 6 px,
+title → first section 8 → 6 px; Catalogue's first section 8 → 4 px); the
+muscle map's title is a section heading (18 px). Light mode: the logo blends
+into the white page (no grey square).
+**Tests**: `pageHeader174.test.js` updated to the new sizes and spacing
+(fails on the old header).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

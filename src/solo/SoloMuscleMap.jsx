@@ -85,7 +85,7 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
         backgroundSize: "28px 28px",
       }}
     >
-      <p className="text-[24px] font-semibold leading-tight">Muscle map</p>
+      <p className="text-lg font-bold leading-tight">Muscle map</p>
       <p className="text-[13px] mt-1" style={{ color: HOLO.muted }}>
         Tap a muscle. Swipe to turn the body.
       </p>
