@@ -35,10 +35,12 @@ describe("Train Solo header spacing (#176)", () => {
     const ui = src("./SoloUI.jsx");
     expect(ui).toMatch(/px-3 pt-3 pb-1\.5 \$\{className\}/);
     expect(ui).toMatch(/mt-1\.5 flex items-start/);
-    // #200: the title only slightly bigger than section headings (18px).
-    expect(ui).toMatch(/text-\[19px\] font-extrabold uppercase/);
+    // #203: no visible page titles (screen readers only).
+    expect(ui).toMatch(/<h1 className="sr-only">\{title\}<\/h1>/);
     const mt = src("./SoloMyTrainingScreen.jsx");
     expect(mt).toMatch(/max-w-md mx-auto px-3 pb-10">/);
-    expect(mt).toMatch(/<div className="mt-4">\s*<h2 className="text-lg font-bold leading-tight mb-3">\{heading\}/);
+    // #203: the day ("Today, 8th November") sits where the month was, same font.
+    expect(mt).toMatch(/<p className="text-sm font-semibold">\{dayHeading\(selectedKey, todayKey\)\}<\/p>/);
+    expect(mt).not.toMatch(/\{heading\}<\/h2>/);
   });
 });
