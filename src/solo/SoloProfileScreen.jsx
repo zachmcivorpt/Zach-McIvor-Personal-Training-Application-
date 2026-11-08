@@ -341,6 +341,11 @@ export default function SoloProfileScreen() {
         </div>
       )}
 
+      {/* The 3D muscle map's model is CC BY 4.0: its credit lives here (#204). */}
+      <p className="text-[10px] text-center mt-6 px-4" style={{ color: t.textFaint }}>
+        Muscle map anatomy: BodyParts3D © DBCLS (CC BY 4.0), via open-anatomy-3d.
+      </p>
+
       <DeleteAccountSheet
         dark={dark}
         open={deleteOpen}

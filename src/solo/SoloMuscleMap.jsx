@@ -186,12 +186,6 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, worked, ready, since, 
             <span className="block text-[9px] font-semibold tracking-[0.08em] uppercase whitespace-nowrap" style={{ color: HOLO.muted }}>Est. max kg</span>
           </div>
         </div>
-        <p className="text-[12px] mt-2 mb-0 truncate" style={{ color: HOLO.muted }}>
-          {detail.exercises.length ? detail.exercises.join(" · ") : "Not trained yet"}
-        </p>
-        <p className="text-[9px] mt-1 mb-0 truncate" style={{ color: HOLO.faint }}>
-          Anatomy: BodyParts3D © DBCLS (CC BY 4.0), via open-anatomy-3d
-        </p>
       </section>
     </div>
   );

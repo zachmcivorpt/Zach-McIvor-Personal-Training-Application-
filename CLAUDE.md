@@ -151,7 +151,7 @@ rather than inventing new colors per screen:
   session, muscle groups ready (blue). Last 72 h of their own logs, helpers
   count half; muscles come only from `exerciseMuscles.js` (#149).
 - **3D muscle map** (#194, `MuscleHologram.jsx`): the body on that card is the
-  BodyParts3D model (`public/models/muscle-map.glb`, credit line on the card)
+  BodyParts3D model (`public/models/muscle-map.glb`; its CC BY credit is at the foot of Profile, #204 — keep it)
   as a hologram — swipe sideways to turn, tap a muscle. Muscle groups come only
   from the model's baked `_REGION` (body scan) via `REGION_KEYS`; re-run the
   scan if the model changes. three.js + model load only when the card mounts,

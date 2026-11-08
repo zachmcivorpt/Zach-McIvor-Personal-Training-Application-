@@ -3234,6 +3234,14 @@ strip is gone.
 **Tests**: `pageHeader174.test.js` updated (sr-only title; `dayHeading` in the
 week strip; no day h2) — fails on the old layout.
 
+### 204. Train Solo: muscle map card — exercises and credit lines removed (owner, 2026-11-08)
+
+**Change**: the tapped-muscle card shows only the name, status and the three
+figures (shorter box). The model's CC BY 4.0 credit (required wherever the
+model is shown) moves to the foot of Profile.
+**Tests**: `src/solo/muscleCard204.test.js` (no exercise/credit lines in the
+card; credit present on Profile) — fails on the old card.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
