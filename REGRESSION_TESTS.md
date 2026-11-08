@@ -3176,6 +3176,18 @@ bar; same glass, uppercase labels and blue dot. Pages reserve exactly its
 height (Shell and Calendar `NAV_SPACE` 64 px + inset).
 **Tests**: `src/solo/tabBarDocked197.test.js` (fails on #196's floating bar).
 
+### 198. Train Solo: 3D muscle map in light mode (owner, 2026-11-08)
+
+**Problem**: the 3D map stayed a dark panel in Train Solo's light mode.
+**Fix**: a light twin of the panel (pale blue-grey with a faint blue grid, ink
+text, white glass pills and card) and of the body (`MuscleHologram light`):
+drawn with normal blending (added light vanishes on white), ready muscles blue,
+recovering ones ink (deeper with sets), the tapped one solid; the body rebuilds
+when the theme changes. Dark mode unchanged.
+**Tests**: `src/solo/muscleMapLight198.test.js` (fails without the change).
+Browser check (WebGL, light theme): chest recovering in ink, everything else
+blue, card and pills readable.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
