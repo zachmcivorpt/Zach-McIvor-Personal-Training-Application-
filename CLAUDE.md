@@ -162,8 +162,8 @@ rather than inventing new colors per screen:
 - **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
   of Progress, not in My Training.
 - **Interface style** (#196, owner-approved mock-up, ACG-inspired, blue not
-  yellow): logo centred and lit, titles/labels in capitals, floating glass tab
-  bar with a blue dot, black-and-white gym photo on the day's session with a
+  yellow): logo centred and lit, titles/labels in capitals, glass tab bar docked to the
+  bottom edge with a blue dot (#197: never floating above it), black-and-white gym photo on the day's session with a
   lit ring Start, the rest timer as a blue ring (`SoloRestRing`), the
   suggested program full width with a blue glow, today ringed. Both themes.
 - **Tab headers** (#174): every tab opens with `SoloPageHeader`

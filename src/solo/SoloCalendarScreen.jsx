@@ -19,7 +19,7 @@ import { isRecoveryAddon } from "./recommendations";
 // planMove — the same sessionPlan / plannedSessions records the missed-
 // session move and the Plan sheet use, never logs.
 // The tab bar's height (SoloShell NAV_SPACE).
-const NAV_SPACE = "calc(68px + env(safe-area-inset-bottom,0px))";
+const NAV_SPACE = "calc(64px + env(safe-area-inset-bottom,0px))";
 
 export default function SoloCalendarScreen() {
   const navigate = useNavigate();
