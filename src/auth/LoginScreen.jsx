@@ -267,7 +267,7 @@ export default function LoginScreen() {
           <ChevronLeft size={16} /> Back
         </Link>
         <div className="flex justify-center pt-6">
-          <LitLogo width={104} />
+          <LitLogo width={104} crisp />
         </div>
 
         <div className="flex-1 flex flex-col justify-center">

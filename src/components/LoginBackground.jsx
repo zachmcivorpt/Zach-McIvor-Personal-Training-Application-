@@ -37,6 +37,10 @@ export function resolveLoginBackground(appDesign) {
   return { type: isVideo ? "video" : "image", src: url, poster: (isVideo && appDesign?.loginBackgroundPosterUrl) || null };
 }
 
+// A little taller than the screen, pinned to the top (#209): an upload with
+// a light line along its bottom edge (a cropped screenshot) showed it as a
+// grey strip at the foot of every log-in screen.
+const MEDIA_BOX = "absolute top-0 left-0 w-full h-[103%] object-top";
 const MEDIA_STYLE = { filter: "brightness(0.95) contrast(1.05) saturate(0.95)" };
 
 // The photo/video screens (Coaching login, the Coaching / Train Solo
@@ -52,7 +56,7 @@ export function PinnedLoginBackdrop({ appDesign }) {
     return () => root.classList.remove("apex-photo-page");
   }, []);
   return (
-    <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
       {appDesign?.loginBackgroundUrl && (
         <>
           <LoginBackground appDesign={appDesign} />
@@ -67,11 +71,11 @@ export default function LoginBackground({ appDesign }) {
   const bg = resolveLoginBackground(appDesign);
   const [ready, setReady] = useState(false);
   if (!bg) return null;
-  const fade = `absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`;
+  const fade = `${MEDIA_BOX} object-cover transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`;
   return (
     <>
       {bg.poster && (
-        <img src={bg.poster} alt="" draggable={false} className="absolute inset-0 w-full h-full object-cover" style={MEDIA_STYLE} />
+        <img src={bg.poster} alt="" draggable={false} className={`${MEDIA_BOX} object-cover`} style={MEDIA_STYLE} />
       )}
       {bg.type === "video" ? (
         <video

@@ -6,7 +6,7 @@ const OTHER = "https://firebasestorage.googleapis.com/v0/b/zach-mcivor-pt-app.fi
 
 describe("resolveAppLogoUrl", () => {
   it("shows the current dark upload as the mountain, leaves new uploads as-is", () => {
-    expect(resolveAppLogoUrl(DARK)).toBe("/brand/app-logo-dark-mountain.png");
+    expect(resolveAppLogoUrl(DARK)).toBe("/brand/app-logo-dark-mountain-v2.png");
     expect(resolveAppLogoUrl(OTHER)).toBe(OTHER);
     expect(resolveAppLogoUrl(null)).toBe(null);
   });
