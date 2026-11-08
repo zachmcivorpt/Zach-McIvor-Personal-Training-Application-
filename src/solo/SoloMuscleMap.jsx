@@ -11,14 +11,29 @@ import MuscleHologram, { webglAvailable } from "./MuscleHologram";
 // The body is the 3D hologram (#194, MuscleHologram.jsx: swipe to turn, tap
 // a muscle); without WebGL it's the 2D MuscleBody, as before.
 
-// The 3D map's own panel (#195), as approved in the mock-up: always dark
-// (a lit hologram needs it), in light mode too.
-const HOLO = {
+// The 3D map's own panel (#195), as approved in the mock-up; its light-mode
+// twin follows Train Solo's light theme (#198).
+const HOLO_DARK = {
   bg: "#03060C",
   text: "#FFFFFF",
   muted: "rgba(255,255,255,0.62)",
   faint: "rgba(255,255,255,0.4)",
   line: "rgba(160,210,255,0.22)",
+  grid: "rgba(47,143,255,0.06)",
+  glass: "rgba(255,255,255,0.07)",
+  card: "linear-gradient(140deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03))",
+  recovering: "#FFFFFF",
+};
+const HOLO_LIGHT = {
+  bg: "#F3F6FA",
+  text: "#0A0A0B",
+  muted: "rgba(10,10,11,0.6)",
+  faint: "rgba(10,10,11,0.42)",
+  line: "rgba(10,10,11,0.12)",
+  grid: "rgba(47,143,255,0.09)",
+  glass: "rgba(255,255,255,0.7)",
+  card: "linear-gradient(140deg, rgba(255,255,255,0.92), rgba(255,255,255,0.7))",
+  recovering: "#0A0A0B",
 };
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -31,22 +46,23 @@ function lastTrainedDay(ts, now) {
   return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
-const pill = {
+const pill = (HOLO) => ({
   height: 40,
   minWidth: 68,
   padding: "0 14px",
   borderRadius: 20,
   border: `1px solid ${HOLO.line}`,
-  background: "rgba(255,255,255,0.07)",
+  background: HOLO.glass,
   color: HOLO.text,
   fontSize: 11,
   fontWeight: 700,
   letterSpacing: "0.08em",
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
-};
+});
 
-function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready, since, now, onUnavailable }) {
+function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready, since, now, onUnavailable, dark = true }) {
+  const HOLO = dark ? HOLO_DARK : HOLO_LIGHT;
   const [view, setView] = useState("front");
   const [spin, setSpin] = useState(false);
   const [selected, setSelected] = useState(() => worked[0] || "chest");
@@ -65,7 +81,7 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
       style={{
         background: HOLO.bg,
         color: HOLO.text,
-        backgroundImage: "linear-gradient(rgba(47,143,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(47,143,255,0.06) 1px, transparent 1px)",
+        backgroundImage: `linear-gradient(${HOLO.grid} 1px, transparent 1px), linear-gradient(90deg, ${HOLO.grid} 1px, transparent 1px)`,
         backgroundSize: "28px 28px",
       }}
     >
@@ -93,7 +109,7 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
       <div className="relative -mx-5 mt-2">
         <div className="absolute left-5 top-3 z-10 flex flex-col gap-1.5 text-[11px] pointer-events-none" style={{ color: HOLO.muted }}>
           <span className="flex items-center gap-1.5">
-            <i className="inline-block w-2 h-2 rounded-full" style={{ background: "#FFFFFF", boxShadow: "0 0 8px #fff" }} />
+            <i className="inline-block w-2 h-2 rounded-full" style={{ background: HOLO.recovering, boxShadow: dark ? "0 0 8px #fff" : "none" }} />
             Recovering
           </span>
           <span className="flex items-center gap-1.5">
@@ -102,17 +118,17 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
           </span>
         </div>
         <div className="absolute right-5 top-3 z-10 flex flex-col gap-1.5">
-          <button type="button" style={pill} aria-pressed={view === "front" && !spin} onClick={() => turn("front")}>
+          <button type="button" style={pill(HOLO)} aria-pressed={view === "front" && !spin} onClick={() => turn("front")}>
             FRONT
           </button>
-          <button type="button" style={pill} aria-pressed={view === "back" && !spin} onClick={() => turn("back")}>
+          <button type="button" style={pill(HOLO)} aria-pressed={view === "back" && !spin} onClick={() => turn("back")}>
             BACK
           </button>
-          <button type="button" style={pill} aria-pressed={spin} onClick={() => setSpin((v) => !v)}>
+          <button type="button" style={pill(HOLO)} aria-pressed={spin} onClick={() => setSpin((v) => !v)}>
             {spin ? "STOP" : "SPIN"}
           </button>
         </div>
-        <MuscleHologram view={view} levels={levels} selected={selected} onSelect={setSelected} spin={spin} onUserTurn={() => setSpin(false)} onUnavailable={onUnavailable} />
+        <MuscleHologram key={dark ? "dark" : "light"} light={!dark} view={view} levels={levels} selected={selected} onSelect={setSelected} spin={spin} onUserTurn={() => setSpin(false)} onUnavailable={onUnavailable} />
       </div>
 
       <section
@@ -120,7 +136,7 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
         aria-live="polite"
         className="relative -mt-6 rounded-[26px] p-4"
         style={{
-          background: "linear-gradient(140deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03))",
+          background: HOLO.card,
           border: `1px solid ${HOLO.line}`,
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)",
@@ -130,7 +146,7 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
           <h3 className="m-0 text-[20px] font-bold">{MUSCLE_LABELS[selected]}</h3>
           <span
             className="text-[11px] font-bold tracking-[0.08em] uppercase rounded-xl px-2.5 py-1.5 whitespace-nowrap"
-            style={recovering ? { background: "rgba(255,255,255,0.16)", color: "#fff" } : { background: "rgba(47,143,255,0.18)", color: "#9FD0FF" }}
+            style={recovering ? (dark ? { background: "rgba(255,255,255,0.16)", color: "#fff" } : { background: "#0A0A0B", color: "#fff" }) : { background: "rgba(47,143,255,0.18)", color: dark ? "#9FD0FF" : "#1C6FD9" }}
           >
             {recovering ? `Recovering · ${hoursAgo} h` : "Ready"}
           </span>
@@ -208,6 +224,7 @@ export function SoloMuscleMapCard({ logs, exercisesById, dark }) {
         since={since}
         now={now}
         onUnavailable={() => setThreeD(false)}
+        dark={dark}
       />
     );
   }

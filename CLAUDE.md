@@ -158,7 +158,9 @@ rather than inventing new colors per screen:
   draw only while on screen; no WebGL → the 2D MuscleBody. Layout is the
   approved mock-up (#195): its own dark panel (light mode too), FRONT/BACK/SPIN
   pills, Recovering = WHITE / Ready = blue in 3D (red stays only in the 2D
-  fallback), glass detail card from `muscleDetail` (own logs only).
+  fallback), glass detail card from `muscleDetail` (own logs only). Light
+  mode (#198): `HOLO_LIGHT` panel + `MuscleHologram light` (normal blending,
+  recovering in ink) — never the dark panel on a light page.
 - **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
   of Progress, not in My Training.
 - **Interface style** (#196, owner-approved mock-up, ACG-inspired, blue not

@@ -60,7 +60,7 @@ function loadModel(libs) {
 
 const hexToVec = (THREE, hex) => new THREE.Color(hex);
 
-export default function MuscleHologram({ view = "front", levels = {}, selected = null, onSelect, onUnavailable, spin = false, onUserTurn, height = 520 }) {
+export default function MuscleHologram({ view = "front", levels = {}, selected = null, onSelect, onUnavailable, spin = false, onUserTurn, light = false, height = 520 }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const apiRef = useRef(null);
@@ -79,7 +79,7 @@ export default function MuscleHologram({ view = "front", levels = {}, selected =
       .then((libs) => loadModel(libs).then((gltf) => ({ libs, gltf })))
       .then(({ libs, gltf }) => {
         if (disposed) return;
-        cleanup = buildScene(libs, gltf, canvasRef.current, wrapRef.current, apiRef, (key) => onSelectRef.current?.(key), () => onUserTurnRef.current?.());
+        cleanup = buildScene(libs, gltf, canvasRef.current, wrapRef.current, apiRef, (key) => onSelectRef.current?.(key), () => onUserTurnRef.current?.(), light);
         setState("ready");
       })
       .catch(() => {
@@ -124,7 +124,9 @@ export default function MuscleHologram({ view = "front", levels = {}, selected =
   );
 }
 
-function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn) {
+// light (#198): the same body for Train Solo's light mode — drawn normally
+// (not as added light) in blue on the light panel; recovering muscles in ink.
+function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn, light = false) {
   const { THREE, OrbitControls } = libs;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -184,12 +186,38 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn) {
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
+  // Light mode: ink for recovering, blue for ready, the tapped one solid.
+  const lightMaterial = new THREE.ShaderMaterial({
+    uniforms,
+    vertexShader: material.vertexShader,
+    fragmentShader: `
+      uniform float uTime; uniform float uSel; uniform float uScanY; uniform float uLevels[${N}];
+      uniform vec3 uBlue;
+      varying vec3 vN; varying vec3 vV; varying vec3 vP; varying float vKey;
+      void main(){
+        float f = pow(1.0 - abs(dot(vN, vV)), 1.6);
+        float level = 0.0;
+        for (int i = 0; i < ${N}; i++) { if (abs(float(i) - vKey) < 0.5) level = uLevels[i]; }
+        vec3 ink = vec3(0.04, 0.05, 0.08);
+        vec3 c = vKey < -0.5 ? vec3(0.62, 0.68, 0.78) : (level > 0.0 ? mix(uBlue, ink, 0.45 + 0.55 * level) : uBlue);
+        float fibre = 0.5 + 0.5 * sin(vP.y * 260.0 + vP.x * 90.0 + vP.z * 40.0);
+        float a = (vKey < -0.5 ? 0.18 : 0.38) + f * 0.45 + (vKey > -0.5 ? fibre * 0.06 : 0.0);
+        float sel = (uSel > -0.5 && abs(vKey - uSel) < 0.5) ? 1.0 : 0.0;
+        if (sel > 0.5) { c = mix(c, ink, 0.35); a = 0.82 + fibre * 0.1; }
+        else if (uSel > -0.5) { a *= 0.6; }
+        float scan = smoothstep(0.035, 0.0, abs(vP.y - uScanY));
+        c = mix(c, uBlue, scan * 0.8); a += scan * 0.3;
+        gl_FragColor = vec4(c * (0.85 + f * 0.25), clamp(a, 0.0, 1.0));
+      }`,
+    transparent: true,
+    depthWrite: false,
+  });
   const ghostMat = new THREE.ShaderMaterial({
     vertexShader: "varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }",
     fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1.0 - abs(dot(vN, vV)), 3.0); gl_FragColor = vec4(vec3(0.35,0.65,1.0) * f, f * 0.35); }",
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: light ? THREE.NormalBlending : THREE.AdditiveBlending,
   });
   const depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false });
 
@@ -224,7 +252,7 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn) {
   scene.add(body);
   const pickables = [];
   let skinMesh = null;
-  const disposables = [material, ghostMat, depthOnly];
+  const disposables = [material, lightMaterial, ghostMat, depthOnly];
   for (const { o, g } of parts) {
     g.translate(-center.x, -center.y, -center.z);
     g.scale(scale, scale, scale);
@@ -250,7 +278,7 @@ function buildScene(libs, gltf, canvas, wrap, apiRef, onPick, onUserTurn) {
     const occluder = new THREE.Mesh(g, depthOnly);
     occluder.renderOrder = 0;
     body.add(occluder);
-    const m = new THREE.Mesh(g, material);
+    const m = new THREE.Mesh(g, light ? lightMaterial : material);
     m.renderOrder = 1;
     m.userData.keys = keys;
     body.add(m);
