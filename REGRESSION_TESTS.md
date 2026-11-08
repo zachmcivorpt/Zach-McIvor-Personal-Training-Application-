@@ -3101,6 +3101,31 @@ client page opened at each (screenshots in the session).
 - **Change**: in the iPhone app, Train Solo copies that log to the member's own profile (`soloUsers/{uid}.purchaseTrace`: lines + uploadedAt) on open, 30 s and 90 s later (a page that isn't drawn still runs) and when the app comes back to the front; only when it changed; failures ignored (`src/solo/purchaseTraceUpload.js`, called from `SoloPaywallProvider`). Only the member can read/write their profile (existing rule). Web only: reaches build 239 on its next open.
 - **Tests**: `src/solo/purchaseTraceUpload193.test.js` (4): written to the profile; once per change; nothing with no log / user / app and never throws; wired into the provider. Full suite 1229 passed; build clean.
 
+### 194. Train Solo: 3D muscle map you can turn and tap (owner request, 2026-11-08)
+
+**Change**: the muscle map card on Progress (#148) now shows a real 3D anatomical
+body (BodyParts3D © DBCLS, CC BY 4.0, via open-anatomy-3d; credit on the card)
+drawn as a blue hologram (`src/solo/MuscleHologram.jsx`): swipe sideways to turn
+it (vertical swipes still scroll the page), Front / Back turn it, tap a muscle to
+see it (name, sets in the last 72 h, when, or Ready). Trained muscles glow
+`TRAINED_RED` deeper with sets, ready ones `READY_BLUE`, as before. The model
+(`public/models/muscle-map.glb`, 6.8 MB) carries a per-vertex body-scan region
+(`_REGION`) made by splitting every anatomy mesh into its separate muscles and
+mapping each (glutes stop at the hip crease, deltoids and lats separate, the
+thigh's outer strip is quads); a tap counts only the surface tapped, never a
+muscle seen through a gap more than 5 cm under the skin. three.js and the model
+load only when the card mounts (own chunk, never on the launch path); the loop
+draws only while the card is on screen. No WebGL / load failure → the 2D
+MuscleBody, unchanged.
+
+**Tests**: `src/solo/muscleHologram194.test.jsx` — every region maps to a tracked
+muscle or none and every tracked muscle is tappable; the shipped model is glTF
+with `_REGION` on every primitive and under 8 MB; without WebGL the card keeps
+the 2D body. All fail without the change (no MuscleHologram / model). The six
+#148 card tests still pass. Browser check (WebGL, built bundle): front and back
+render, trained chest/shoulders/triceps red, tapping the chest shows "Chest ·
+Trained · 4 sets · 20 h ago", Back turns the body.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
@@ -3138,6 +3163,7 @@ sandbox):
   5. After the first functions deploy containing #159: Firebase console → Functions shows `soloFreeSessionLimit`; with the switch live, a Free test account writing a 4th session directly sees it removed.
 - **Train Solo subscriptions end to end** (#120): on the website with a test account (Stripe live, 100%-off promotion code): subscribe yearly with the trial, upgrade Plus to All Access (one subscription, pro rata), start/switch/resume programs and check the calendar, cancel in the customer portal, and a card that fails on renewal drops to Free. On TestFlight 1.0.4 with a Sandbox Apple ID: Apple prices on the paywall, buy, trial, upgrade, Restore purchases on a second device, cancel, billing failure to Free; the Codemagic build itself is the first compile of PurchasesBridge.swift.
 - **Apple Watch logging on a real Watch** (#189, after `APEX_WATCH` is on): the Codemagic build compiles the Watch app; on TestFlight the APEX Watch app installs with the iPhone app; start a workout on the phone → it shows on the Watch; log sets with the Crown (shown on the phone, PR trophy, the coach's live view); rest countdown + Skip; Add set; with the phone locked in a pocket, log two sets → they appear on the phone after unlocking (once each); finish on the phone → the Watch says no workout running.
+- **3D muscle map on a real iPhone** (#194): Progress loads the body within a few seconds on 4G, sideways swipe turns it while up/down scrolls the page, taps pick the right muscle, and the phone doesn't warm up with the card on screen.
 - **Apple Health on a real iPhone** (1.0.3): the HealthKit permission sheet, the numbers HealthBridge.swift reads (steps, sleep, resting heart rate, weight) against the Health app, and that they appear on the client's Progress, the coach's client Progress panel and Train Solo Progress. Only a TestFlight build on a device can exercise this.
 - **Apple App Store distribution path** (per `CLAUDE.md`'s product
   status: APEX is a published App Store app — the native WKWebView shell,

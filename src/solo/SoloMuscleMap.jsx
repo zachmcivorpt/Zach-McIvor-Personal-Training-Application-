@@ -3,10 +3,19 @@ import { Card } from "../components/ui";
 import { SOLO_THEMES } from "./SoloThemeContext";
 import { MuscleBody, TRAINED_RED, READY_BLUE } from "./MuscleBody";
 import { trainedMuscles, intensity, muscleSummary, MUSCLE_LABELS } from "./muscleMap";
+import MuscleHologram, { webglAvailable } from "./MuscleHologram";
 
 // The muscle map on Progress (#148): one glass card with the body (Front /
 // Back), two large figures, and what's trained (red) and ready (blue).
 // Last 72 hours (about a muscle's recovery time), from their own logs.
+// The body is the 3D hologram (#194, MuscleHologram.jsx: swipe to turn, tap
+// a muscle); without WebGL it's the 2D MuscleBody, as before.
+
+function lastTrainedText(ts, now) {
+  if (!ts) return null;
+  const h = Math.max(0, Math.round((now - ts) / 3600000));
+  return h < 1 ? "under an hour ago" : h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
+}
 
 // Whole calendar days since their most recent logged session (any age).
 export function daysSinceLastSession(logs, now = Date.now()) {
@@ -37,6 +46,8 @@ const sets = (n) => Math.round(n * 10) / 10;
 export function SoloMuscleMapCard({ logs, exercisesById, dark }) {
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [view, setView] = useState("front");
+  const [threeD, setThreeD] = useState(() => webglAvailable());
+  const [selected, setSelected] = useState(null);
   const now = Date.now();
   const trained = useMemo(() => trainedMuscles(logs || [], exercisesById || {}, { now }), [logs, exercisesById]); // eslint-disable-line react-hooks/exhaustive-deps
   const levels = useMemo(() => Object.fromEntries(Object.entries(trained).map(([m, v]) => [m, intensity(v.sets)])), [trained]);
@@ -64,10 +75,35 @@ export function SoloMuscleMapCard({ logs, exercisesById, dark }) {
           <div className="absolute right-0 top-0 z-10">
             <Figure value={ready.length} label={<>Muscle groups<br />ready</>} color={READY_BLUE} text={t.text} muted={t.textMuted} align="right" />
           </div>
-          <div className="flex justify-center pt-2">
-            <MuscleBody view={view} levels={levels} dark={dark} style={{ height: 320 }} />
-          </div>
+          {threeD ? (
+            <div className="pt-16">
+              <MuscleHologram view={view} levels={levels} selected={selected} onSelect={setSelected} onUnavailable={() => setThreeD(false)} />
+            </div>
+          ) : (
+            <div className="flex justify-center pt-2">
+              <MuscleBody view={view} levels={levels} dark={dark} style={{ height: 320 }} />
+            </div>
+          )}
         </div>
+
+        {threeD && (
+          <div data-testid="muscle-map-selected" className="mt-3 min-h-[44px]">
+            {selected ? (
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-[17px] font-semibold">{MUSCLE_LABELS[selected]}</p>
+                <p className="text-[12px] font-semibold" style={{ color: trained[selected]?.sets > 0 ? TRAINED_RED : READY_BLUE }}>
+                  {trained[selected]?.sets > 0
+                    ? `Trained · ${sets(trained[selected].sets)} sets · ${lastTrainedText(trained[selected].last, now)}`
+                    : "Ready"}
+                </p>
+              </div>
+            ) : (
+              <p className="text-[12px]" style={{ color: t.textMuted }}>
+                Swipe sideways to turn the body. Tap a muscle to see it.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 border-t pt-3 space-y-2 text-[13px] leading-snug" style={{ borderColor: t.panelBorder }}>
           <p data-testid="muscle-map-trained">
@@ -86,6 +122,11 @@ export function SoloMuscleMapCard({ logs, exercisesById, dark }) {
           <p className="text-[11px]" style={{ color: t.textFaint }}>
             Sets logged in the last 72 hours; helping muscles count as half a set.
           </p>
+          {threeD && (
+            <p className="text-[10px]" style={{ color: t.textFaint }}>
+              Anatomy: BodyParts3D © DBCLS (CC BY 4.0), via open-anatomy-3d.
+            </p>
+          )}
         </div>
       </div>
     </Card>
