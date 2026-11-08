@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import {
   ClientThemeContext,
-  RestBar,
+  useClientDark,
   ExerciseDetailSheet,
   AddExerciseSheet,
   sectionedExercises,
@@ -284,14 +284,31 @@ export default function SoloWorkoutSessionScreen() {
     <ClientThemeContext.Provider value={dark}>
       <FullScreenOverlay>
         <div className={`${dark ? "fixed inset-0 z-[90] bg-black flex flex-col" : "fixed inset-0 z-[90] bg-white flex flex-col"} solo-glass-scope`} style={soloGlassVars(SOLO_THEMES[dark ? "dark" : "light"])}>
-          <div className={dark ? "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
-            <div className="w-[60px]" />
-            <h1 className={dark ? "text-white font-bold text-[17px] truncate px-2" : "text-black font-bold text-[17px] truncate px-2"}>{day.label}</h1>
-            <button onClick={handleCancel} disabled={finishing} className={dark ? "text-white/60 text-sm font-medium" : "text-black/60 text-sm font-medium"}>
-              Cancel
-            </button>
+          {/* Photo header (#196, the approved mock-up blended with the
+              existing session): logo centred, the session in capitals. */}
+          <div className="relative shrink-0 overflow-hidden">
+            <img
+              src="/brand/gym-dark.jpg"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: dark ? "grayscale(1) brightness(0.5) contrast(1.15)" : "grayscale(1) brightness(1.4) contrast(0.85)", opacity: dark ? 1 : 0.45 }}
+            />
+            <span aria-hidden="true" className="absolute inset-0" style={{ background: dark ? "linear-gradient(180deg, rgba(0,0,0,0.55), #000 100%)" : "linear-gradient(180deg, rgba(255,255,255,0.5), #fff 100%)" }} />
+            <div className="relative px-5 pt-6 pb-4">
+              <div className="flex items-center justify-between">
+                <span className={dark ? "text-white/60 text-[11px] font-bold uppercase tracking-[0.14em] tabular-nums w-[60px]" : "text-black/60 text-[11px] font-bold uppercase tracking-[0.14em] tabular-nums w-[60px]"}>
+                  {exercisesForSession.length} ex
+                </span>
+                <img src={SOLO_THEMES[dark ? "dark" : "light"].logo} alt="APEX" style={{ height: 20, filter: dark ? "drop-shadow(0 0 10px rgba(255,255,255,0.55))" : "none" }} />
+                <button onClick={handleCancel} disabled={finishing} className={dark ? "text-white/60 text-[11px] font-bold uppercase tracking-[0.14em] w-[60px] text-right" : "text-black/60 text-[11px] font-bold uppercase tracking-[0.14em] w-[60px] text-right"}>
+                  Cancel
+                </button>
+              </div>
+              <h1 className={dark ? "text-white font-extrabold text-[26px] uppercase leading-none mt-8 truncate" : "text-black font-extrabold text-[26px] uppercase leading-none mt-8 truncate"}>{day.label}</h1>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto px-2.5 py-4 space-y-5 pb-28">
+          <div className="flex-1 overflow-y-auto px-2.5 py-4 space-y-5 pb-40">
             <SessionIntelligenceCard exercises={exercisesForSession} exercisesById={exercisesById} logsForClient={soloWorkoutLogs} dark={dark} />
             {!showTargets && soloWorkoutLogs.length > 0 && (
               <button
@@ -392,7 +409,7 @@ export default function SoloWorkoutSessionScreen() {
           </BottomSheet>
 
           {resting && (
-            <RestBar
+            <SoloRestRing
               restTime={restTime}
               restTotal={restTotal}
               onAdd15={() => {
@@ -407,5 +424,42 @@ export default function SoloWorkoutSessionScreen() {
         </div>
       </FullScreenOverlay>
     </ClientThemeContext.Provider>
+  );
+}
+
+// The rest timer as a lit ring at the bottom (#196): Skip, the time, +15s.
+// Same timer and callbacks as the shared RestBar; Train Solo only.
+export function SoloRestRing({ restTime, restTotal, onSkip, onAdd15 }) {
+  const dark = useClientDark();
+  const left = Math.max(restTime, 0);
+  const done = restTotal > 0 ? Math.min(1, (restTotal - left) / restTotal) : 0;
+  const C = 2 * Math.PI * 38;
+  const ink = dark ? "#FFFFFF" : "#0A0A0B";
+  return (
+    <div className="fixed left-0 right-0 bottom-0 z-[95] flex justify-center pb-safe" data-testid="solo-rest-ring">
+      <div
+        className="w-full max-w-md mx-3 mb-3 rounded-[32px] flex items-center justify-between px-6 py-3 backdrop-blur-xl"
+        style={{ background: dark ? "rgba(20,20,24,0.72)" : "rgba(255,255,255,0.8)", border: `1px solid ${dark ? "rgba(255,255,255,0.12)" : "rgba(10,10,11,0.1)"}`, color: ink }}
+      >
+        <button type="button" onClick={onSkip} className="text-[11px] font-extrabold uppercase tracking-[0.14em] opacity-70 h-11 px-2">
+          Skip
+        </button>
+        <div className="relative w-[96px] h-[96px]" style={{ filter: "drop-shadow(0 0 10px rgba(47,143,255,0.65))" }}>
+          <svg viewBox="0 0 86 86" className="absolute inset-0 w-full h-full -rotate-90" aria-hidden="true">
+            <circle cx="43" cy="43" r="38" fill="none" stroke="#2F8FFF" strokeOpacity="0.2" strokeWidth="3" />
+            <circle cx="43" cy="43" r="38" fill="none" stroke="#2F8FFF" strokeWidth="3" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * done} />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-[24px] font-bold tabular-nums leading-none">
+              {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
+            </span>
+            <span className="text-[8px] font-bold uppercase tracking-[0.16em] mt-1 opacity-60">Rest</span>
+          </div>
+        </div>
+        <button type="button" onClick={onAdd15} className="text-[11px] font-extrabold uppercase tracking-[0.14em] h-11 px-2">
+          +15s
+        </button>
+      </div>
+    </div>
   );
 }

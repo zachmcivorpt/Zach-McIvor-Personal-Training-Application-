@@ -1044,20 +1044,27 @@ function WeekStrip({ weekKeys, selectedKey, todayKey, byDate, onSelect, onShiftW
               onClick={() => onSelect(key)}
               aria-label={d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
               aria-pressed={selected}
-              className="flex flex-col items-center py-2 rounded-xl"
-              style={selected ? { backgroundColor: t.text, color: t.bg } : undefined}
+              className="flex flex-col items-center py-1.5 rounded-xl"
             >
-              <span className="text-[10px] font-bold uppercase" style={{ color: selected ? t.bg : isToday ? MEASURE_BLUE : t.textFaint }}>
+              <span className="text-[10px] font-bold uppercase" style={{ color: isToday ? MEASURE_BLUE : t.textFaint }}>
                 {d.toLocaleDateString(undefined, { weekday: "narrow" })}
               </span>
-              <span className="text-lg font-extrabold tabular-nums leading-tight mt-0.5" style={{ color: selected ? t.bg : isToday ? MEASURE_BLUE : t.text }}>
+              {/* The chosen day is ringed and lit (#196). */}
+              <span
+                className="w-8 h-8 mt-0.5 rounded-full flex items-center justify-center text-[16px] font-extrabold tabular-nums"
+                style={{
+                  color: isToday && !selected ? MEASURE_BLUE : t.text,
+                  border: `1.5px solid ${selected ? t.text : "transparent"}`,
+                  boxShadow: selected && t.bg !== "#FFFFFF" ? "0 0 12px rgba(255,255,255,0.4)" : "none",
+                }}
+              >
                 {d.getDate()}
               </span>
               <span className="h-3 mt-0.5 flex items-center">
                 {allDone ? (
-                  <CheckCircle2 size={10} color={selected ? t.bg : MEASURE_BLUE} />
+                  <CheckCircle2 size={10} color={MEASURE_BLUE} />
                 ) : sessions.length > 0 ? (
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selected ? t.bg : MEASURE_BLUE }} />
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: MEASURE_BLUE, boxShadow: `0 0 6px ${MEASURE_BLUE}` }} />
                 ) : null}
               </span>
             </button>
@@ -1150,46 +1157,69 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, on
   );
 }
 
-function SessionHero({ item, actionable, onStart, future, t }) {
+// The day's session (#196, the approved mock-up): black-and-white gym photo,
+// the session name large in capitals, and a lit ring to start it.
+export function SessionHero({ item, actionable, onStart, future, t }) {
   const exercises = (item.day?.exercises || []).filter((e) => !e.isRest).length;
-  const Icon = item.type === "addon" ? HeartPulse : Dumbbell;
+  const light = t.bg === "#FFFFFF";
+  const ink = light ? "#0A0A0B" : "#FFFFFF";
   return (
     <button
       type="button"
       onClick={() => actionable && onStart()}
       disabled={!actionable}
-      className="w-full flex items-center gap-3 rounded-2xl px-4 py-4 text-left disabled:cursor-default"
-      style={{ ...soloGlass(t), borderColor: item.done ? t.panelBorder : "rgba(47,143,255,0.45)" }}
+      className="relative w-full overflow-hidden rounded-[26px] text-left disabled:cursor-default"
+      style={{ minHeight: 236, border: `1px solid ${item.done ? t.panelBorder : "rgba(47,143,255,0.45)"}`, color: ink }}
     >
-      <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.14)" }}>
-        <Icon size={18} color={MEASURE_BLUE} />
+      <img
+        src="/brand/gym-dark.jpg"
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ filter: light ? "grayscale(1) brightness(1.35) contrast(0.9)" : "grayscale(1) brightness(0.6) contrast(1.1)", opacity: light ? 0.55 : 1 }}
+      />
+      <span
+        aria-hidden="true"
+        className="absolute inset-0"
+        style={{ background: light ? "linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.92) 78%)" : "linear-gradient(180deg, rgba(5,5,6,0.15) 0%, rgba(5,5,6,0.92) 78%)" }}
+      />
+      <span className="relative flex items-end justify-between gap-3 p-4 pt-24">
+        <span className="min-w-0">
+          <span className="block text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: MEASURE_BLUE }}>
+            {item.subtitle}
+          </span>
+          <span className="block text-[26px] font-extrabold uppercase leading-none mt-1.5 truncate">{item.title}</span>
+          <span className="block text-[11px] font-bold uppercase tracking-[0.12em] mt-2" style={{ color: light ? "rgba(10,10,11,0.55)" : "rgba(255,255,255,0.6)" }}>
+            {exercises > 0 ? `${exercises} exercise${exercises === 1 ? "" : "s"}` : ""}
+            {item.movedFrom ? " · moved" : ""}
+          </span>
+        </span>
+        {item.skipped && !item.done ? (
+          <span className="text-[11px] font-bold uppercase tracking-[0.12em] shrink-0" style={{ color: t.textFaint }}>
+            Skipped
+          </span>
+        ) : item.done ? (
+          <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-[0.1em] shrink-0" style={{ color: MEASURE_BLUE }}>
+            <CheckCircle2 size={15} /> Done
+            {actionable && <ChevronRight size={14} />}
+          </span>
+        ) : actionable ? (
+          <span className="relative w-[74px] h-[74px] shrink-0 flex flex-col items-center justify-center" style={{ filter: light ? "none" : "drop-shadow(0 0 10px rgba(255,255,255,0.5))" }}>
+            <svg aria-hidden="true" viewBox="0 0 86 86" className="absolute inset-0 w-full h-full" style={{ color: ink }}>
+              <circle cx="43" cy="43" r="38" fill="none" stroke="currentColor" strokeOpacity=".25" strokeWidth="1" />
+              <path d="M43 5 A38 38 0 0 1 81 43" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M43 81 A38 38 0 0 1 5 43" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              <circle cx="43" cy="43" r="30" fill="none" stroke="currentColor" strokeOpacity=".5" strokeWidth="1" strokeDasharray="2 5" />
+            </svg>
+            <Play size={14} fill="currentColor" />
+            <span className="text-[8px] font-bold uppercase tracking-[0.14em] mt-1">Start</span>
+          </span>
+        ) : (
+          <span className="flex items-center gap-1 text-[11px] font-semibold shrink-0" style={{ color: t.textFaint }}>
+            <Lock size={13} /> {future ? "On the day" : "Locked"}
+          </span>
+        )}
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-lg font-extrabold leading-tight truncate">{item.title}</p>
-        <p className="text-xs mt-0.5 truncate" style={{ color: t.textMuted }}>
-          {item.subtitle}
-          {exercises > 0 ? ` · ${exercises} exercise${exercises === 1 ? "" : "s"}` : ""}
-          {item.movedFrom ? " · moved" : ""}
-        </p>
-      </div>
-      {item.skipped && !item.done ? (
-        <span className="text-[11px] font-semibold shrink-0" style={{ color: t.textFaint }}>
-          Skipped
-        </span>
-      ) : item.done ? (
-        <span className="flex items-center gap-1 text-xs font-bold shrink-0" style={{ color: MEASURE_BLUE }}>
-          <CheckCircle2 size={15} /> Done
-          {actionable && <ChevronRight size={14} />}
-        </span>
-      ) : actionable ? (
-        <span className="flex items-center gap-1 text-xs font-bold px-3.5 py-2 rounded-full shrink-0" style={{ backgroundColor: t.text, color: t.bg }}>
-          <Play size={11} fill="currentColor" /> Start
-        </span>
-      ) : (
-        <span className="flex items-center gap-1 text-[11px] font-semibold shrink-0" style={{ color: t.textFaint }}>
-          <Lock size={13} /> {future ? "On the day" : "Locked"}
-        </span>
-      )}
     </button>
   );
 }

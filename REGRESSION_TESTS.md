@@ -3143,6 +3143,30 @@ exercises, nothing → empty); fails without the change (no `muscleDetail`).
 #148 / #194 tests still pass. Browser check (WebGL, built bundle): the panel
 matches the mock-up, Chest card "Recovering · 18 h · 12 · Sat · 111".
 
+### 196. Train Solo: interface upgrade in the approved mock-up style (owner, 2026-11-08)
+
+**Change** (Train Solo only; layout and every button unchanged, styling only):
+- Tab headers: APEX mark centred and lit (dark), titles in capitals.
+- Tab bar: a floating glass bar, uppercase labels, the open tab bright with a
+  glowing blue dot (`NAV_SPACE` 96 px + home bar).
+- My Training: the day's session is a black-and-white gym-photo card with the
+  name in capitals and a lit ring to start it (Done / Skipped / Locked as
+  before); week strip rings the chosen day.
+- Workout session: photo header (logo centred, exercise count, Cancel, the
+  session in capitals); the rest timer is a lit blue ring at the bottom
+  (Skip · time · +15s, same timer and callbacks — `SoloRestRing`, Solo only;
+  the coached app's RestBar is untouched).
+- Catalogue: the suggested program is a full-width card (12 px gutters) with
+  a blue glow and YOUR MATCH, name in capitals, price as before.
+- Calendar: each day's date as a large figure, today ringed in blue.
+- Profile: ringed initials, name in capitals, Sessions logged / Kg lifted (own
+  logs), and a Black / White switch (the existing theme toggle).
+Black and white both covered (the existing Solo theme).
+
+**Tests**: full suite passes (1233); header spacing (#176) and every Solo
+screen test unchanged. Browser check of the session card and rest ring in
+both themes (built bundle). Needs a look on a real iPhone (manual list).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
@@ -3180,6 +3204,7 @@ sandbox):
   5. After the first functions deploy containing #159: Firebase console → Functions shows `soloFreeSessionLimit`; with the switch live, a Free test account writing a 4th session directly sees it removed.
 - **Train Solo subscriptions end to end** (#120): on the website with a test account (Stripe live, 100%-off promotion code): subscribe yearly with the trial, upgrade Plus to All Access (one subscription, pro rata), start/switch/resume programs and check the calendar, cancel in the customer portal, and a card that fails on renewal drops to Free. On TestFlight 1.0.4 with a Sandbox Apple ID: Apple prices on the paywall, buy, trial, upgrade, Restore purchases on a second device, cancel, billing failure to Free; the Codemagic build itself is the first compile of PurchasesBridge.swift.
 - **Apple Watch logging on a real Watch** (#189, after `APEX_WATCH` is on): the Codemagic build compiles the Watch app; on TestFlight the APEX Watch app installs with the iPhone app; start a workout on the phone → it shows on the Watch; log sets with the Crown (shown on the phone, PR trophy, the coach's live view); rest countdown + Skip; Add set; with the phone locked in a pocket, log two sets → they appear on the phone after unlocking (once each); finish on the phone → the Watch says no workout running.
+- **Train Solo restyle on a real iPhone** (#196): the floating tab bar clears the home bar, every tab and button still works (start a session, rest Skip / +15s, Black / White in Profile), in both themes.
 - **3D muscle map on a real iPhone** (#194): Progress loads the body within a few seconds on 4G, sideways swipe turns it while up/down scrolls the page, taps pick the right muscle, and the phone doesn't warm up with the card on screen.
 - **Apple Health on a real iPhone** (1.0.3): the HealthKit permission sheet, the numbers HealthBridge.swift reads (steps, sleep, resting heart rate, weight) against the Health app, and that they appear on the client's Progress, the coach's client Progress panel and Train Solo Progress. Only a TestFlight build on a device can exercise this.
 - **Apple App Store distribution path** (per `CLAUDE.md`'s product
