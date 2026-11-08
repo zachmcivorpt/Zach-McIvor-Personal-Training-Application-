@@ -9,7 +9,7 @@ describe("start chooser look (#208)", () => {
   it("uses the crisp glowing mark and no reflection", () => {
     expect(start()).toContain("<LitLogo width={200} crisp />");
     expect(start()).not.toMatch(/LitLogo[^>]*reflection/);
-    expect(readFileSync("src/components/LoginHero.jsx", "utf8")).toMatch(/crisp \?[\s\S]*blur\(22px\)[\s\S]*blur\(7px\)/);
+    expect(readFileSync("src/components/LoginHero.jsx", "utf8")).toMatch(/crisp \? \([\s\S]*MOUNTAIN_GLOW/); // glow image since #209
   });
   it("both buttons are frosted glass, not a solid white button", () => {
     const s = start();
@@ -19,7 +19,7 @@ describe("start chooser look (#208)", () => {
     expect(s).not.toMatch(/className="block bg-white text-black/);
   });
   it("the APEX mark file is drawn large enough to stay sharp", () => {
-    const png = readFileSync("public/brand/app-logo-dark-mountain.png");
+    const png = readFileSync("public/brand/app-logo-dark-mountain-v2.png");
     expect(png.readUInt32BE(16)).toBeGreaterThanOrEqual(1152); // IHDR width
   });
 });

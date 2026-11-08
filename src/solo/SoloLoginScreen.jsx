@@ -152,7 +152,7 @@ export default function SoloLoginScreen() {
       </Link>
 
       <div className="flex justify-center pt-6 pb-10">
-        <LitLogo width={104} />
+        <LitLogo width={104} crisp />
       </div>
 
       <div className="w-full max-w-sm mx-auto">

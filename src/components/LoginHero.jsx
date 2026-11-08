@@ -16,29 +16,19 @@ const markShade = {
   maskImage: "linear-gradient(180deg, #000 25%, rgba(0,0,0,0.5) 100%)",
 };
 
-// Solid lit mark with a radial glow behind (chooser + log-in screens).
-// `crisp` (chooser, #208): the mark at full strength with a white glow from
-// blurred copies of itself, no fade.
+// The APEX mark's glow, drawn once as an image (#209): no CSS blur and no
+// round halo behind the mark — iOS drew the blurred copies' box as a faint
+// square. Same canvas as the mark, so it sits exactly under it.
+const MOUNTAIN_GLOW = "/brand/app-logo-mountain-glow.png";
+
+// Solid lit mark (chooser + log-in screens). `crisp` (chooser, #208): full
+// strength with its own glow, no fade.
 export function LitLogo({ width = 104, reflection = false, crisp = false }) {
-  const glow = Math.round(width * 2.2);
   return (
     <div className="relative flex flex-col items-center" data-testid="lit-logo">
-      <div
-        aria-hidden="true"
-        className="absolute rounded-full pointer-events-none"
-        style={{
-          width: glow,
-          height: glow,
-          top: Math.round(width * 0.38) - glow / 2,
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "radial-gradient(closest-side, rgba(255,255,255,0.16), rgba(255,255,255,0))",
-        }}
-      />
       {crisp ? (
         <div className="relative" style={{ width }} data-testid="lit-logo-crisp">
-          <Logo variant="mark" tone="white" className="absolute inset-0 h-auto" style={{ width, filter: "blur(22px)", opacity: 0.55 }} />
-          <Logo variant="mark" tone="white" className="absolute inset-0 h-auto" style={{ width, filter: "blur(7px)", opacity: 0.6 }} />
+          <img src={MOUNTAIN_GLOW} alt="" aria-hidden="true" draggable={false} className="absolute inset-0 w-full h-auto pointer-events-none" />
           <Logo variant="mark" tone="white" className="relative h-auto" style={{ width }} />
         </div>
       ) : (
@@ -70,9 +60,8 @@ export function GlowLogo({ width = 250 }) {
   const layer = { width, position: "absolute", left: 0, top: 0 };
   return (
     <div className="relative" style={{ width, height: Math.round(width * 0.77) }} data-testid="glow-logo">
-      <Logo variant="mark" tone="white" className="h-auto" style={{ ...layer, filter: "blur(18px)", opacity: 0.7 }} />
-      <Logo variant="mark" tone="white" className="h-auto" style={{ ...layer, filter: "blur(5px)", opacity: 0.5 }} />
-      <Logo variant="mark" tone="white" className="h-auto" style={{ ...layer, opacity: 0.5 }} />
+      <img src={MOUNTAIN_GLOW} alt="" aria-hidden="true" draggable={false} className="h-auto pointer-events-none" style={{ ...layer, opacity: 0.9 }} />
+      <Logo variant="mark" tone="white" className="h-auto" style={{ ...layer, opacity: 0.55 }} />
     </div>
   );
 }

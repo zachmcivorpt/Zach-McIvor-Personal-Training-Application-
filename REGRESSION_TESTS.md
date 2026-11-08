@@ -3287,6 +3287,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change**: `LitLogo crisp` (no fade, white glow from two blurred copies), no reflection; `public/brand/app-logo-dark-mountain.png` redrawn at 1152 px with sharp edges and the faint pixels removed (also sharper on the log-in screens); `mark-white.png` faint pixels removed; both buttons frosted glass (`GLASS` / `GLASS_STRONG`, Coaching brighter).
 - **Tests**: `src/solo/startChooser208.test.js` (3): crisp glowing mark, no reflection; both buttons glass, no solid white button; logo file ≥ 1152 px. All 3 fail on the old code. `loginLook207.test.jsx` unchanged and passing.
 
+### 209. Login area: no halo, no faint square, no grey strip; crisp glowing mark everywhere (owner, 2026-11-08)
+
+- **Problem**: after #208 the owner still saw a round glow behind the mark, a faint square around it, and a grey line at the foot of every log-in screen. The square: iOS drew the box of the CSS-blurred copies of the mark (and phones kept the old logo file); the circle: LitLogo's radial halo; the grey line: the uploaded login background (a black 900x900 image) has a light line along its bottom edge, stretched across the screen.
+- **Fix**: the halo is gone; the glow is one baked image (`/brand/app-logo-mountain-glow.png`, same canvas as the mark) for LitLogo and the first page's GlowLogo, with no CSS blur; the mark file is renamed `app-logo-dark-mountain-v2.png` so phones fetch the clean one; Coaching and Train Solo log-in screens use `LitLogo crisp`; the login background is 103% tall, pinned to the top and clipped (`MEDIA_BOX`).
+- **Tests**: `src/solo/loginClean209.test.js` (4), all failing on the old code; `appLogo.test.js` and `startChooser208.test.js` read the new file name.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

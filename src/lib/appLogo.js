@@ -30,7 +30,7 @@ import { db as firestore, firebaseApp } from "./firebase";
 // the same size. Uploading a new logo in Design Settings replaces it as
 // usual — only this one stored upload is mapped.
 const BUNDLED = {
-  "design/appLogoUrlOnDark_1792373913084_7A4D6D51-051F-4656-84C7-217E22048388.png": "/brand/app-logo-dark-mountain.png",
+  "design/appLogoUrlOnDark_1792373913084_7A4D6D51-051F-4656-84C7-217E22048388.png": "/brand/app-logo-dark-mountain-v2.png",
   "design/appLogoUrlOnLight_1792373876950_IMG_2121.png": "/brand/app-logo-light-1792373876950.png",
 };
 
