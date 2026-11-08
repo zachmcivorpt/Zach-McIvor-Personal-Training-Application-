@@ -21,7 +21,13 @@ STATUS — 2026-11-08 (1.0.4 App Store submission, where we stopped)
   tylah is on Free (needed for the reviewer).
   10 App Store screenshots (1320 x 2868) made from the live app.
 
-  TO DO (owner was locked out of App Store Connect, 2026-11-08):
+  SUBMITTED 2026-11-08 (~9:15 pm AEDT): 1.0.4 build 240 + 7 programs +
+  4 subscriptions + group, manual release. iPhone screenshots 1206x2622,
+  iPad 13" 2064x2752 (the two start screens).
+  NEXT, once Apple approves: Go live on (coach console → Train Solo →
+  Subscriptions), then Release 1.0.4 the same day.
+
+  (Steps that were left, now done:)
     1. 1.0.4 → Build: remove 238, add 240 → Save.
     2. Upload the 10 screenshots under iPhone 6.9".
     3. "Manually release this version" selected → Save.
