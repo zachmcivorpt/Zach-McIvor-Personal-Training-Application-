@@ -196,7 +196,7 @@ export default function SoloCatalogueScreen() {
                     </span>
                     <span className="absolute left-4 right-4 bottom-4 flex items-end justify-between gap-3 text-white">
                       <span className="min-w-0">
-                        <span className="block text-[24px] font-extrabold uppercase leading-[1.02]">{p.name}</span>
+                        <span className="block text-[17px] font-extrabold uppercase leading-[1.1] line-clamp-2">{p.name}</span>
                         <span className="block text-[11px] font-bold uppercase tracking-[0.12em] mt-1.5 text-white/70">
                           {p.level}
                           {weeks > 0 ? ` · ${weeks} weeks` : ""}

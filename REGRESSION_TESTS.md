@@ -3207,6 +3207,12 @@ into the white page (no grey square).
 **Tests**: `pageHeader174.test.js` updated to the new sizes and spacing
 (fails on the old header).
 
+### 201. Train Solo: suggested program's name too large on its card (owner, 2026-11-08)
+
+**Fix**: the YOUR MATCH card's name is 17 px (was 24) and never more than two
+lines (`line-clamp-2`; the full name is on the program page).
+**Tests**: `src/solo/catalogueMatchName201.test.js` (fails on the old size).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
