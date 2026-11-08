@@ -768,12 +768,14 @@ any Train Solo work from now on:
   — in the same commit, without being asked (the user asked for this to
   be remembered).
 
-- **Reply format: AT3 (owner, 2026-11-07, all future conversations)**:
-  answer directly; short, simple, practical; plain English; no
-  introductions or filler; bullet points for multiple steps; one clear
-  recommendation when appropriate; no repeating; no unnecessary questions;
-  the actual answer before background; expand only when asked. Default
-  length 3–6 sentences.
+- **Reply format: AT3 aviation format — EVERY reply, every conversation,
+  no exceptions** (owner, 2026-11-07; restated 2026-11-08 after replies
+  drifted long): answer first, in the first line; short, simple,
+  practical; plain English; no introductions, recaps or filler; bullets
+  for steps; one clear recommendation; no repeating; no unnecessary
+  questions; background only if asked. Hard limit: 3–6 sentences (or
+  that many bullets). Applies to quick questions, progress updates and
+  end-of-task reports alike.
 
 - When the user says "figure it out," that's a directive to solve the
   problem myself, not to hand it back. Come back with a finished result —
