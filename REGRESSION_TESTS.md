@@ -3242,6 +3242,15 @@ model is shown) moves to the foot of Profile.
 **Tests**: `src/solo/muscleCard204.test.js` (no exercise/credit lines in the
 card; credit present on Profile) — fails on the old card.
 
+### 205. Train Solo: genitals showed on the muscle map's body (owner, 2026-11-08)
+
+**Fix**: the 1,836 ghost-skin triangles in the groin box in front of the body
+are removed from `public/models/muscle-map.glb` (muscles untouched). The
+model-prep scripts are now in `scripts/muscle-map/` (`body-scan.mjs` bakes
+`_REGION`, `cut-groin.mjs` removes this) — re-run both if the model changes.
+**Tests**: #194's model test still passes (glTF, `_REGION` on every
+primitive, under 8 MB). Browser check (WebGL, light theme): groin smooth.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

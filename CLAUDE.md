@@ -154,7 +154,8 @@ rather than inventing new colors per screen:
   BodyParts3D model (`public/models/muscle-map.glb`; its CC BY credit is at the foot of Profile, #204 — keep it)
   as a hologram — swipe sideways to turn, tap a muscle. Muscle groups come only
   from the model's baked `_REGION` (body scan) via `REGION_KEYS`; re-run the
-  scan if the model changes. three.js + model load only when the card mounts,
+  scan if the model changes (`scripts/muscle-map/body-scan.mjs`, then
+  `cut-groin.mjs`: no genitals on the body, #205). three.js + model load only when the card mounts,
   draw only while on screen; no WebGL → the 2D MuscleBody. Layout is the
   approved mock-up (#195): its own dark panel (light mode too), FRONT/BACK/SPIN
   pills, glass detail card from `muscleDetail` (own logs only). Colours by
