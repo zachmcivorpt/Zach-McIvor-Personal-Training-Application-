@@ -72,6 +72,12 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // purchase screen back (#183). Twice at most, then Continue: checks that
     // keep disagreeing can't cover and uncover the page in a loop.
     private var verifyRecoveries = 0
+    // When the purchase cover last came off (#192). For a minute after, every
+    // screen change the page reports (apexTheme, posted on each route change)
+    // is checked too: "It's yours", the welcome and "Go to My Training" all
+    // come after the cover is off, and a page that stopped being drawn then
+    // was left white.
+    private var lastUncoverAt: Date?
     // Each 15 s "never stay up" limit gets a number; only the latest one acts.
     private var fallbackGeneration = 0
     // Apple's answer is also kept on the phone for 10 minutes (#183), so a
@@ -485,6 +491,13 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         isEdgeToEdge = (body["edgeToEdge"] as? Bool) ?? false
         UserDefaults.standard.set(isDarkBackground, forKey: lastDarkKey)
         UserDefaults.standard.set(isEdgeToEdge, forKey: lastEdgeKey)
+        // A new screen within a minute of a purchase (#192): look at it.
+        if let at = lastUncoverAt, Date().timeIntervalSince(at) < 60, purchaseCover == nil {
+            let generation = uncoverGeneration
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+                self?.checkShownAfterPurchase(generation: generation, label: "new screen")
+            }
+        }
     }
 
     deinit {
@@ -1025,6 +1038,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in self?.wakeWebKit() }
             }
             self.uncoverGeneration += 1
+            self.lastUncoverAt = Date()
             self.verifyShownAfterPurchase(generation: self.uncoverGeneration)
         }
     }
@@ -1078,28 +1092,52 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     }
 
     // Uncovered: look again a moment later; white then → the purchase
-    // screen back up and a fresh page (#163). Three looks, not one (#183):
-    // the page goes on from the Confirming screen to the welcome after the
-    // cover is off, and a page that stops being drawn then was never caught.
+    // screen back up and a fresh page (#163). Looked at until 20 s, not 6
+    // (#192): the server can take ~10 s to confirm, and "It's yours" / the
+    // welcome / "Purchase received" only replace "Confirming" then — a page
+    // that stopped being drawn at that moment was never caught (#183 had
+    // 1.2 / 3 / 6 s).
     private func verifyShownAfterPurchase(generation: Int) {
-        for delay in [1.2, 3.0, 6.0] {
+        for delay in [1.2, 3.0, 6.0, 10.0, 15.0, 20.0] {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                guard let self = self, self.uncoverGeneration == generation,
-                      self.purchaseCover == nil, !self.purchaseSheetOpen else { return }
-                self.pageLooksBlank { [weak self] blank in
-                    guard let self = self, self.uncoverGeneration == generation, self.purchaseCover == nil else { return }
-                    PurchaseTrace.log("after cover off +\(delay)s: screen blank \(blank) (\(self.pictureCheckName))")
-                    guard blank else { return }
-                    self.uncoverGeneration += 1
-                    self.showPurchaseStageCover(title: "One moment", detail: "")
-                    if self.verifyRecoveries >= 2 { return self.offerContinue() }
-                    self.verifyRecoveries += 1
-                    self.armContinueFallback()
-                    self.wakeWebKit()
-                    self.revealAfterPurchase(tries: 1)
-                }
+                self?.checkShownAfterPurchase(generation: generation, label: "+\(delay)s")
             }
         }
+    }
+
+    // One look after the cover is off (#183, #192): one flat colour → the
+    // purchase screen back up, WebKit woken and the page shown again (or a
+    // fresh one); twice at most, then Continue.
+    private func checkShownAfterPurchase(generation: Int, label: String) {
+        guard uncoverGeneration == generation, purchaseCover == nil, !purchaseSheetOpen,
+              UIApplication.shared.applicationState == .active else { return }
+        // A loading placeholder (data-apex-loading) is allowed to be plain:
+        // not a white page. (Asked directly — it answers even while WebKit
+        // isn't drawing.)
+        webView.evaluateJavaScript("!!document.querySelector('[data-apex-loading]')") { [weak self] value, _ in
+            guard let self = self, self.uncoverGeneration == generation, self.purchaseCover == nil else { return }
+            if (value as? Bool) == true {
+                PurchaseTrace.log("after cover off \(label): loading screen, not checked")
+                return
+            }
+            self.pageLooksBlank { [weak self] blank in
+                guard let self = self else { return }
+                self.recoverIfBlankAfterPurchase(blank, generation: generation, label: label)
+            }
+        }
+    }
+
+    private func recoverIfBlankAfterPurchase(_ blank: Bool, generation: Int, label: String) {
+        guard uncoverGeneration == generation, purchaseCover == nil else { return }
+        PurchaseTrace.log("after cover off \(label): screen blank \(blank) (\(pictureCheckName))")
+        guard blank else { return }
+        uncoverGeneration += 1
+        showPurchaseStageCover(title: "One moment", detail: "")
+        if verifyRecoveries >= 2 { return offerContinue() }
+        verifyRecoveries += 1
+        armContinueFallback()
+        wakeWebKit()
+        revealAfterPurchase(tries: 1)
     }
 
     private func removePurchaseCover() {

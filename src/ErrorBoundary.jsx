@@ -87,7 +87,9 @@ export default class ErrorBoundary extends React.Component {
       // screen instead of flashing the full "Something went wrong" error UI
       // for what should only be a brief moment before the reload lands.
       if (this.state.recovering) {
-        return <div className="w-full h-full min-h-screen bg-white" />;
+        // Marked as loading (#192): the iPhone app's white-page checks after
+        // a purchase leave a reload in flight alone.
+        return <div className="w-full h-full min-h-screen bg-white" data-apex-loading="" />;
       }
       return (
         <div className="w-full h-full min-h-screen bg-white flex items-center justify-center px-6 font-sans">

@@ -613,6 +613,12 @@ any Train Solo work from now on:
   Every step goes in `PurchaseTrace` (Profile → Purchase log on test
   accounts); add a trace line to any new step. Server: an Apple entitlement
   is never below its product's tier, highest tier checked first.
+- **After the purchase cover comes off, keep looking** (#192): the screen is
+  checked until 20 s (the server confirms up to ~10 s later, then "It's
+  yours" / the welcome replace "Confirming") and on every screen change in
+  the minute after a purchase (`lastUncoverAt`, `checkShownAfterPurchase`).
+  Plain loading frames must carry `data-apex-loading` so they're never
+  taken for a white page.
 - "/" opens Train Solo for a member signed in only to Train Solo
   (`apexSoloSignedIn`, App.jsx RootRedirect, #161).
 - Every return to the app also checks what's really on screen (#162,
