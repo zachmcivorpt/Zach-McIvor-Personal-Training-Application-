@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useSoloApp } from "../lib/SoloAppContext";
-import { Logo } from "../components/ui";
 import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "../auth/authUi";
 import { SoloBackgroundFrame } from "./SoloBackground";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { EchoHeading, LitLogo, START_CHOOSER } from "../components/LoginHero";
 
 // "Forgot password?" (#157): Train Solo had no way back into an account
 // whose password was forgotten. Same wording as Coaching's own form; never
@@ -147,16 +147,16 @@ export default function SoloLoginScreen() {
 
   return (
     <SoloBackgroundFrame appDesign={soloAppDesign}>
-      <Link to="/start" className="flex items-center gap-1 text-white/50 text-sm font-medium">
+      <Link to={START_CHOOSER} className="flex items-center gap-1 text-white/50 text-sm font-medium">
         <ChevronLeft size={16} /> Back
       </Link>
 
-      <div className="flex justify-center pt-6 pb-8">
-        <Logo variant="mark" tone="white" className="h-12 w-auto" />
+      <div className="flex justify-center pt-6 pb-10">
+        <LitLogo width={104} />
       </div>
 
       <div className="w-full max-w-sm mx-auto">
-        <h1 className="text-white text-xl font-bold text-center mb-1">Train Solo</h1>
+        <EchoHeading size={28} className="mb-2">Train Solo</EchoHeading>
         <p className="text-white/50 text-sm text-center mb-6">{forgotOpen ? "Reset your password." : "Log in to your independent account."}</p>
 
         {forgotOpen ? (

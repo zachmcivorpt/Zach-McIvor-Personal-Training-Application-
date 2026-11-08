@@ -710,6 +710,13 @@ any Train Solo work from now on:
 - The tab fade is opacity-only with no fill-mode: a transform or a filled
   animation on the tab wrapper would trap the full-screen overlays inside it.
 
+## Login area look (#207)
+
+- **Order**: signed-out visitors see the first page (`/start`): a glowing see-through APEX mark, "Train solo. Train smarter." with a faded echo, page dots and a ring arrow. Then the chooser (`/start?step=choose`, `START_CHOOSER`), then the log-in screens.
+- **Back links**: every log-in screen's Back goes to the chooser, and Coaching's `/login` has one too.
+- **Shared parts**: use `LitLogo`, `GlowLogo` and `EchoHeading` from `src/components/LoginHero.jsx`. Never put a CSS drop-shadow on the mark PNG: it draws a box.
+- **Styling only**: buttons and fields are unchanged. The coach's login background still shows when one is set.
+
 ## Bottom sheets and the keyboard (#138)
 
 - `BottomSheet` continues its own surface (and backdrop) below the visible

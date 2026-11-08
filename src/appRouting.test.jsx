@@ -11,7 +11,7 @@
 // different starting paths with a mocked useApp(), and assert on which
 // screen actually lands — not a code-reading argument, an actual render.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Routed } from "./App";
 
@@ -48,6 +48,8 @@ describe("App routing — unauthenticated visitors", () => {
   it("/ redirects a signed-out visitor to /start (the new entry point, not /login)", async () => {
     mockUseApp = () => ({ ...baseAppState, currentUser: null, sessionLoading: false });
     renderAt("/");
+    // #207: the first page comes first; its arrow opens the chooser.
+    fireEvent.click(await screen.findByLabelText("Get started"));
     expect(await screen.findByText("Coaching")).toBeTruthy();
     expect(screen.getByText("Train Solo")).toBeTruthy();
   });
@@ -55,7 +57,7 @@ describe("App routing — unauthenticated visitors", () => {
   it("an unknown path also redirects a signed-out visitor to /start", async () => {
     mockUseApp = () => ({ ...baseAppState, currentUser: null, sessionLoading: false });
     renderAt("/some/unknown/path");
-    expect(await screen.findByText("Coaching")).toBeTruthy();
+    expect(await screen.findByLabelText("Get started")).toBeTruthy();
   });
 
   it("/login is still directly reachable and unchanged — StartScreen does not intercept it", async () => {

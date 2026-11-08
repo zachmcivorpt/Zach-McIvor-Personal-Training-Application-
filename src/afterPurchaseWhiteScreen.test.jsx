@@ -37,10 +37,10 @@ describe("opening the app at / (#161)", () => {
     expect(await screen.findByText("SOLO_ROUTES")).toBeTruthy();
     expect(screen.queryByText("Coaching")).toBe(null);
   });
-  it("not signed in to anything → the chooser, as before", async () => {
+  it("not signed in to anything → the first page, then the chooser (#207)", async () => {
     mockUseApp = signedOutOfCoaching;
     render(<MemoryRouter initialEntries={["/"]}><Routed /></MemoryRouter>);
-    expect(await screen.findByText("Coaching")).toBeTruthy();
+    expect(await screen.findByLabelText("Get started")).toBeTruthy();
   });
   it("a coaching session still wins (coached app unchanged)", async () => {
     localStorage.setItem("apexSoloSignedIn", "1");
