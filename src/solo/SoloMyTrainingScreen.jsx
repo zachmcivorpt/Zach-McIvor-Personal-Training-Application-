@@ -1010,12 +1010,11 @@ function litres(ml) {
 // Mon–Sun for the selected week: weekday letter over the date figure, a dot
 // under any day with a session still to do, a check once it's all done.
 function WeekStrip({ weekKeys, selectedKey, todayKey, byDate, onSelect, onShiftWeek, onToday, t }) {
-  const first = new Date(`${weekKeys[0]}T00:00:00`);
   const showToday = !weekKeys.includes(todayKey) || selectedKey !== todayKey;
   return (
     <div>
       <div className="flex items-center justify-between mb-2.5">
-        <p className="text-sm font-semibold">{first.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</p>
+        <p className="text-sm font-semibold">{dayHeading(selectedKey, todayKey)}</p>
         <div className="flex items-center gap-1.5">
           {showToday && (
             <button type="button" onClick={onToday} className="text-xs font-semibold px-3 h-7 rounded-full" style={{ ...soloGlass(t), color: MEASURE_BLUE }}>
@@ -1079,16 +1078,19 @@ function WeekStrip({ weekKeys, selectedKey, todayKey, byDate, onSelect, onShiftW
 // slightly larger card with a blue edge, its name, program/week, exercise
 // count and Start — with rest-day recovery and Monday check-ins as smaller
 // rows underneath.
-function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, onOpen, target, onBrowse, t }) {
+// "Today, 8th November" — shown above the week strip (#203).
+function dayHeading(dateKey, todayKey) {
   const d = new Date(`${dateKey}T00:00:00`);
   const relative = dateKey === todayKey ? "Today" : sessionDayLabel(dateKey, todayKey);
   const dayName = ["Today", "Tomorrow", "Yesterday"].includes(relative) ? relative : d.toLocaleDateString("en-AU", { weekday: "long" });
-  const heading = `${dayName}, ${ordinal(d.getDate())} ${d.toLocaleDateString("en-AU", { month: "long" })}`;
+  return `${dayName}, ${ordinal(d.getDate())} ${d.toLocaleDateString("en-AU", { month: "long" })}`;
+}
+
+function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, onOpen, target, onBrowse, t }) {
   const sessions = items.filter(isSessionItem);
   const others = items.filter((i) => !isSessionItem(i));
   return (
     <div className="mt-4">
-      <h2 className="text-lg font-bold leading-tight mb-3">{heading}</h2>
       {items.length === 0 && !listsReady ? (
         // Programs still loading: nothing yet, never "Rest day" or "Browse
         // the catalogue" for someone who has a program (#165).

@@ -3224,6 +3224,16 @@ Estimated Max chart (#150) is removed (component, helper and its test).
 **Tests**: `recoveryStage` in `muscleHologram194.test.jsx` (48 h / 72 h edges);
 `src/solo/progressOrder202.test.js` (order + no chart). Both fail without the change.
 
+### 203. Train Solo: no page headings; the day replaces the month above the week (owner, 2026-11-08)
+
+**Change**: the tab titles (WELCOME, PROGRESS, CALENDAR, CATALOGUE, PROFILE)
+are no longer shown — only the logo (titles stay for screen readers). On My
+Training the selected day ("Today, 8th November") replaces "November 2026"
+above the week strip, in that same font, and the big day heading under the
+strip is gone.
+**Tests**: `pageHeader174.test.js` updated (sr-only title; `dayHeading` in the
+week strip; no day h2) — fails on the old layout.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -63,7 +63,8 @@ export function SoloPageHeader({ t, title, sub, right = null, className = "" }) 
       />
       <div className="mt-1.5 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-[19px] font-extrabold uppercase tracking-[0.02em] leading-tight">{title}</h1>
+          {/* No visible page titles (#203, owner); kept for screen readers. */}
+          <h1 className="sr-only">{title}</h1>
           {sub}
         </div>
         {right}

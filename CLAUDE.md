@@ -170,6 +170,8 @@ rather than inventing new colors per screen:
   bottom edge with a blue dot (#197: never floating above it), black-and-white gym photo on the day's session with a
   lit ring Start, the rest timer as a blue ring (`SoloRestRing`), the
   suggested program full width with a blue glow, today ringed. Both themes.
+- **No visible page titles** (#203, owner): `SoloPageHeader` shows the logo only (title sr-only);
+  My Training shows the selected day ("Today, 8th November") where the month was.
 - **Tab headers** (#174): every tab opens with `SoloPageHeader`
   (SoloUI.jsx): the APEX mark centred at the top (#196), then the title at one size and
   position — "Welcome, <first name>" on My Training, then Progress,
