@@ -77,7 +77,7 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
   return (
     <div
       data-testid="muscle-map"
-      className="relative overflow-hidden rounded-[28px] px-5 pt-6 pb-5"
+      className="relative overflow-hidden rounded-[28px] px-5 pt-6 pb-2"
       style={{
         background: HOLO.bg,
         color: HOLO.text,
@@ -134,7 +134,7 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
       <section
         data-testid="muscle-map-selected"
         aria-live="polite"
-        className="relative -mt-6 rounded-[26px] p-4"
+        className="relative -mt-6 -mx-3 rounded-[22px] px-4 py-3"
         style={{
           background: HOLO.card,
           border: `1px solid ${HOLO.line}`,
@@ -143,33 +143,33 @@ function MuscleMap3DPanel({ logs, exercisesById, trained, levels, worked, ready,
         }}
       >
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="m-0 text-[20px] font-bold">{MUSCLE_LABELS[selected]}</h3>
+          <h3 className="m-0 text-[17px] font-bold leading-tight">{MUSCLE_LABELS[selected]}</h3>
           <span
-            className="text-[11px] font-bold tracking-[0.08em] uppercase rounded-xl px-2.5 py-1.5 whitespace-nowrap"
+            className="text-[10px] font-bold tracking-[0.08em] uppercase rounded-lg px-2 py-1 whitespace-nowrap"
             style={recovering ? (dark ? { background: "rgba(255,255,255,0.16)", color: "#fff" } : { background: "#0A0A0B", color: "#fff" }) : { background: "rgba(47,143,255,0.18)", color: dark ? "#9FD0FF" : "#1C6FD9" }}
           >
             {recovering ? `Recovering · ${hoursAgo} h` : "Ready"}
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-2 mt-3">
+        <div className="grid grid-cols-3 gap-2 mt-2">
           <div>
-            <b className="block text-[22px] font-bold tabular-nums">{detail.sets7 || 0}</b>
-            <span className="text-[10px] font-semibold tracking-[0.08em] uppercase" style={{ color: HOLO.muted }}>Sets · 7 days</span>
+            <b className="block text-[18px] font-bold leading-tight tabular-nums">{detail.sets7 || 0}</b>
+            <span className="block text-[9px] font-semibold tracking-[0.08em] uppercase whitespace-nowrap" style={{ color: HOLO.muted }}>Sets · 7 days</span>
           </div>
           <div>
-            <b className="block text-[22px] font-bold">{lastTrainedDay(detail.last, now)}</b>
-            <span className="text-[10px] font-semibold tracking-[0.08em] uppercase" style={{ color: HOLO.muted }}>Last trained</span>
+            <b className="block text-[18px] font-bold leading-tight">{lastTrainedDay(detail.last, now)}</b>
+            <span className="block text-[9px] font-semibold tracking-[0.08em] uppercase whitespace-nowrap" style={{ color: HOLO.muted }}>Last trained</span>
           </div>
           <div>
-            <b className="block text-[22px] font-bold tabular-nums">{detail.bestKg == null ? "–" : detail.bestKg}</b>
-            <span className="text-[10px] font-semibold tracking-[0.08em] uppercase" style={{ color: HOLO.muted }}>Best est. max kg</span>
+            <b className="block text-[18px] font-bold leading-tight tabular-nums">{detail.bestKg == null ? "–" : detail.bestKg}</b>
+            <span className="block text-[9px] font-semibold tracking-[0.08em] uppercase whitespace-nowrap" style={{ color: HOLO.muted }}>Est. max kg</span>
           </div>
         </div>
-        <p className="text-[13px] mt-3 mb-0" style={{ color: HOLO.muted }}>
+        <p className="text-[12px] mt-2 mb-0 truncate" style={{ color: HOLO.muted }}>
           {detail.exercises.length ? detail.exercises.join(" · ") : "Not trained yet"}
         </p>
-        <p className="text-[10px] mt-2 mb-0" style={{ color: HOLO.faint }}>
-          Recovering = trained in the last 72 hours. Anatomy: BodyParts3D © DBCLS (CC BY 4.0), via open-anatomy-3d.
+        <p className="text-[9px] mt-1 mb-0 truncate" style={{ color: HOLO.faint }}>
+          Anatomy: BodyParts3D © DBCLS (CC BY 4.0), via open-anatomy-3d
         </p>
       </section>
     </div>

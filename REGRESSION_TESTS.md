@@ -3188,6 +3188,15 @@ when the theme changes. Dark mode unchanged.
 Browser check (WebGL, light theme): chest recovering in ink, everything else
 blue, card and pills readable.
 
+### 199. Train Solo: muscle map card too tall and narrower than the other boxes (owner, 2026-11-08)
+
+**Fix**: the tapped-muscle card spans the panel (8 px in, as wide as the
+page's other boxes), tighter padding, 18 px figures, one-line labels ("Est.
+max kg" no longer wraps), exercises and the credit on one line each; the
+panel's bottom padding drops to 8 px. About 40% shorter. Same data.
+**Tests**: `src/solo/muscleCardCompact199.test.js` (fails on the old card).
+Browser check (WebGL, dark): card flush with the page's other boxes.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
