@@ -3126,6 +3126,23 @@ the 2D body. All fail without the change (no MuscleHologram / model). The six
 render, trained chest/shoulders/triceps red, tapping the chest shows "Chest ·
 Trained · 4 sets · 20 h ago", Back turns the body.
 
+### 195. Train Solo: 3D muscle map laid out exactly as the approved mock-up (owner, 2026-11-08)
+
+**Change**: with WebGL the Progress muscle map is its own dark panel matching
+the approved mock-up: "Muscle map" + hint, the two large figures, a Recovering
+(white) / Ready (blue) legend, FRONT / BACK / SPIN pills over a large body with
+floor rings and particles, and a glass card for the tapped muscle (name,
+"Recovering · N h" or "Ready", sets in 7 days, last trained day, best est. max
+kg, its exercises — `muscleDetail`, own logs only). In the 3D view recovering
+muscles glow white (brighter with sets) instead of red; the 2D fallback is
+unchanged. Opens on the most-trained muscle (else chest).
+
+**Tests**: `muscleHologram194.test.jsx` adds `muscleDetail` (7-day sets with
+helpers half, 0-rep sets ignored, last trained, best est. max from any age,
+exercises, nothing → empty); fails without the change (no `muscleDetail`).
+#148 / #194 tests still pass. Browser check (WebGL, built bundle): the panel
+matches the mock-up, Chest card "Recovering · 18 h · 12 · Sat · 111".
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

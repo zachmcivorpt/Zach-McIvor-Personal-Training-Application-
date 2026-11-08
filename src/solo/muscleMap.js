@@ -1,4 +1,5 @@
 import { exerciseMuscleKeys, MUSCLE_KEYS } from "../lib/exerciseMuscles";
+import { e1rm } from "./trainingRecap";
 
 // Which muscles a Train Solo member has trained recently (#148), for the
 // muscle map. Pure, tested.
@@ -83,4 +84,34 @@ export function muscleSummary(trained) {
   const worked = MUSCLES.filter((m) => trained[m]?.sets > 0).sort((a, b) => trained[b].sets - trained[a].sets);
   const ready = MUSCLES.filter((m) => !(trained[m]?.sets > 0));
   return { worked, ready };
+}
+
+// One muscle's detail for the 3D map's card (#195): completed sets in the
+// last 7 days (helpers half), when it was last trained (any age), the best
+// estimated max (kg) of an exercise it leads, and those exercises' names
+// (most recent first, up to 3). Only the member's own logs.
+export function muscleDetail(muscle, logs = [], exercisesById = {}, { now = Date.now() } = {}) {
+  const since = now - 7 * 24 * HOURS;
+  let sets7 = 0, last = null, bestKg = 0;
+  const names = [];
+  const sorted = [...logs].sort((a, b) => Number(new Date(b?.date)) - Number(new Date(a?.date)));
+  for (const log of sorted) {
+    const at = Number(new Date(log?.date));
+    if (!at || at > now + HOURS) continue;
+    for (const entry of log.entries || []) {
+      const ex = exercisesById[entry.exerciseId];
+      const { primary, secondary } = musclesFor(ex);
+      const isPrimary = primary.includes(muscle);
+      if (!isPrimary && !secondary.includes(muscle)) continue;
+      const done = (entry.sets || []).filter((s) => Number(s.reps) > 0);
+      if (!done.length) continue;
+      if (at >= since) sets7 += isPrimary ? done.length : done.length / 2;
+      last = Math.max(last || 0, at);
+      if (isPrimary) {
+        for (const s of done) bestKg = Math.max(bestKg, e1rm(s.weight, s.reps));
+        if (ex?.name && !names.includes(ex.name) && names.length < 3) names.push(ex.name);
+      }
+    }
+  }
+  return { sets7: Math.round(sets7 * 10) / 10, last, bestKg: bestKg ? Math.round(bestKg * 2) / 2 : null, exercises: names };
 }

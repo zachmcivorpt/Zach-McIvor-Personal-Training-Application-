@@ -39,3 +39,23 @@ describe("3D muscle map (#194)", () => {
     expect(document.querySelector('[data-muscle="chest"]')).not.toBe(null);
   });
 });
+
+describe("3D map detail card (#195)", () => {
+  it("muscleDetail: 7-day sets (helpers half), last trained, best est. max and exercises — own logs only", async () => {
+    const { muscleDetail } = await import("./muscleMap");
+    const now = Date.UTC(2026, 10, 8, 12);
+    const ex = { bp: { id: "bp", name: "Bench Press", category: "Chest" }, ib: { id: "ib", name: "Incline Dumbbell Press", category: "Chest" } };
+    const logs = [
+      { date: now - 18 * 3600e3, entries: [{ exerciseId: "bp", sets: [{ weight: 92.5, reps: 6 }, { weight: 90, reps: 6 }, { weight: 60, reps: 0 }] }] },
+      { date: now - 3 * 86400e3, entries: [{ exerciseId: "ib", sets: [{ weight: 32, reps: 10 }] }] },
+      { date: now - 10 * 86400e3, entries: [{ exerciseId: "bp", sets: [{ weight: 100, reps: 5 }] }] },
+    ];
+    const d = muscleDetail("chest", logs, ex, { now });
+    expect(d.sets7).toBe(3); // the 0-rep set and the 10-day-old one don't count
+    expect(d.last).toBe(now - 18 * 3600e3);
+    expect(d.bestKg).toBe(116.5); // 100 × (1 + 5/30) = 116.67 → nearest 0.5, any age
+    expect(d.exercises).toEqual(["Bench Press", "Incline Dumbbell Press"]);
+    expect(muscleDetail("triceps", logs, ex, { now }).sets7).toBe(1.5); // bench helpers: half sets
+    expect(muscleDetail("quads", logs, ex, { now })).toEqual({ sets7: 0, last: null, bestKg: null, exercises: [] });
+  });
+});
