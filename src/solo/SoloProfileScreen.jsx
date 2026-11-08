@@ -352,7 +352,7 @@ export default function SoloProfileScreen() {
         onClose={() => setDeleteOpen(false)}
         warning={
           subscriptionStore === "apple"
-            ? "This permanently deletes your Train Solo account, every program you own, and your workout history. This can't be undone. Your App Store subscription isn't cancelled by this — cancel it first in iPhone Settings → your name → Subscriptions."
+            ? "This permanently deletes your Train Solo account, every program you own, and your workout history. This can't be undone. Your App Store subscription isn't cancelled by this — cancel it first: Profile → Subscription → Manage."
             : "This permanently deletes your Train Solo account, every program you own, and your workout history. This can't be undone." +
               (subscriptionStore === "stripe" ? " Your subscription is cancelled straight away." : "")
         }

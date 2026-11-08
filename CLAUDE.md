@@ -481,6 +481,7 @@ any Train Solo work from now on:
   showing the result on the page that opened the sheet. The server
   unlocks from RevenueCat's `plus`/`all_access` entitlements OR an active
   `apex_solo_<plan>` subscription.
+- **Managing a plan** (#211): Manage opens Apple's sheet in the app, else Apple's subscriptions page (`APPLE_SUBSCRIPTIONS_URL`). Never tell members a Settings path to follow.
 - No free-trial wording for anyone who has or has had a plan, in the
   iPhone app too (#139): Apple's trial is for first-time subscribers in the
   group only, whatever the store's eligibility check returns.
