@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import { Logo } from "./ui";
 
 // The login area's look (#207, owner 2026-11-08, from the Nike CG ADAPT
@@ -16,10 +16,38 @@ const markShade = {
   maskImage: "linear-gradient(180deg, #000 25%, rgba(0,0,0,0.5) 100%)",
 };
 
-// The APEX mark's glow, drawn once as an image (#209): no CSS blur and no
-// round halo behind the mark — iOS drew the blurred copies' box as a faint
-// square. Same canvas as the mark, so it sits exactly under it.
-const MOUNTAIN_GLOW = "/brand/app-logo-mountain-glow.png";
+// The APEX mark as a vector (#210, owner picked mock-up B): razor-sharp at
+// any size, with a tight glow from an SVG blur of its own shape (no CSS
+// blur, no halo, no box). Same 384 x 384 framing as the bundled PNG, so it
+// sits and sizes exactly where the image did.
+const MARK_PATHS = [
+  "M204.8 107.9 L98.8 263.5 L102.5 263.1 L173.4 192.4 L205 155.5 L213.5 165.5 L230.8 147.4 Z",
+  "M232.6 149.5 L305.2 263.2 L245.8 220.1 L228.8 193.1 L174.8 223 L207.4 180.8 L217.8 175.5 L215.8 169.2 Z",
+];
+
+export function ApexMarkSvg({ width, opacity = 1, glow = true }) {
+  const id = useId().replace(/:/g, "");
+  return (
+    <svg viewBox="0 0 384 384" width={width} height={width} aria-hidden="true" style={{ display: "block", overflow: "visible", opacity }} data-testid="apex-mark-svg">
+      {glow && (
+        <defs>
+          <filter id={`g${id}`} x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="3.8" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+      )}
+      <g fill="#fff" filter={glow ? `url(#g${id})` : undefined}>
+        {MARK_PATHS.map((d) => (
+          <path key={d} d={d} />
+        ))}
+      </g>
+    </svg>
+  );
+}
 
 // Solid lit mark (chooser + log-in screens). `crisp` (chooser, #208): full
 // strength with its own glow, no fade.
@@ -27,9 +55,8 @@ export function LitLogo({ width = 104, reflection = false, crisp = false }) {
   return (
     <div className="relative flex flex-col items-center" data-testid="lit-logo">
       {crisp ? (
-        <div className="relative" style={{ width }} data-testid="lit-logo-crisp">
-          <img src={MOUNTAIN_GLOW} alt="" aria-hidden="true" draggable={false} className="absolute inset-0 w-full h-auto pointer-events-none" />
-          <Logo variant="mark" tone="white" className="relative h-auto" style={{ width }} />
+        <div className="relative" style={{ width }} data-testid="lit-logo-crisp" role="img" aria-label="APEX">
+          <ApexMarkSvg width={width} />
         </div>
       ) : (
         <Logo variant="mark" tone="white" className="relative h-auto" style={{ width, ...markShade }} />
@@ -60,8 +87,9 @@ export function GlowLogo({ width = 250 }) {
   const layer = { width, position: "absolute", left: 0, top: 0 };
   return (
     <div className="relative" style={{ width, height: Math.round(width * 0.77) }} data-testid="glow-logo">
-      <img src={MOUNTAIN_GLOW} alt="" aria-hidden="true" draggable={false} className="h-auto pointer-events-none" style={{ ...layer, opacity: 0.9 }} />
-      <Logo variant="mark" tone="white" className="h-auto" style={{ ...layer, opacity: 0.55 }} />
+      <div style={layer} role="img" aria-label="APEX">
+        <ApexMarkSvg width={width} />
+      </div>
     </div>
   );
 }

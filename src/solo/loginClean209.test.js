@@ -10,8 +10,7 @@ describe("login area clean-up (#209)", () => {
   it("no radial halo and no CSS blur on the mark; the glow is the baked image", () => {
     expect(hero()).not.toMatch(/radial-gradient/);
     expect(hero()).not.toMatch(/filter: "blur/);
-    expect(hero()).toMatch(/MOUNTAIN_GLOW = "\/brand\/app-logo-mountain-glow\.png"/);
-    expect(readFileSync("public/brand/app-logo-mountain-glow.png").readUInt32BE(16)).toBeGreaterThan(0);
+    expect(hero()).toMatch(/feGaussianBlur stdDeviation/); // vector glow since #210
   });
   it("every log-in screen uses the crisp glowing mark", () => {
     expect(readFileSync("src/auth/LoginScreen.jsx", "utf8")).toContain("<LitLogo width={104} crisp />");
