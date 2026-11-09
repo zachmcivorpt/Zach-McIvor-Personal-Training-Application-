@@ -3340,6 +3340,19 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `coachJarvis208.test.jsx` and every coach test pass.
 - **Browser check**: all five tabs were rendered in Chromium at 1180 px with real-shaped data and no page errors.
 
+### 210. Train Solo: two date bugs that turned the test suite red on 2026-11-09 (owner: "fix solo tests")
+
+- **Bug 1, the archive week was counted from the phone's clock**:
+  - Problem: `weekInProgram` (currentProgram.js) ignored the `todayKey` it was given, because `currentWeekNumber` / `weeksElapsedSince` (weekProgress.js) always used the device's date. Switching or archiving a program could record the wrong week whenever the two differed, and 3 `currentProgram.test.js` tests broke once the real date moved past their fixed "today".
+  - Fix: both take an optional `todayKey` (defaulting to today, so every other caller is unchanged), and `weekInProgram` passes it through.
+- **Bug 2, no loading placeholder on Mondays**:
+  - Problem: on a Monday, My Training's weekly Body Stats / Progress Photos rows showed before the member's programs loaded, so the "programs still loading" placeholder (#165) was skipped and the session's place was an empty gap.
+  - Fix: the placeholder now shows whenever programs haven't loaded and there's no session yet, above any other rows.
+- **Tests**:
+  - `currentProgram.test.js`: its 3 tests now pass on any date. They failed on 2026-11-09 without the fix.
+  - `oneProgramAtATime.test.jsx` gets a new Monday case (pinned to Mon 9 Nov 2026), which fails without the fix. The existing #165 case is pinned to a Tuesday.
+  - Full suite: 1261 passed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -379,7 +379,21 @@ describe("the program sheet's start date (#158)", () => {
 // programs have loaded — My Training must not say "Browse the catalogue" /
 // "Rest day" to someone whose program just hasn't arrived yet.
 describe("My Training while programs are still loading (#165)", () => {
+  // Pinned to a Tuesday (#210): on a Monday the weekly check-ins also show,
+  // so "nothing planned" can't be asserted then — the Monday case is below.
+  afterEach(() => vi.useRealTimers());
+  it("on a Monday the placeholder still holds the session's place beside the weekly check-ins (#210)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-09T09:00:00"));
+    ctx = baseCtx({ soloTrainingPrograms: [], soloPurchases: [], soloCurrentProgram: null, soloListsReady: false });
+    await renderMyTraining();
+    expect(screen.getByTestId("day-plan-loading")).toBeTruthy();
+    expect(screen.getByText("Body Stats Check-in")).toBeTruthy();
+    expect(screen.queryByText("Rest day")).toBe(null);
+  });
   it("shows an empty placeholder, never the no-program message; the real state once loaded", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-10T09:00:00"));
     ctx = baseCtx({ soloTrainingPrograms: [], soloPurchases: [], soloCurrentProgram: null, soloListsReady: false });
     await renderMyTraining();
     expect(screen.getByTestId("day-plan-loading")).toBeTruthy();

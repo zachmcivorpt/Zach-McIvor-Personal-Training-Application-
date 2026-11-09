@@ -70,7 +70,9 @@ export function applyCurrentProgram(rows = [], { currentProgramId = null, archiv
 // The week a running program is in today (1 before it starts).
 export function weekInProgram(row, totalWeeks, todayKey) {
   if (!row?.startDate || row.startDate > todayKey) return 1;
-  return currentWeekNumber(row.startDate, totalWeeks || 0) || 1;
+  // Counted to the todayKey given (#210), not the device clock: archive
+  // weeks were off by one once a test or caller's "today" differed.
+  return currentWeekNumber(row.startDate, totalWeeks || 0, todayKey) || 1;
 }
 
 // Everything to write to make `target` the current program.

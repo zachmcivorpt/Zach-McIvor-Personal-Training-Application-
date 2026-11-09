@@ -1117,6 +1117,11 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, on
         </div>
       ) : (
         <div className="space-y-2.5">
+          {sessions.length === 0 && !listsReady && (
+            // Mondays add the weekly check-ins before programs arrive: keep
+            // the session's place held, never an empty gap (#210).
+            <div className="rounded-3xl px-5 py-8" style={soloGlass(t)} aria-busy="true" data-testid="day-plan-loading" />
+          )}
           {sessions.map((item) => (
             <SessionHero key={item.id} item={item} actionable={!!target(item)} onStart={() => onOpen(item)} future={dateKey > todayKey} t={t} />
           ))}
