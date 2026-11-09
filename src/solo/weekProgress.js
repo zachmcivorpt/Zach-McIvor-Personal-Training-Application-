@@ -12,10 +12,11 @@ export function totalWeeksForProgram(phases) {
 // Whole weeks elapsed since the start date, floor()'d — the start date's
 // own day is week 1, day 1, not week 0. Returns null until a start date is
 // set (purchased but not yet scheduled).
-export function weeksElapsedSince(startDateKey) {
+// todayKey (optional, #210): the day to count to; defaults to today.
+export function weeksElapsedSince(startDateKey, todayKey = localDateKey()) {
   if (!startDateKey) return null;
   const start = new Date(`${startDateKey}T00:00:00`);
-  const today = new Date(`${localDateKey()}T00:00:00`);
+  const today = new Date(`${todayKey}T00:00:00`);
   const diffDays = Math.round((today - start) / (24 * 60 * 60 * 1000));
   return Math.floor(diffDays / 7);
 }
@@ -24,8 +25,8 @@ export function weeksElapsedSince(startDateKey) {
 // a program that finished doesn't report a "week 14 of 8", it just stays
 // at the last week; one that hasn't started yet (a future start date)
 // reports week 1 rather than a negative/zero week.
-export function currentWeekNumber(startDateKey, totalWeeks) {
-  const elapsed = weeksElapsedSince(startDateKey);
+export function currentWeekNumber(startDateKey, totalWeeks, todayKey) {
+  const elapsed = weeksElapsedSince(startDateKey, todayKey);
   if (elapsed == null || totalWeeks <= 0) return null;
   return Math.min(Math.max(elapsed + 1, 1), totalWeeks);
 }

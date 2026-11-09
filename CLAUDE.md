@@ -409,6 +409,7 @@ feedback). Keep the cold-open path short:
   alive check counts `#root`'s children — 0 rebuilt the web view mid-workout).
 - Show "–" or nothing while data loads, never a "0" that jumps to the
   real number.
+- Date maths takes the "today" it is given (`todayKey`), never the device clock behind its back (#210); tests that depend on the weekday pin the date (`vi.setSystemTime`).
 
 ## Train Solo subscriptions (Free / Plus / All Access)
 
