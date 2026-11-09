@@ -3368,6 +3368,17 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: all coach and component tests pass (92).
 - **Browser check**: `CoachShell` was rendered in Chromium at 1180 px with real-shaped data. Each of Overview, Messages, Clients, Library and Settings was tapped through, with no page errors.
 
+### 213. Coach console: Library > Programs as program cards (owner, mock-up B, 2026-11-09)
+
+- **Problem**: on iPad, the Programs tab's list-plus-detail frame was messy: nested boxes and an indented list.
+- **Change**: the tab now opens on cards at every size (`ProgramCardsGrid`, CoachPrograms.jsx). Each card is black glass with a glassy white APEX mark (`ApexMarkSvg`), showing level · weeks, the name, a phase bar and phases · sessions.
+- **Controls**: level filters (All / Beginner / Intermediate / Advanced), a search, and NEW PROGRAM plus the existing Import starters / Delete all menu.
+- **Opening a program**: tapping a card opens that program's existing detail, full width, with "All programs" to go back. A newly created program opens its detail, and deleting one goes back to the cards.
+- **Unchanged**: phase and workout editing.
+- **Width**: the page is now full width.
+- **Tests**: `src/coach/programCards213.test.jsx` checks cards and figures, the level filter and search, and card → detail → Back. All 3 fail without the change. `CoachProgramsPhases.test.jsx` still passes.
+- **Browser check**: in Chromium at 1180×820 and 820×1180, the cards were shown and one was tapped to its detail, with no page errors.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
