@@ -6,9 +6,10 @@ import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVerti
 import { STARTER_PROGRAMS } from "../lib/starterPrograms";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
-import { ProgramListItem, StatFigures, Disclosure, PhaseAccordionRow } from "./programDashboardUI";
-import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
+import { StatFigures, Disclosure, PhaseAccordionRow } from "./programDashboardUI";
+import { MEASURE_BLUE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
 import { GLASS, GLASS_BLUE } from "./darkUI";
+import { ApexMarkSvg } from "../components/LoginHero";
 
 function NewProgramSheet({ open, onClose, onCreate }) {
   const [name, setName] = useState("");
@@ -493,6 +494,113 @@ function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEd
   );
 }
 
+const LEVEL_FILTERS = ["All", "Beginner", "Intermediate", "Advanced"];
+
+// Library → Programs as cards (#213): black glass cards with a glassy white
+// APEX mark, level · weeks, a phase bar and the program's figures.
+function ProgramCardsGrid({ programs, onOpen, onNew, menu }) {
+  const [level, setLevel] = useState("All");
+  const [query, setQuery] = useState("");
+  const shown = programs.filter(
+    (p) =>
+      (level === "All" || (p.level || "").toLowerCase() === level.toLowerCase()) &&
+      (!query.trim() || (p.name || "").toLowerCase().includes(query.trim().toLowerCase()))
+  );
+  return (
+    <div data-testid="program-cards">
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar" role="tablist" aria-label="Filter by level">
+          {LEVEL_FILTERS.map((l) => (
+            <button
+              key={l}
+              role="tab"
+              aria-selected={level === l}
+              onClick={() => setLevel(l)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-[0.06em] uppercase ${level === l ? "text-black" : "text-white"}`}
+              style={level === l ? { background: "rgba(255,255,255,0.92)" } : GLASS}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 ml-auto w-full sm:w-auto">
+          <label className="flex items-center gap-2 h-9 px-3 rounded-xl flex-1 sm:w-56" style={GLASS}>
+            <Search size={14} className="text-white/60 shrink-0" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search programs"
+              aria-label="Search programs"
+              className="bg-transparent outline-none text-white text-sm w-full placeholder:text-white/45"
+            />
+          </label>
+          <button
+            onClick={onNew}
+            className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-white text-xs font-bold tracking-[0.04em] whitespace-nowrap"
+            style={GLASS_BLUE}
+          >
+            <Plus size={14} /> NEW PROGRAM
+          </button>
+          {menu}
+        </div>
+      </div>
+      {programs.length === 0 ? (
+        <p className="text-white text-sm text-center py-10">No programs yet.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {shown.map((p) => {
+            const ph = programPhases(p);
+            const weeks = ph.reduce((a, x) => a + (x.durationWeeks || 0), 0);
+            const sessions = ph.reduce((a, x) => a + (x.days?.length || 0), 0);
+            return (
+              <button
+                key={p.id}
+                onClick={() => onOpen(p.id)}
+                data-testid="program-card"
+                className="relative h-40 rounded-2xl overflow-hidden text-left active:scale-[0.98] transition-transform"
+                style={{ ...GLASS, background: "linear-gradient(160deg, rgba(255,255,255,0.045), rgba(0,0,0,0.55) 60%)" }}
+              >
+                {/* Glassy white APEX mark on black (owner, #213). */}
+                <div
+                  className="absolute -right-3 -top-2 pointer-events-none"
+                  aria-hidden="true"
+                  style={{ WebkitMaskImage: "linear-gradient(200deg, #000 30%, rgba(0,0,0,0.35))", maskImage: "linear-gradient(200deg, #000 30%, rgba(0,0,0,0.35))" }}
+                >
+                  <ApexMarkSvg width={150} opacity={0.32} />
+                </div>
+                <div className="absolute left-4 right-4 bottom-3.5">
+                  <p className="text-white/55 text-[10px] font-bold tracking-[0.14em] uppercase">
+                    {[p.level, weeks ? `${weeks} wk${weeks === 1 ? "" : "s"}` : null].filter(Boolean).join(" · ") || "Program"}
+                  </p>
+                  <p className="text-white text-[15px] font-bold leading-snug mt-1 line-clamp-2">{p.name}</p>
+                  {ph.length > 0 && (
+                    <div className="flex gap-0.5 mt-2" aria-hidden="true">
+                      {ph.map((x) => (
+                        <span key={x.id} className="h-1 flex-1 rounded-full" style={{ background: "rgba(47,143,255,0.6)" }} />
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-white/55 text-[11px] mt-1.5">
+                    {ph.length} phase{ph.length === 1 ? "" : "s"} · {sessions} session{sessions === 1 ? "" : "s"}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+          <button
+            onClick={onNew}
+            className="h-40 rounded-2xl flex items-center justify-center gap-1.5 text-xs font-bold tracking-[0.06em]"
+            style={{ border: "1px dashed rgba(47,143,255,0.45)", color: "#7FB8FF" }}
+          >
+            <Plus size={14} /> NEW PROGRAM
+          </button>
+        </div>
+      )}
+      {programs.length > 0 && shown.length === 0 && <p className="text-white/60 text-sm text-center py-6">No programs match.</p>}
+    </div>
+  );
+}
+
 export default function CoachPrograms({ showToast }) {
   const { db, createProgram, updateProgram, deleteProgram } = useApp();
   const [selectedId, setSelectedId] = useState(null);
@@ -681,6 +789,7 @@ export default function CoachPrograms({ showToast }) {
     try {
       const created = await createProgram(data);
       selectProgram(created.id);
+      setMobileView("detail");
       showToast("Program created");
     } catch (err) {
       showToast(err.message || "Couldn't create that program");
@@ -691,6 +800,7 @@ export default function CoachPrograms({ showToast }) {
     if (!selected) return;
     deleteProgram(selected.id);
     selectProgram(null);
+    setMobileView("list");
     setConfirmDeleteProgram(false);
     showToast("Program deleted");
   }
@@ -725,108 +835,44 @@ export default function CoachPrograms({ showToast }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
+    <div className="w-full pb-8">
       <p className="text-white text-sm mb-4 md:mb-0">{programs.length} total · reusable phase-based programs for a client's training</p>
 
-      <div
-        className="flex flex-col md:flex-row md:h-[calc(100dvh-200px)] md:min-h-[600px] md:mt-4 md:border md:rounded-2xl md:overflow-hidden"
-        style={{ borderColor: "rgba(255,255,255,0.09)" }}
-      >
-        {/* left: program list, with the active program's phases nested right below it */}
-        <div className="hidden md:flex w-72 xl:w-80 shrink-0 border-r flex-col" style={{ backgroundColor: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-          <div className="p-3 border-b flex items-center gap-1.5" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-            <button
-              onClick={() => setNewProgramOpen(true)}
-              className="flex-1 flex items-center justify-center gap-1.5 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition-opacity hover:opacity-90"
-              style={GLASS_BLUE}
-            >
-              <Plus size={14} /> NEW PROGRAM
-            </button>
-            <OverflowMenu
-              label="More program actions"
-              items={[
-                { icon: Download, label: importing ? "Importing…" : "Import starters", onClick: importStarterTemplates, disabled: importing },
-                ...(programs.length > 0
-                  ? [{ icon: Trash2, label: "Delete all programs", onClick: () => setConfirmDeleteAll(true), danger: true }]
-                  : []),
-              ]}
-            />
-          </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-            {programs.length === 0 && <p className="text-white text-xs px-2 py-4 text-center">No programs yet.</p>}
-            {programs.map((p) => {
-              const progPhases = p.id === selected?.id ? phases : programPhases(p);
-              const weeks = progPhases.reduce((a, ph) => a + (ph.durationWeeks || 0), 0);
-              return (
-                <ProgramListItem
-                  key={p.id}
-                  active={p.id === selected?.id}
-                  onClick={() => selectProgram(p.id)}
-                  title={p.name}
-                  meta={`${progPhases.length} phase${progPhases.length === 1 ? "" : "s"} · ${weeks} wk${weeks === 1 ? "" : "s"}${p.level ? ` · ${p.level}` : ""}`}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* mobile: plain browse list first, matching every other Library
-            tab, instead of always jumping straight into one program's full
-            detail — tap a program to drill into it, with a way back. */}
-        <div className={`md:hidden ${mobileView === "list" ? "block" : "hidden"}`}>
-          <div className="flex items-center gap-1.5 mb-3">
-            <button
-              onClick={() => setNewProgramOpen(true)}
-              className="flex-1 flex items-center justify-center gap-1.5 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition-opacity hover:opacity-90"
-              style={GLASS_BLUE}
-            >
-              <Plus size={14} /> NEW PROGRAM
-            </button>
-            <OverflowMenu
-              label="More program actions"
-              items={[
-                { icon: Download, label: importing ? "Importing…" : "Import starters", onClick: importStarterTemplates, disabled: importing },
-                ...(programs.length > 0
-                  ? [{ icon: Trash2, label: "Delete all programs", onClick: () => setConfirmDeleteAll(true), danger: true }]
-                  : []),
-              ]}
-            />
-          </div>
-          {programs.length === 0 ? (
-            <p className="text-white text-sm text-center py-10">No programs yet.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {programs.map((p) => {
-                const progPhases = p.id === selected?.id ? phases : programPhases(p);
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      selectProgram(p.id);
-                      setMobileView("detail");
-                    }}
-                    className="w-full text-left px-3.5 py-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
-                  >
-                    <p className="text-white text-sm font-semibold truncate">{p.name}</p>
-                    <p className="text-white text-xs mt-0.5">
-                      {progPhases.length} phase{progPhases.length === 1 ? "" : "s"}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+      {/* #213 (owner, mock-up B): every size browses the programs as cards
+          first — black cards with a glassy white APEX mark — and a tapped
+          program opens its detail full width, with Back to the cards. */}
+      <div>
+        {mobileView === "list" && (
+          <ProgramCardsGrid
+            programs={programs}
+            onOpen={(id) => {
+              selectProgram(id);
+              setMobileView("detail");
+            }}
+            onNew={() => setNewProgramOpen(true)}
+            menu={
+              <OverflowMenu
+                label="More program actions"
+                items={[
+                  { icon: Download, label: importing ? "Importing…" : "Import starters", onClick: importStarterTemplates, disabled: importing },
+                  ...(programs.length > 0
+                    ? [{ icon: Trash2, label: "Delete all programs", onClick: () => setConfirmDeleteAll(true), danger: true }]
+                    : []),
+                ]}
+              />
+            }
+          />
+        )}
 
         {/* right: selected phase's summary + workouts table — shared by
             desktop (always visible) and mobile (only once a program's
             been tapped from the list above) */}
-        <div className={`${mobileView === "detail" ? "block" : "hidden"} md:block flex-1 min-w-0 overflow-y-auto py-4 md:p-6`}>
+        <div className={`${mobileView === "detail" ? "block" : "hidden"} min-w-0 py-4 md:py-6`} data-testid="program-detail">
           <button
             onClick={() => setMobileView("list")}
-            className="md:hidden flex items-center gap-1 text-white hover:text-white text-sm font-semibold mb-4"
+            className="flex items-center gap-1 text-white hover:text-white text-sm font-semibold mb-4"
           >
-            <ChevronLeft size={16} /> Programs
+            <ChevronLeft size={16} /> All programs
           </button>
           {!selected ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
