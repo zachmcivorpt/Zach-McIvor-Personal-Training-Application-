@@ -5,7 +5,7 @@ import { localDateKey } from "../lib/dateKey";
 import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar } from "../components/ui";
 import CoachClientDetail from "./CoachClientDetail";
 import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
-import { DarkPage, DarkPanel, DarkPageHeader } from "./darkUI";
+import { DarkPage, DarkPanel, DarkPageHeader, GLASS_BLUE } from "./darkUI";
 import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X, Repeat, Lock, Unlock, AlertTriangle } from "lucide-react";
 
 const APP_STORE_URL = "https://apps.apple.com/app/id6810194114";
@@ -481,7 +481,8 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
             <button
               onClick={() => setAddOpen(true)}
               aria-label="Add client"
-              className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl shrink-0 transition-opacity hover:opacity-90"
+              className="flex items-center gap-2 text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0 transition-opacity hover:opacity-90"
+              style={GLASS_BLUE}
             >
               <UserPlus size={16} /> <span className="hidden sm:inline">ADD CLIENT</span>
             </button>

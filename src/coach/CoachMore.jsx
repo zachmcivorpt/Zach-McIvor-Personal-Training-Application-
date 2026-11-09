@@ -1124,7 +1124,7 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
 
   return (
     <DarkPage>
-      <div className="max-w-xl mx-auto space-y-4">
+      <div className="max-w-xl md:max-w-none mx-auto space-y-4">
       <DarkPageHeader title="Settings" />
 
       <Card dark>

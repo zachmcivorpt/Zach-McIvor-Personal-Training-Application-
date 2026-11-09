@@ -68,7 +68,7 @@ rather than inventing new colors per screen:
 - Gym photo header with the greeting and a large active-client count, then
   frosted-glass tiles (Challenges, Check-ins, Messages) and open
   sections under thin rules. Every number keeps its old destination (#115).
-- The coach console is otherwise still dark-only.
+- The coach console is otherwise still dark-only, glass on near-black (#212).
 
 ### Train Solo (self-guided app, `src/solo/`) design rules
 
@@ -715,6 +715,7 @@ any Train Solo work from now on:
 ## Coach client pages: Jarvis mode (#208)
 
 - **Every client tab** (#209) follows this: action buttons are `GLASS_BLUE`, selected toggles white.
+- **Whole coach console** (#212): `CoachShell` provides `CoachGlass` + `CardSurfaceContext`=`GLASS` over `JARVIS_BACKDROP`, so every page is glass. It is more black than blue: blue is a border or glow accent, never a fill. New coach pages use `DarkPage`/`DarkPanel` and get this for free.
 - **Glass shell**: the client page (`CoachClientDetail`) is a glass HUD. It uses the `JARVIS_BACKDROP` page, and `CoachGlass` makes every `DarkPanel` inside it glass. Use `GlassButton` / `GLASS` / `GLASS_BLUE` (darkUI.jsx) for its buttons, never solid white or solid blue blocks. No yellow or orange, and no colour emoji: lucide line icons only.
 - **One-tap actions**: the Training tab's "Needs you" comes only from `needsYouItems` (`src/coach/needsYou.js`, the client's own logs plus `computePlateaus`), with one action each. Add new items there.
 - **Calendar tiles**: workouts are chips (done = solid blue, planned = outlined), habits one line of dots, nutrition one kcal line, with a filter. Bulk delete keeps the full per-item list.
