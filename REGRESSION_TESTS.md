@@ -3353,6 +3353,21 @@ each lights exactly that muscle's outline (screenshots in the session).
   - `oneProgramAtATime.test.jsx` gets a new Monday case (pinned to Mon 9 Nov 2026), which fails without the fix. The existing #165 case is pinned to a Tuesday.
   - Full suite: 1261 passed.
 
+### 212. Coach console: Jarvis glass across every page, more black than blue (owner, 2026-11-09)
+
+- **Change**: the owner asked for the whole coach console (Overview, Messages, Clients, Library/Programs, Settings) to match the client pages (#208/#209), "more black than blue, with blue accents", screen width on iPad, with minimal changes. Coach only.
+- **Shell**: `CoachShell` now wraps every tab in `CoachGlass` and `CardSurfaceContext` = `GLASS`, over `JARVIS_BACKDROP`. As a result:
+  - Every `DarkPanel`, `StatCard` and dark `Card` is glass.
+  - `DarkPage` is see-through.
+  - `DarkPageHeader` is glass.
+- **Colours**: the backdrop and `GLASS_BLUE` are blacker. The glow is ~40% as strong, and the blue fill is now 8%, so blue is a border and glow accent.
+- **Buttons**: the rail/sidebar's selected tab is blue glass, not solid white. The Library's selected tab is blue glass, not solid blue. NEW PROGRAM, + New and ADD CLIENT are blue glass.
+- **Programs page**: the two-pane frame is one hairline frame, and the list pane is see-through.
+- **Width**: Settings is full width from md up.
+- **Unchanged**: shared components were not edited. Glass comes through their existing context hooks.
+- **Tests**: all coach and component tests pass (92).
+- **Browser check**: `CoachShell` was rendered in Chromium at 1180 px with real-shaped data. Each of Overview, Messages, Clients, Library and Settings was tapped through, with no page errors.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

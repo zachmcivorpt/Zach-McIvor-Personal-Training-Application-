@@ -30,20 +30,22 @@ export const GLASS = {
   WebkitBackdropFilter: "blur(18px)",
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
 };
+// #212 (owner): more black than blue — blue is an accent (border + soft
+// glow), not a fill.
 export const GLASS_BLUE = {
-  background: "rgba(47,143,255,0.18)",
-  border: "1px solid rgba(47,143,255,0.55)",
+  background: "rgba(47,143,255,0.08)",
+  border: "1px solid rgba(47,143,255,0.5)",
   backdropFilter: "blur(18px)",
   WebkitBackdropFilter: "blur(18px)",
-  boxShadow: "0 0 16px rgba(47,143,255,0.28), inset 0 1px 0 rgba(255,255,255,0.12)",
+  boxShadow: "0 0 12px rgba(47,143,255,0.18), inset 0 1px 0 rgba(255,255,255,0.08)",
 };
 
 // The page behind the glass: near-black, a soft blue glow top-right and
 // bottom-left, and a faint 40px grid.
 export const JARVIS_BACKDROP = {
-  backgroundColor: "#06070A",
+  backgroundColor: "#050506",
   backgroundImage:
-    "radial-gradient(60% 40% at 80% 0%, rgba(47,143,255,0.14), transparent 70%), radial-gradient(50% 35% at 0% 100%, rgba(47,143,255,0.08), transparent 70%), linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px)",
+    "radial-gradient(55% 35% at 85% 0%, rgba(47,143,255,0.06), transparent 70%), radial-gradient(45% 30% at 0% 100%, rgba(47,143,255,0.035), transparent 70%), linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)",
   backgroundSize: "100% 100%, 100% 100%, 40px 40px, 40px 40px",
 };
 
@@ -74,8 +76,11 @@ export function GlassButton({ tone, className = "", style, children, ...rest }) 
 // cards. Defaults to true so every existing DarkPage caller keeps its
 // current gutter unless it opts out.
 export function DarkPage({ children, className = "", padded = true }) {
+  // Inside the glass coach shell (#212) the page is see-through, so the
+  // shell's Jarvis backdrop shows behind every tab.
+  const glass = useCoachGlass();
   return (
-    <div className="-mt-14 -mb-16 pt-14 pb-16 md:mt-0 md:mb-0 md:pt-0 md:pb-0" style={{ backgroundColor: CLIENT_DARK_BG, minHeight: "100%" }}>
+    <div className="-mt-14 -mb-16 pt-14 pb-16 md:mt-0 md:mb-0 md:pt-0 md:pb-0" style={{ backgroundColor: glass ? "transparent" : CLIENT_DARK_BG, minHeight: "100%" }}>
       <div className={`max-w-7xl mx-auto py-5 md:px-8 md:py-8 ${padded ? "px-4" : ""} ${className}`}>{children}</div>
     </div>
   );
@@ -195,8 +200,9 @@ export function StatCard({ icon: Icon, label, value, trend, trendKind = "neutral
 // greeting/date/bell/avatar — those live once, in CoachShell's own chrome,
 // not duplicated on every page.
 export function DarkPageHeader({ title, subtitle, right, texture = false }) {
+  const glass = useCoachGlass();
   return (
-    <div className="relative overflow-hidden rounded-2xl mb-4 border" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
+    <div className="relative overflow-hidden rounded-2xl mb-4 border" style={glass ? GLASS : { backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
       {texture && <MountainTexture />}
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
       <div className="relative flex items-center justify-between gap-3 px-5 py-5 sm:px-7 sm:py-6">

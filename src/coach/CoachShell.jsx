@@ -3,8 +3,9 @@ import { useTextEntryFocused } from "../lib/textEntryFocus";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { disablePush } from "../lib/push";
-import { Logo, Toast, Avatar, BottomSheet } from "../components/ui";
-import { MEASURE_BLUE, CLIENT_DARK_BG } from "../theme";
+import { Logo, Toast, Avatar, BottomSheet, CardSurfaceContext } from "../components/ui";
+import { CoachGlass, GLASS, GLASS_BLUE, JARVIS_BACKDROP } from "./darkUI";
+import { MEASURE_BLUE } from "../theme";
 import { LayoutDashboard, Users, Users2, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell, Mountain } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
@@ -180,9 +181,10 @@ export default function CoachShell() {
         onClick={() => setTab(item.id)}
         aria-label={item.label}
         aria-current={active ? "page" : undefined}
-        className={`relative w-full flex flex-col xl:flex-row items-center gap-1 xl:gap-3 px-1 xl:px-3.5 py-2 xl:py-2.5 rounded-lg text-[10px] xl:text-sm font-medium transition-colors duration-150 active:scale-[0.97] ${
-          active ? "bg-white text-black" : "text-white hover:bg-white/8 hover:text-white"
+        className={`relative w-full flex flex-col xl:flex-row items-center gap-1 xl:gap-3 px-1 xl:px-3.5 py-2 xl:py-2.5 rounded-lg text-[10px] xl:text-sm transition-colors duration-150 active:scale-[0.97] ${
+          active ? "text-white font-bold" : "text-white/75 font-medium hover:bg-white/8 hover:text-white"
         }`}
+        style={active ? GLASS_BLUE : { border: "1px solid transparent" }}
       >
         <Icon size={17} strokeWidth={active ? 2.4 : 2} />
         <span className="xl:flex-1 text-center xl:text-left leading-tight truncate max-w-full">{item.label}</span>
@@ -200,9 +202,12 @@ export default function CoachShell() {
   // scrolls. Only the "main content" div below now scrolls internally,
   // so the bars never need to track anything.
   return (
-    <div className="coach-shell w-full coach-full-height font-sans flex fixed inset-0 overflow-hidden" style={{ backgroundColor: CLIENT_DARK_BG }}>
-      {/* desktop sidebar (xl+) / icon rail (iPad, md–xl) */}
-      <div className="dark-chrome hidden md:flex w-20 xl:w-64 shrink-0 h-full sticky top-0 flex-col bg-[#0A0A0C] pt-safe">
+    <CoachGlass>
+    <CardSurfaceContext.Provider value={GLASS}>
+    <div className="coach-shell w-full coach-full-height font-sans flex fixed inset-0 overflow-hidden" style={JARVIS_BACKDROP} data-testid="coach-shell-jarvis">
+      {/* desktop sidebar (xl+) / icon rail (iPad, md–xl) — glass over the
+          Jarvis backdrop (#212) */}
+      <div className="dark-chrome hidden md:flex w-20 xl:w-64 shrink-0 h-full sticky top-0 flex-col pt-safe border-r" style={{ backgroundColor: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
         <div className="px-5 pt-7 pb-6 flex justify-center xl:justify-start">
           <Logo variant="mark" tone="white" className="h-8 xl:h-10 w-auto" />
         </div>
@@ -349,5 +354,7 @@ export default function CoachShell() {
         onMarkAllRead={markAllNotificationsRead}
       />
     </div>
+    </CardSurfaceContext.Provider>
+    </CoachGlass>
   );
 }

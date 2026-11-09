@@ -8,6 +8,7 @@ import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
 import { ProgramListItem, StatFigures, Disclosure, PhaseAccordionRow } from "./programDashboardUI";
 import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
+import { GLASS, GLASS_BLUE } from "./darkUI";
 
 function NewProgramSheet({ open, onClose, onCreate }) {
   const [name, setName] = useState("");
@@ -394,7 +395,7 @@ function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEd
         <p className="text-white/45 text-[11px] font-bold tracking-[0.14em] uppercase">Workouts{days.length > 0 && ` · ${days.length}`}</p>
         {!selectMode ? (
           <div className="flex items-center gap-1.5">
-            <button onClick={onOpenNew} className="flex items-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-opacity hover:opacity-90">
+            <button onClick={onOpenNew} className="flex items-center gap-1.5 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-opacity hover:opacity-90" style={GLASS_BLUE}>
               <Plus size={13} /> New
             </button>
             <button onClick={onOpenFromLibrary} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
@@ -729,14 +730,15 @@ export default function CoachPrograms({ showToast }) {
 
       <div
         className="flex flex-col md:flex-row md:h-[calc(100dvh-200px)] md:min-h-[600px] md:mt-4 md:border md:rounded-2xl md:overflow-hidden"
-        style={{ borderColor: CLIENT_DARK_BORDER }}
+        style={{ borderColor: "rgba(255,255,255,0.09)" }}
       >
         {/* left: program list, with the active program's phases nested right below it */}
-        <div className="hidden md:flex w-80 shrink-0 border-r flex-col" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
-          <div className="p-3 border-b flex items-center gap-1.5" style={{ borderColor: CLIENT_DARK_BORDER }}>
+        <div className="hidden md:flex w-72 xl:w-80 shrink-0 border-r flex-col" style={{ backgroundColor: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
+          <div className="p-3 border-b flex items-center gap-1.5" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
             <button
               onClick={() => setNewProgramOpen(true)}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-2.5 rounded-xl transition-opacity hover:opacity-90"
+              className="flex-1 flex items-center justify-center gap-1.5 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition-opacity hover:opacity-90"
+              style={GLASS_BLUE}
             >
               <Plus size={14} /> NEW PROGRAM
             </button>
@@ -775,7 +777,8 @@ export default function CoachPrograms({ showToast }) {
           <div className="flex items-center gap-1.5 mb-3">
             <button
               onClick={() => setNewProgramOpen(true)}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-2.5 rounded-xl transition-opacity hover:opacity-90"
+              className="flex-1 flex items-center justify-center gap-1.5 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition-opacity hover:opacity-90"
+              style={GLASS_BLUE}
             >
               <Plus size={14} /> NEW PROGRAM
             </button>

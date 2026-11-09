@@ -6,7 +6,7 @@ import CoachMealLibrary from "./CoachMealLibrary";
 import CoachFoodLibrary from "./CoachFoodLibrary";
 import CoachHabitLibrary from "./CoachHabitLibrary";
 import CoachForms from "./CoachForms";
-import { DarkPage } from "./darkUI";
+import { DarkPage, GLASS, GLASS_BLUE } from "./darkUI";
 import { MEASURE_BLUE } from "../theme";
 
 const LIB_TABS = [
@@ -45,12 +45,8 @@ export default function CoachLibrary({ showToast, openTab, onOpenTabHandled }) {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors"
-              style={
-                tab === t.id
-                  ? { backgroundColor: MEASURE_BLUE, color: "#fff" }
-                  : { backgroundColor: "rgba(255,255,255,0.06)", color: "#FFFFFF" }
-              }
+              className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors ${tab === t.id ? "font-bold" : "font-medium"}`}
+              style={tab === t.id ? { ...GLASS_BLUE, color: "#fff" } : { ...GLASS, color: "#FFFFFF" }}
             >
               {t.label}
             </button>
