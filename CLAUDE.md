@@ -713,6 +713,7 @@ any Train Solo work from now on:
 
 ## Coach client pages: Jarvis mode (#208)
 
+- **Every client tab** (#209) follows this: action buttons are `GLASS_BLUE`, selected toggles white.
 - **Glass shell**: the client page (`CoachClientDetail`) is a glass HUD. It uses the `JARVIS_BACKDROP` page, and `CoachGlass` makes every `DarkPanel` inside it glass. Use `GlassButton` / `GLASS` / `GLASS_BLUE` (darkUI.jsx) for its buttons, never solid white or solid blue blocks. No yellow or orange, and no colour emoji: lucide line icons only.
 - **One-tap actions**: the Training tab's "Needs you" comes only from `needsYouItems` (`src/coach/needsYou.js`, the client's own logs plus `computePlateaus`), with one action each. Add new items there.
 - **Calendar tiles**: workouts are chips (done = solid blue, planned = outlined), habits one line of dots, nutrition one kcal line, with a filter. Bulk delete keeps the full per-item list.

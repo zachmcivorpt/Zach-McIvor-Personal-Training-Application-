@@ -3325,6 +3325,21 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Browser check**: checked in Chromium at 1180 px (iPad) and 390 px (phone) on both tabs, with no page errors. Review was tapped in the browser too.
 - **Not caused by this change**: 4 Train Solo tests (`currentProgram.test.js`, `oneProgramAtATime.test.jsx`) fail on main today, before this change too. They depend on the date, and Train Solo was not touched (owner: coach only).
 
+### 209. Coach console: every client tab in Jarvis mode (owner, 2026-11-09)
+
+- **Change**: the owner asked for the rest of the client page's tabs (Summary, Nutrition, Check-ins, Progress, Habits) to match #208, with minimal changes.
+- **Already done by #208**: their panels were already glass, through `CoachGlass` / `DarkPanel`.
+- **What changed**: the solid white action buttons on those tabs now use blue glass (`GLASS_BLUE`):
+  - Nutrition: Build/Edit meal guide
+  - Check-ins: Schedule
+  - Summary: save Personal Details, Add note
+  - Training: Add phase
+  - Calendar: bulk delete's Select range
+  - Send Login Details, and the mobile Send button
+- **Unchanged**: selected toggles stay white, and nothing outside the coach console was touched. Shared widgets (e.g. Progress's heat map) keep their colours, because they're shared with the client app.
+- **Tests**: `coachJarvis208.test.jsx` and every coach test pass.
+- **Browser check**: all five tabs were rendered in Chromium at 1180 px with real-shaped data and no page errors.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
