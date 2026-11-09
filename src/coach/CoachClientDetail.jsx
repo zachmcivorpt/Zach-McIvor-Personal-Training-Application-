@@ -18,7 +18,7 @@ import {
   computeSessionInsights,
 } from "../lib/trainingStats";
 import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
-import { DarkPanel } from "./darkUI";
+import { DarkPanel, CoachGlass, GlassButton, GLASS, GLASS_BLUE, JARVIS_BACKDROP } from "./darkUI";
 import { NutritionTargetsCard } from "./NutritionTargetsCard";
 // Re-exported for anything still importing it from here.
 export { NutritionTargetsCard };
@@ -53,6 +53,7 @@ import {
   Image as ImageIcon,
   ListChecks,
   Plus,
+  Pencil,
   Copy,
   Trash2,
   Calendar,
@@ -104,6 +105,7 @@ import { fileToCompressedDataUrl } from "../lib/image";
 import { MICRO_FIELDS } from "../lib/foodDatabase";
 import { parseVideoUrl } from "../lib/video";
 import { matchesSearch } from "../lib/search";
+import { needsYouItems, filterSessionLogs } from "./needsYou";
 
 // The first exercise in the day that has a YouTube video gives us a real
 // thumbnail to fall back to (vimeo/file videos have no static thumbnail
@@ -1308,6 +1310,8 @@ function CalendarPanel({ client, showToast }) {
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [selectedDate, setSelectedDate] = useState(null);
   const [scheduleKind, setScheduleKind] = useState(null); // "workout" | "bodystats" | "form" | null
+  // Jarvis calendar filter (#208): what the month shows; bulk delete ignores it.
+  const [calFilter, setCalFilter] = useState("all");
   const [selectMode, setSelectMode] = useState(false);
   const [activeCategories, setActiveCategories] = useState(() => new Set(["workout", "habits", "cardio"]));
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
@@ -1715,22 +1719,35 @@ function CalendarPanel({ client, showToast }) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => shiftMonth(-1)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white"
+              aria-label="Previous month"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-white"
+              style={GLASS}
             >
               <ChevronRight size={17} className="rotate-180" />
             </button>
             <p className="text-white font-bold text-lg w-48 text-center">{monthLabel}</p>
             <button
               onClick={() => shiftMonth(1)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white"
+              aria-label="Next month"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-white"
+              style={GLASS}
             >
               <ChevronRight size={17} />
             </button>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={goToday} className="text-sm font-semibold hover:opacity-80" style={{ color: MEASURE_BLUE }}>
-              Today
-            </button>
+            <GlassButton onClick={goToday}>TODAY</GlassButton>
+            {!selectMode && (
+              <GlassButton
+                tone="blue"
+                onClick={() => {
+                  goToday();
+                  setSelectedDate(todayStr);
+                }}
+              >
+                <Plus size={13} /> ADD
+              </GlassButton>
+            )}
             {selectMode ? (
               <button onClick={exitSelectMode} className="text-white hover:text-white text-sm font-semibold">
                 Cancel
@@ -1739,7 +1756,8 @@ function CalendarPanel({ client, showToast }) {
               <button
                 onClick={() => setSelectMode(true)}
                 aria-label="Select items to delete"
-                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-red-500/10 text-white hover:text-red-400 transition-colors"
+                className="w-9 h-9 flex items-center justify-center rounded-xl text-white hover:text-red-400 transition-colors"
+                style={GLASS}
               >
                 <Trash2 size={16} />
               </button>
@@ -1802,7 +1820,28 @@ function CalendarPanel({ client, showToast }) {
           </div>
         )}
 
-        <div className="relative grid grid-cols-7 border-b pb-2 mb-1" style={{ borderColor: CLIENT_DARK_BORDER }}>
+        {!selectMode && (
+          <div className="relative flex gap-1.5 overflow-x-auto no-scrollbar mb-3" role="tablist" aria-label="Filter calendar">
+            {[
+              ["all", "All"],
+              ["workouts", "Workouts"],
+              ["habits", "Habits"],
+              ["nutrition", "Nutrition"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={calFilter === id}
+                onClick={() => setCalFilter(id)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-[0.06em] uppercase ${calFilter === id ? "text-black" : "text-white"}`}
+                style={calFilter === id ? { background: "rgba(255,255,255,0.92)" } : GLASS}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="relative grid grid-cols-7 gap-1.5 pb-2 mb-1">
           {CAL_WEEKDAY_LABELS.map((l) => (
             <p key={l} className="text-white text-xs font-semibold text-center tracking-wide font-sans">
               {l}
@@ -1812,14 +1851,25 @@ function CalendarPanel({ client, showToast }) {
 
         {/* seamless table — cells share border lines instead of each
             being its own boxed card, matching Trainerize's calendar */}
-        <div className="relative border-l border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
+        <div className="relative">
           {weeks.map((week, wi) => (
-            <div key={wi} className="grid grid-cols-7">
+            <div key={wi} className="grid grid-cols-7 gap-1.5 mb-1.5">
               {week.map((date) => {
                 const dateStr = dKey(date);
                 const inMonth = date.getUTCMonth() === viewMonth;
                 const isToday = dateStr === todayStr;
                 const items = itemsForDate(date);
+                // Jarvis tiles (#208): outside bulk delete, workouts are
+                // chips, a day's habits one line of dots, nutrition one
+                // kcal line; the filter picks which of these show.
+                const showWork = calFilter === "all" || calFilter === "workouts";
+                const showHabits = calFilter === "all" || calFilter === "habits";
+                const showFood = calFilter === "all" || calFilter === "nutrition";
+                const listItems = selectMode
+                  ? items
+                  : items.filter((it) => it.type !== "habits" && it.type !== "nutrition" && showWork);
+                const habitItems = !selectMode && showHabits ? items.filter((it) => it.type === "habits") : [];
+                const foodItem = !selectMode && showFood ? items.find((it) => it.type === "nutrition") : null;
                 return (
                   <div
                     key={dateStr}
@@ -1836,24 +1886,20 @@ function CalendarPanel({ client, showToast }) {
                         : undefined
                     }
                     style={{
-                      borderColor: CLIENT_DARK_BORDER,
-                      backgroundColor: dragOverDate === dateStr ? "rgba(47,143,255,0.12)" : inMonth ? CLIENT_DARK_SURFACE : CLIENT_DARK_BG,
-                      boxShadow: dragOverDate === dateStr ? `inset 0 0 0 2px ${MEASURE_BLUE}` : undefined,
+                      ...(isToday ? GLASS_BLUE : GLASS),
+                      ...(dragOverDate === dateStr ? { background: "rgba(47,143,255,0.18)", boxShadow: `inset 0 0 0 2px ${MEASURE_BLUE}` } : {}),
+                      opacity: inMonth ? 1 : 0.45,
                     }}
-                    className={`min-h-[92px] md:min-h-[112px] border-r border-b text-left px-2 py-1.5 transition-colors duration-150 font-sans ${
-                      !selectMode ? "cursor-pointer hover:bg-white/[0.02]" : ""
+                    data-today={isToday ? "true" : undefined}
+                    className={`min-w-0 min-h-[92px] md:min-h-[112px] rounded-xl text-left px-1.5 md:px-2 py-1.5 transition-colors duration-150 font-sans ${
+                      !selectMode ? "cursor-pointer hover:brightness-125" : ""
                     }`}
                   >
-                    <div className="flex justify-end">
-                      <span
-                        className="text-xs font-semibold"
-                        style={{ color: isToday ? MEASURE_BLUE : inMonth ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.25)" }}
-                      >
-                        {date.getUTCDate()}
-                      </span>
+                    <div className="flex justify-start">
+                      <span className="text-[13px] md:text-sm font-bold text-white">{date.getUTCDate()}</span>
                     </div>
                     <div className="mt-1 space-y-1">
-                      {items.slice(0, 4).map((it, i) => {
+                      {listItems.slice(0, 4).map((it, i) => {
                         const dot =
                           it.type === "workout"
                             ? { color: MEASURE_BLUE }
@@ -1873,6 +1919,12 @@ function CalendarPanel({ client, showToast }) {
                           !selectMode &&
                           ((it.type === "workout" && it.key === `sched:${dateStr}`) || (it.type === "bodystats" && !it.done));
                         const dragging = dragItem?.date === dateStr && dragItem?.type === it.type;
+                        const chip = !selectMode && it.type === "workout";
+                        const chipStyle = chip
+                          ? it.done
+                            ? { background: MEASURE_BLUE, color: "#FFFFFF", boxShadow: "0 0 10px rgba(47,143,255,0.5)" }
+                            : { border: "1px solid rgba(47,143,255,0.55)", color: "#BCD9FF", background: "rgba(47,143,255,0.08)" }
+                          : null;
                         return (
                           <div
                             key={i}
@@ -1892,8 +1944,10 @@ function CalendarPanel({ client, showToast }) {
                               ...(draggableItem ? { touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } : {}),
                               color: checked ? OVER_RED : selectMode && !selectable ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.7)",
                               fontWeight: checked ? 600 : undefined,
+                              ...(chipStyle || {}),
                             }}
-                            className={`flex items-center gap-1 text-[10px] md:text-[10.5px] truncate transition-all duration-150 ${
+                            data-chip={chip ? (it.done ? "done" : "planned") : undefined}
+                            className={`flex items-center gap-1 text-[10px] md:text-[10.5px] truncate transition-all duration-150 ${chip ? "rounded-md px-1.5 py-0.5 font-bold" : ""} ${
                               selectable ? "cursor-pointer" : ""
                             } ${draggableItem ? "cursor-grab active:cursor-grabbing select-none" : ""} ${
                               dragging ? "opacity-30 scale-[0.97]" : ""
@@ -1909,7 +1963,7 @@ function CalendarPanel({ client, showToast }) {
                               >
                                 {checked && <Check size={9} className="text-white" strokeWidth={3} />}
                               </span>
-                            ) : (
+                            ) : chip ? null : (
                               <span
                                 className="w-2 h-2 rounded-full shrink-0 border"
                                 style={{ borderColor: dot.color, backgroundColor: it.done ? dot.color : "transparent" }}
@@ -1919,7 +1973,22 @@ function CalendarPanel({ client, showToast }) {
                           </div>
                         );
                       })}
-                      {items.length > 4 && <p className="text-white text-[10px]">+{items.length - 4} more</p>}
+                      {listItems.length > 4 && <p className="text-white text-[10px]">+{listItems.length - 4} more</p>}
+                      {habitItems.length > 0 && (
+                        <div className="flex items-center gap-1 pt-0.5" data-testid="cal-habits" title={habitItems.map((h) => h.label).join(", ")}>
+                          {habitItems.slice(0, 6).map((h) => (
+                            <span
+                              key={h.key}
+                              className="w-1.5 h-1.5 rounded-full shrink-0"
+                              style={h.done ? { background: "#FFFFFF", boxShadow: "0 0 6px #FFFFFF" } : { background: "rgba(255,255,255,0.25)" }}
+                            />
+                          ))}
+                          <span className="text-white/55 text-[9.5px] md:text-[10px] truncate">
+                            {habitItems.length} habit{habitItems.length === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                      )}
+                      {foodItem && <p className="text-white/55 text-[9.5px] md:text-[10px] truncate">{foodItem.label.replace(" logged", "")}</p>}
                     </div>
                   </div>
                 );
@@ -1929,18 +1998,22 @@ function CalendarPanel({ client, showToast }) {
         </div>
 
         <div className="relative flex items-center flex-wrap gap-4 mt-5">
-          {[
-            [MEASURE_BLUE, "Workout"],
-            [GOAL_GREEN, "Completed"],
-            [MEASURE_BLUE, "Body Stats"],
-            [MEASURE_BLUE, "Daily Execution"],
-            [MEASURE_BLUE, "Nutrition Logged"],
-          ].map(([color, label]) => (
-            <div key={label} className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full border" style={{ borderColor: color }} />
-              <span className="text-white text-xs">{label}</span>
-            </div>
-          ))}
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-[3px]" style={{ background: MEASURE_BLUE, boxShadow: "0 0 6px rgba(47,143,255,0.7)" }} />
+            <span className="text-white text-xs">Workout done</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-[3px] border" style={{ borderColor: MEASURE_BLUE }} />
+            <span className="text-white text-xs">Workout planned</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-white" style={{ boxShadow: "0 0 6px #fff" }} />
+            <span className="text-white text-xs">Habit done</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full border" style={{ borderColor: MEASURE_BLUE }} />
+            <span className="text-white text-xs">Body stats / check-in</span>
+          </div>
         </div>
       </DarkPanel>
 
@@ -2163,11 +2236,89 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCre
 // "2026-09-07" -> "7 Sep 2026" — used by the phase date-range pill so it
 // reads the same everywhere instead of each browser's own <input type=date>
 // formatting (which varies and looks inconsistent inside a native wrapper).
+// Jarvis header (#208): the current phase and week, with the main actions.
+function TrainingCommandHeader({ client, phase, onProgram, onNewPhase }) {
+  let week = null;
+  if (phase?.startDate && phase?.endDate) {
+    const start = new Date(phase.startDate + "T00:00:00");
+    const end = new Date(phase.endDate + "T00:00:00");
+    const total = Math.max(1, Math.ceil((Math.round((end - start) / 86400000) + 1) / 7));
+    const now = Math.min(total, Math.max(1, Math.floor((Date.now() - start) / (7 * 86400000)) + 1));
+    week = { now, total };
+  }
+  return (
+    <div className="flex items-end justify-between gap-3 flex-wrap mb-4" data-testid="training-command-header">
+      <div className="min-w-0">
+        <p className="text-white/55 text-[10.5px] font-bold tracking-[0.18em] uppercase">{client.name?.split(" ")[0] || "Client"} · Training</p>
+        <p className="text-white text-xl font-bold truncate">
+          {phase ? phase.name : "No current phase"}
+          {week && <span style={{ color: "#7FB8FF" }}> · Week {week.now} of {week.total}</span>}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <GlassButton onClick={onProgram}>
+          <Pencil size={13} /> EDIT PROGRAM
+        </GlassButton>
+        <GlassButton tone="blue" onClick={onNewPhase}>
+          <Plus size={13} /> NEW PHASE
+        </GlassButton>
+      </div>
+    </div>
+  );
+}
+
+// Jarvis "Needs you" (#208): what needs the coach, one tap each.
+function NeedsYouPanel({ client, logs, onReview, onProgram, onMessage }) {
+  const { db } = useApp();
+  const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
+  const plateaus = useMemo(() => computePlateaus(logs, exercisesById), [logs, exercisesById]);
+  const items = useMemo(() => needsYouItems({ logs, plateaus }), [logs, plateaus]);
+  const dot = { blue: MEASURE_BLUE, red: OVER_RED, white: "#FFFFFF" };
+  return (
+    <DarkPanel className="p-4 md:p-5 mb-6">
+      <div className="flex items-center justify-between">
+        <p className="text-white/55 text-[10.5px] font-bold tracking-[0.18em] uppercase">Needs you · {items.length}</p>
+        {items.length > 0 && <p className="text-[10.5px] font-bold tracking-[0.18em] uppercase" style={{ color: "#7FB8FF" }}>One tap each</p>}
+      </div>
+      {items.length === 0 ? (
+        <p className="text-white text-sm mt-3" data-testid="needs-you-clear">All clear — nothing needs you on {client.name?.split(" ")[0] || "this client"}'s training right now.</p>
+      ) : (
+        <div className="mt-2 divide-y" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+          {items.map((it) => (
+            <div key={it.id} className="flex items-center gap-3 py-3" style={{ borderColor: "rgba(255,255,255,0.07)" }} data-testid="needs-you-item">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: dot[it.tone], boxShadow: `0 0 10px ${dot[it.tone]}` }} />
+              <div className="min-w-0 flex-1">
+                <p className="text-white text-sm font-semibold">{it.title}</p>
+                {it.detail && <p className="text-white/60 text-xs mt-0.5 truncate">{it.detail}</p>}
+              </div>
+              {it.action === "review" && (
+                <GlassButton tone="blue" onClick={onReview}>
+                  Review
+                </GlassButton>
+              )}
+              {it.action === "program" && (
+                <GlassButton tone="blue" onClick={onProgram}>
+                  Swap exercise
+                </GlassButton>
+              )}
+              {it.action === "message" && onMessage && (
+                <GlassButton tone="blue" onClick={onMessage}>
+                  Message
+                </GlassButton>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </DarkPanel>
+  );
+}
+
 function formatDateRangeLabel(dateStr) {
   return new Date(dateStr + "T00:00:00Z").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
-function TrainingProgramPanel({ client, showToast }) {
+function TrainingProgramPanel({ client, showToast, onMessage }) {
   const { db, addClientPhase, updateClientPhase, deleteClientPhase, duplicateClientPhase, createProgram, scheduleWorkout, createMasterWorkout } = useApp();
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
   const phases = (db.clientPhases || {})[client.id] || [];
@@ -2186,6 +2337,9 @@ function TrainingProgramPanel({ client, showToast }) {
   const [renamingId, setRenamingId] = useState(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [historyLimit, setHistoryLimit] = useState(15);
+  const [historyFilter, setHistoryFilter] = useState("all");
+  const historyRef = useRef(null);
+  const programRef = useRef(null);
   const startDateRef = useRef(null);
   const endDateRef = useRef(null);
 
@@ -2428,12 +2582,31 @@ function TrainingProgramPanel({ client, showToast }) {
     <div className="flex flex-col h-full min-h-0">
       {/* selected phase detail */}
       <div className="flex-1 min-w-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
+        <TrainingCommandHeader
+          client={client}
+          phase={getCurrentPhase(phases, todayKey()) || null}
+          onProgram={() => programRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          onNewPhase={() => setNewPhaseOpen(true)}
+        />
+
+        <NeedsYouPanel
+          client={client}
+          logs={workoutLogs}
+          onReview={() => {
+            setHistoryFilter("notes");
+            historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          onProgram={() => programRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          onMessage={onMessage}
+        />
+
         <PerformanceTimelineCard client={client} />
 
         <PlateauAlertCard client={client} />
 
         <WeeklyCoachReviewCard client={client} showToast={showToast} />
 
+        <div ref={historyRef} className="scroll-mt-4" />
         <DarkPanel className="p-4 md:p-5 mb-4">
           <div className="relative flex items-center gap-2.5 mb-1">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: MEASURE_BLUE }}>
@@ -2444,6 +2617,28 @@ function TrainingProgramPanel({ client, showToast }) {
               <p className="text-white text-[11px]">Every completed workout, PRs and stalled lifts flagged automatically</p>
             </div>
           </div>
+          {workoutLogs.length > 0 && (
+            <div className="relative flex gap-1.5 overflow-x-auto no-scrollbar mt-3" role="tablist" aria-label="Filter sessions">
+              {[
+                ["all", "All"],
+                ["workouts", "Workouts"],
+                ["cardio", "Cardio"],
+                ["prs", "PRs"],
+                ["notes", "Notes"],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  role="tab"
+                  aria-selected={historyFilter === id}
+                  onClick={() => setHistoryFilter(id)}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-[0.06em] uppercase ${historyFilter === id ? "text-black" : "text-white"}`}
+                  style={historyFilter === id ? { background: "rgba(255,255,255,0.92)" } : GLASS}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           {workoutLogs.length === 0 ? (
             <div className="relative border border-dashed rounded-xl py-8 text-center mt-3" style={{ borderColor: CLIENT_DARK_BORDER }}>
               <p className="text-white text-sm">No completed workouts yet.</p>
@@ -2451,16 +2646,19 @@ function TrainingProgramPanel({ client, showToast }) {
           ) : (
             <>
               <div className="relative space-y-2 mt-3">
-                {workoutLogs.slice(0, historyLimit).map((log) => (
+                {filterSessionLogs(workoutLogs, historyFilter).slice(0, historyLimit).map((log) => (
                   <WorkoutLogCard key={log.id} log={log} exercisesById={exercisesById} allLogs={workoutLogs} />
                 ))}
+                {filterSessionLogs(workoutLogs, historyFilter).length === 0 && (
+                  <p className="text-white/60 text-sm text-center py-6">No sessions match this filter.</p>
+                )}
               </div>
-              {historyLimit < workoutLogs.length && (
+              {historyLimit < filterSessionLogs(workoutLogs, historyFilter).length && (
                 <button
                   onClick={() => setHistoryLimit((n) => n + 15)}
                   className="relative w-full text-center text-white hover:text-white text-xs font-semibold py-3 mt-1"
                 >
-                  Show more ({workoutLogs.length - historyLimit} more)
+                  Show more ({filterSessionLogs(workoutLogs, historyFilter).length - historyLimit} more)
                 </button>
               )}
             </>
@@ -2470,7 +2668,7 @@ function TrainingProgramPanel({ client, showToast }) {
         {/* phase history — sits right above the program it controls, as a
             horizontal scroller instead of a permanent sidebar column that's
             mostly empty once a client only has one or two phases. */}
-        <div className="mb-4">
+        <div className="mb-4 scroll-mt-4" ref={programRef}>
           <div className="flex items-center justify-between mb-2.5">
             <p className="text-white font-semibold text-sm">Training Program</p>
             <button
@@ -4150,7 +4348,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
             {prCount > 0 && (
               <span
                 className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md"
-                style={{ backgroundColor: "rgba(47,196,120,0.12)", color: GOAL_GREEN }}
+                style={{ backgroundColor: "rgba(47,143,255,0.16)", color: "#CFE4FF", border: "1px solid rgba(47,143,255,0.45)" }}
               >
                 <Trophy size={10} /> {prCount} PR{prCount === 1 ? "" : "s"}
               </span>
@@ -5071,7 +5269,7 @@ function PerformanceTimelineCard({ client }) {
 // for next week" note, pre-filled with a suggestion pointed at whichever
 // area looks weakest this week.
 function WeeklyCoachReviewCard({ client, showToast }) {
-  const { db, updateUser } = useApp();
+  const { db, updateUser, sendMessage } = useApp();
   const logs = db.workoutLogs[client.id] || [];
   const nutritionLogs = (db.nutritionLogs || {})[client.id] || [];
   const habits = (db.habits || {})[client.id] || [];
@@ -5158,6 +5356,7 @@ function WeeklyCoachReviewCard({ client, showToast }) {
 
   const [focus, setFocus] = useState(client.weeklyFocusNote || "");
   const [saving, setSaving] = useState(false);
+  const [sentFocus, setSentFocus] = useState(false);
   const loadedRef = useRef(client.id);
   if (loadedRef.current !== client.id) {
     loadedRef.current = client.id;
@@ -5224,13 +5423,27 @@ function WeeklyCoachReviewCard({ client, showToast }) {
           className="w-full border rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white resize-none"
           style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
         />
-        <button
-          onClick={saveFocus}
-          disabled={saving || focus === (client.weeklyFocusNote || "")}
-          className="mt-2 bg-white text-black text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-30"
-        >
-          {saving ? "SAVING…" : "SAVE FOCUS"}
-        </button>
+        <div className="mt-2 flex gap-2 flex-wrap">
+          <GlassButton tone="blue" onClick={saveFocus} disabled={saving || focus === (client.weeklyFocusNote || "")}>
+            {saving ? "SAVING…" : "SAVE FOCUS"}
+          </GlassButton>
+          {client.status === "active" && (
+            <GlassButton
+              disabled={sentFocus}
+              onClick={() => {
+                // Sends the note exactly as shown (typed, or the suggestion)
+                // as a normal coach message in their chat (#208).
+                const text = (focus.trim() || autoFocus).trim();
+                if (!text) return;
+                setSentFocus(true);
+                sendMessage(client.id, "coach", `Focus for next week: ${text}`);
+                showToast("Sent to " + (client.name?.split(" ")[0] || "client"));
+              }}
+            >
+              {sentFocus ? "SENT" : "SEND TO CLIENT"}
+            </GlassButton>
+          )}
+        </div>
       </div>
     </DarkPanel>
   );
@@ -5838,12 +6051,15 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
   if (!client) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col md:flex-row" style={{ backgroundColor: CLIENT_DARK_BG }}>
-      {/* client mini-sidebar (desktop) */}
-      <div className="hidden md:flex w-64 shrink-0 h-full flex-col border-r" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
-        <div className="p-5 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
+    <CoachGlass>
+    <div className="fixed inset-0 z-[80] flex flex-col md:flex-row" style={JARVIS_BACKDROP} data-testid="coach-client-jarvis">
+      {/* client mini-sidebar (desktop) — glass over the Jarvis backdrop (#208) */}
+      <div className="hidden md:flex w-64 shrink-0 h-full flex-col border-r" style={{ backgroundColor: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
+        <div className="p-5 border-b" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
           <div className="flex items-center gap-3">
-            <Avatar name={client.name} url={client.avatarUrl} size={48} dark />
+            <span className="rounded-full shrink-0" style={{ boxShadow: `0 0 0 2px #06070A, 0 0 0 3.5px ${MEASURE_BLUE}, 0 0 18px rgba(47,143,255,0.55)` }}>
+              <Avatar name={client.name} url={client.avatarUrl} size={48} dark />
+            </span>
             <div className="min-w-0">
               <p className="text-white font-bold text-sm truncate">{client.name}</p>
               <div className="flex items-center gap-1.5">
@@ -5855,7 +6071,8 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
           {client.status === "active" ? (
             <button
               onClick={() => setMessaging(true)}
-              className="w-full mt-3 flex items-center justify-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              className="w-full mt-3 flex items-center justify-center gap-2 text-white text-xs font-bold tracking-[0.06em] uppercase py-2.5 rounded-xl"
+              style={GLASS_BLUE}
             >
               <MessageCircle size={15} /> Message
             </button>
@@ -5872,8 +6089,8 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               startViewAsClient(client.id);
               navigate("/app");
             }}
-            className="w-full mt-2 flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl transition-colors"
-            style={{ backgroundColor: "rgba(47,143,255,0.12)", color: MEASURE_BLUE }}
+            className="w-full mt-2 flex items-center justify-center gap-2 text-white text-xs font-bold tracking-[0.06em] uppercase py-2.5 rounded-xl"
+            style={GLASS}
             title="Browse and act in the app exactly as this client — works even before they've activated"
           >
             <Repeat size={15} /> View as Client
@@ -5881,9 +6098,10 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
           {client.status === "active" && (
             <button
               onClick={() => (client.accessPaused ? setClientAccessPaused(client.id, false) : setConfirmPause(true))}
-              className={`w-full mt-2 flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl transition-colors ${
-                client.accessPaused ? "bg-red-500/15 hover:bg-red-500/25 text-red-300" : "bg-white/5 hover:bg-white/10 text-white"
+              className={`w-full mt-2 flex items-center justify-center gap-2 text-xs font-bold tracking-[0.06em] uppercase py-2.5 rounded-xl ${
+                client.accessPaused ? "bg-red-500/15 hover:bg-red-500/25 text-red-300" : "text-white"
               }`}
+              style={client.accessPaused ? undefined : GLASS}
               title="Restrict this client's access to their program/profile — e.g. for insufficient payment"
             >
               {client.accessPaused ? (
@@ -5907,10 +6125,10 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               <button
                 key={item.id}
                 onClick={() => setClientTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  active ? "text-white" : "text-white hover:bg-white/5 hover:text-white"
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-colors ${
+                  active ? "text-white font-bold" : "text-white/75 font-medium hover:bg-white/5 hover:text-white"
                 }`}
-                style={active ? { backgroundColor: MEASURE_BLUE } : undefined}
+                style={active ? GLASS_BLUE : { border: "1px solid transparent" }}
               >
                 <Icon size={16} strokeWidth={active ? 2.4 : 2} />
                 {item.label}
@@ -5919,7 +6137,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
           })}
         </div>
 
-        <div className="p-3 border-t space-y-1" style={{ borderColor: CLIENT_DARK_BORDER }}>
+        <div className="p-3 border-t space-y-1" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
           {!confirmRemove ? (
             <button
               onClick={() => setConfirmRemove(true)}
@@ -5951,7 +6169,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
       </div>
 
       {/* mobile header */}
-      <div className="md:hidden shrink-0 border-b" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
+      <div className="md:hidden shrink-0 border-b" style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)" }}>
         <div className="flex items-center gap-2.5 px-3 pt-4 pb-3">
           <button onClick={onClose} aria-label="Return to overview" className="w-8 h-8 -ml-1 flex items-center justify-center text-white shrink-0">
             <ArrowLeft size={18} />
@@ -6035,10 +6253,8 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               <button
                 key={item.id}
                 onClick={() => setClientTab(item.id)}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                  active ? "text-white" : "bg-white/8 text-white"
-                }`}
-                style={active ? { backgroundColor: MEASURE_BLUE } : undefined}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors text-white"
+                style={active ? GLASS_BLUE : GLASS}
               >
                 <Icon size={13} strokeWidth={active ? 2.4 : 2} /> {item.label}
               </button>
@@ -6066,13 +6282,15 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
       </div>
 
       {/* main panel */}
-      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto" style={{ backgroundColor: CLIENT_DARK_BG }}>
+      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
         <LiveSessionBanner live={db.liveSessions[client.id]} exercises={db.exercises} />
         {clientTab === "summary" && (
           <SummaryPanel client={client} showToast={showToast} onSendLogin={() => setSendOpen(true)} onClose={onClose} />
         )}
         {clientTab === "calendar" && <CalendarPanel client={client} showToast={showToast} />}
-        {clientTab === "program" && <TrainingProgramPanel client={client} showToast={showToast} />}
+        {clientTab === "program" && (
+          <TrainingProgramPanel client={client} showToast={showToast} onMessage={client.status === "active" ? () => setMessaging(true) : null} />
+        )}
         {clientTab === "nutrition" && <NutritionPanel client={client} showToast={showToast} />}
         {clientTab === "progress" && <ProgressPanel client={client} showToast={showToast} />}
         {clientTab === "habits" && <HabitsPanel client={client} />}
@@ -6123,5 +6341,6 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
         </div>
       </BottomSheet>
     </div>
+    </CoachGlass>
   );
 }

@@ -711,6 +711,12 @@ any Train Solo work from now on:
 - The tab fade is opacity-only with no fill-mode: a transform or a filled
   animation on the tab wrapper would trap the full-screen overlays inside it.
 
+## Coach client pages: Jarvis mode (#208)
+
+- **Glass shell**: the client page (`CoachClientDetail`) is a glass HUD. It uses the `JARVIS_BACKDROP` page, and `CoachGlass` makes every `DarkPanel` inside it glass. Use `GlassButton` / `GLASS` / `GLASS_BLUE` (darkUI.jsx) for its buttons, never solid white or solid blue blocks. No yellow or orange, and no colour emoji: lucide line icons only.
+- **One-tap actions**: the Training tab's "Needs you" comes only from `needsYouItems` (`src/coach/needsYou.js`, the client's own logs plus `computePlateaus`), with one action each. Add new items there.
+- **Calendar tiles**: workouts are chips (done = solid blue, planned = outlined), habits one line of dots, nutrition one kcal line, with a filter. Bulk delete keeps the full per-item list.
+
 ## Login area look (#207)
 
 - **Order**: signed-out visitors see the first page (`/start`): a glowing see-through APEX mark, "Train solo. Train smarter." with a faded echo, page dots and a ring arrow. Then the chooser (`/start?step=choose`, `START_CHOOSER`), then the log-in screens.

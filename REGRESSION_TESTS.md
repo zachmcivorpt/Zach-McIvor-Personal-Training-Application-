@@ -3305,6 +3305,26 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: without the bridge, Manage opens Apple's own subscriptions page (`APPLE_SUBSCRIPTIONS_URL`, apps.apple.com/account/subscriptions) — in the app it still opens Apple's sheet directly; the small print says "Manage or cancel any time from Profile" everywhere; the delete warning says "Profile → Subscription → Manage".
 - **Tests**: `src/solo/manageWording211.test.js` (3), all failing on the old code. Full suite 1255 passed; build clean.
 
+### 208. Coach console: client pages in "Jarvis mode" — glass, one-tap actions (owner, 2026-11-09)
+
+- **Change**: the owner asked for the coach's client pages (iPad screenshots of Training and Calendar) to be easier to operate, in a glass HUD style with no yellow. Coach console only.
+- **Shell**: the client page (`CoachClientDetail`) sits on a near-black backdrop with a faint blue glow and grid (`JARVIS_BACKDROP`). Every `DarkPanel` inside it renders as glass through `CoachGlass` (darkUI.jsx). This also removes the light strip down the right of every card. Sidebar and mobile buttons are glass, the selected tab glows blue, and the avatar has a blue ring.
+- **Training**:
+  - A header shows the current phase and week, with Edit program (scrolls to the program) and New phase.
+  - "Needs you" (`needsYou.js`, built only from the client's own logs and the existing plateau check) shows one tap each: Review sessions with notes (filters history to Notes), Swap exercise on a plateau (goes to the program), and Message when nothing was logged in 7 days.
+  - Session History filters: All / Workouts / Cardio / PRs / Notes.
+  - The weekly focus gets "Send to client", which sends it as a normal chat message.
+  - PR pills are blue, not green.
+- **Calendar**:
+  - Days are glass tiles, with today glowing.
+  - Workouts are chips: solid glowing blue when done, outlined when planned. A day's habits are one line of dots (white = done) with "N habits", and nutrition is one kcal line.
+  - Filters: All / Workouts / Habits / Nutrition.
+  - Glass Today, Add (opens today), previous/next and delete buttons.
+  - Bulk delete still lists every item, so habits can be picked one by one. Drag to move is unchanged.
+- **Tests**: `src/coach/coachJarvis208.test.jsx` renders the real `CoachClientDetail` with `db` in AppContext's shape (grouped by client). It checks the glass panels, Needs you → Review filtering history, the Cardio filter, Send to client sending one message, and the calendar's done/planned chips, habit dots and filters. It also checks the helpers on hand-built data. The 3 component tests fail without the change.
+- **Browser check**: checked in Chromium at 1180 px (iPad) and 390 px (phone) on both tabs, with no page errors. Review was tapped in the browser too.
+- **Not caused by this change**: 4 Train Solo tests (`currentProgram.test.js`, `oneProgramAtATime.test.jsx`) fail on main today, before this change too. They depend on the date, and Train Solo was not touched (owner: coach only).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

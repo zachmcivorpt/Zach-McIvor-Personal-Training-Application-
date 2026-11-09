@@ -11,6 +11,55 @@
 // exact — the same component, not a close re-creation of it.
 import { CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, MEASURE_BLUE, GOAL_GREEN, OVER_RED } from "../theme";
 import { ChevronRight, ArrowUpRight } from "lucide-react";
+import { createContext, useContext } from "react";
+
+// Jarvis mode (#208, owner 2026-11-09): the coach's client pages are a
+// glass HUD — translucent panels with a hairline border and blur over a
+// dark backdrop with a faint blue glow and grid. Coach-only. A DarkPanel
+// inside <CoachGlass> renders as glass; everywhere else it is unchanged.
+const CoachGlassContext = createContext(false);
+export function CoachGlass({ children }) {
+  return <CoachGlassContext.Provider value={true}>{children}</CoachGlassContext.Provider>;
+}
+export const useCoachGlass = () => useContext(CoachGlassContext);
+
+export const GLASS = {
+  background: "rgba(255,255,255,0.045)",
+  border: "1px solid rgba(255,255,255,0.09)",
+  backdropFilter: "blur(18px)",
+  WebkitBackdropFilter: "blur(18px)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+};
+export const GLASS_BLUE = {
+  background: "rgba(47,143,255,0.18)",
+  border: "1px solid rgba(47,143,255,0.55)",
+  backdropFilter: "blur(18px)",
+  WebkitBackdropFilter: "blur(18px)",
+  boxShadow: "0 0 16px rgba(47,143,255,0.28), inset 0 1px 0 rgba(255,255,255,0.12)",
+};
+
+// The page behind the glass: near-black, a soft blue glow top-right and
+// bottom-left, and a faint 40px grid.
+export const JARVIS_BACKDROP = {
+  backgroundColor: "#06070A",
+  backgroundImage:
+    "radial-gradient(60% 40% at 80% 0%, rgba(47,143,255,0.14), transparent 70%), radial-gradient(50% 35% at 0% 100%, rgba(47,143,255,0.08), transparent 70%), linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px)",
+  backgroundSize: "100% 100%, 100% 100%, 40px 40px, 40px 40px",
+};
+
+// Glass button: tone "blue" for the main action, otherwise clear glass.
+export function GlassButton({ tone, className = "", style, children, ...rest }) {
+  return (
+    <button
+      type="button"
+      {...rest}
+      className={`inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-xl text-white text-xs font-bold tracking-[0.04em] whitespace-nowrap active:scale-[0.97] transition-transform disabled:opacity-40 ${className}`}
+      style={{ ...(tone === "blue" ? GLASS_BLUE : GLASS), ...style }}
+    >
+      {children}
+    </button>
+  );
+}
 
 // Full-page dark background. CoachShell's shared content wrapper pads every
 // tab with pt-14/pb-16 on mobile (room for the fixed top/bottom bars) over
@@ -71,6 +120,14 @@ export function MountainTexture({ mono = false }) {
 // beam=false drops the chamfer tile's diagonal light beam; glow=false the
 // plain panel's top-right corner glow.
 export function DarkPanel({ children, className = "", chamfer = false, style, beam = true, glow = true }) {
+  const glass = useCoachGlass();
+  if (glass) {
+    return (
+      <div className={`relative overflow-hidden rounded-2xl ${className}`} style={{ ...GLASS, ...style }} data-glass="true">
+        {children}
+      </div>
+    );
+  }
   return (
     <div
       className={`relative overflow-hidden border ${chamfer ? "" : "rounded-2xl"} ${className}`}
