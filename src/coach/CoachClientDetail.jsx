@@ -1811,7 +1811,7 @@ function CalendarPanel({ client, showToast }) {
                 <button
                   onClick={selectDateRange}
                   disabled={!rangeStart || !rangeEnd}
-                  className="bg-white text-black text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 active:scale-[0.98] transition-all disabled:opacity-25 disabled:active:scale-100"
+                  style={GLASS_BLUE} className="text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 active:scale-[0.98] transition-all disabled:opacity-25 disabled:active:scale-100"
                 >
                   Select range
                 </button>
@@ -2673,7 +2673,7 @@ function TrainingProgramPanel({ client, showToast, onMessage }) {
             <p className="text-white font-semibold text-sm">Training Program</p>
             <button
               onClick={() => setNewPhaseOpen(true)}
-              className="flex items-center gap-1 bg-white text-black text-xs font-bold px-2.5 py-1.5 rounded-lg transition-opacity hover:opacity-90"
+              style={GLASS_BLUE} className="flex items-center gap-1 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg transition-opacity hover:opacity-90"
             >
               <Plus size={13} /> ADD
             </button>
@@ -2706,7 +2706,7 @@ function TrainingProgramPanel({ client, showToast, onMessage }) {
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
             <ClipboardList size={28} className="text-white mb-3" />
             <p className="text-white text-sm">No phase selected yet.</p>
-            <button onClick={() => setNewPhaseOpen(true)} className="mt-4 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-opacity hover:opacity-90">
+            <button onClick={() => setNewPhaseOpen(true)} style={GLASS_BLUE} className="mt-4 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-opacity hover:opacity-90">
               + Add a phase
             </button>
           </div>
@@ -3275,7 +3275,7 @@ function CheckInsPanel({ client, showToast }) {
           </div>
           <button
             onClick={() => setScheduleOpen(true)}
-            className="flex items-center gap-1.5 bg-white hover:opacity-90 text-black text-xs font-bold px-3.5 py-2 rounded-xl active:scale-[0.98] transition-all"
+            style={GLASS_BLUE} className="flex items-center gap-1.5 text-white text-xs font-bold px-3.5 py-2 rounded-xl active:scale-[0.98] transition-all"
           >
             <Plus size={13} /> Schedule
           </button>
@@ -3534,7 +3534,7 @@ function ClientFoodPreferencesCard({ client, showToast }) {
           />
         </div>
       </div>
-      <button onClick={save} disabled={saving} className="relative w-full sm:w-auto sm:px-8 bg-white text-black text-xs font-bold py-2.5 rounded-xl disabled:opacity-50">
+      <button onClick={save} disabled={saving} style={GLASS_BLUE} className="relative w-full sm:w-auto sm:px-8 text-white text-xs font-bold py-2.5 rounded-xl disabled:opacity-50">
         {saving ? "SAVING…" : "SAVE NUTRITION INFO"}
       </button>
     </DarkPanel>
@@ -4255,7 +4255,7 @@ function NutritionPanel({ client, showToast }) {
               : "This client has no meal guide yet — build one from your Meal Library."}
           </p>
           <div className="relative flex gap-2">
-            <PrimaryButton dark className={mealPlan ? "flex-1" : "w-full"} onClick={() => setMealPlanOpen(true)}>
+            <PrimaryButton dark className={`${mealPlan ? "flex-1" : "w-full"} !text-white`} style={GLASS_BLUE} onClick={() => setMealPlanOpen(true)}>
               {mealPlan ? "EDIT MEAL GUIDE" : "BUILD MEAL GUIDE"}
             </PrimaryButton>
             {mealPlan && (
@@ -5788,7 +5788,7 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
         <button
           onClick={save}
           disabled={saving || !dirty}
-          className="w-full bg-white text-black text-[12px] font-bold py-2.5 rounded-xl transition-all active:scale-[0.98] disabled:bg-white/[0.06] disabled:text-white disabled:active:scale-100"
+          style={GLASS_BLUE} className="w-full text-white text-[12px] font-bold py-2.5 rounded-xl transition-all active:scale-[0.98] disabled:text-white disabled:opacity-40 disabled:active:scale-100"
         >
           {saving ? "Saving…" : dirty ? "Save changes" : "All changes saved"}
         </button>
@@ -5860,7 +5860,7 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
                 className="w-full bg-transparent outline-none text-white text-sm placeholder:text-white resize-none"
               />
             </UnderlineField>
-            <button type="submit" className="mt-2.5 text-xs font-semibold bg-white text-black px-3.5 py-1.5 rounded-lg disabled:opacity-40" disabled={!noteInput.trim()}>
+            <button type="submit" style={GLASS_BLUE} className="mt-2.5 text-xs font-semibold text-white px-3.5 py-1.5 rounded-lg disabled:opacity-40" disabled={!noteInput.trim()}>
               Add note
             </button>
           </form>
@@ -6079,7 +6079,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
           ) : (
             <button
               onClick={() => setSendOpen(true)}
-              className="w-full mt-3 flex items-center justify-center gap-2 bg-white text-black text-sm font-bold py-2.5 rounded-xl"
+              style={GLASS_BLUE} className="w-full mt-3 flex items-center justify-center gap-2 text-white text-sm font-bold py-2.5 rounded-xl"
             >
               <Send size={15} /> Send Login Details
             </button>
@@ -6214,7 +6214,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
           ) : (
             <button
               onClick={() => setSendOpen(true)}
-              className="flex items-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-2 rounded-lg shrink-0"
+              style={GLASS_BLUE} className="flex items-center gap-1.5 text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0"
             >
               <Send size={13} /> Send
             </button>
