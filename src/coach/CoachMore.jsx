@@ -58,7 +58,7 @@ export function PushNotificationsCard({ userId, notificationPrefs, updateUser, s
   const [enabled, setEnabled] = useState(() => !!localStorage.getItem(`pushToken_${userId}`));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const prefs = { messages: true, checkins: true, ...notificationPrefs };
+  const prefs = { messages: true, checkins: true, workouts: true, progressPhotos: true, weighIns: true, ...notificationPrefs };
 
   async function toggle() {
     setError("");
@@ -135,6 +135,9 @@ export function PushNotificationsCard({ userId, notificationPrefs, updateUser, s
         <div className="mt-3.5 pt-3.5 border-t space-y-2.5" style={{ borderColor: CLIENT_DARK_BORDER }}>
           <NotifPrefRow label="New messages" on={prefs.messages} onToggle={() => togglePref("messages")} />
           <NotifPrefRow label="Check-in submissions" on={prefs.checkins} onToggle={() => togglePref("checkins")} />
+          <NotifPrefRow label="Completed workouts" on={prefs.workouts} onToggle={() => togglePref("workouts")} />
+          <NotifPrefRow label="Progress photos" on={prefs.progressPhotos} onToggle={() => togglePref("progressPhotos")} />
+          <NotifPrefRow label="Weigh-ins" on={prefs.weighIns} onToggle={() => togglePref("weighIns")} />
         </div>
       )}
       {error && (

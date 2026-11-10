@@ -545,7 +545,9 @@ any Train Solo work from now on:
   "It's yours"; 15 s cap → "Payment received… no need to pay again";
   `?checkout=cancelled` → "You haven't been charged". A bought program is
   the member's for good, whatever their plan (purchases win over All Access
-  enrolments, never locked). Never the website's price inside the iPhone
+  enrolments, never locked). Only a FULL refund marks it refunded
+  (`chargeFullyRefunded`, #214): Stripe sends `charge.refunded` for partial
+  refunds too. Never the website's price inside the iPhone
   app (3.1.1).
 - **Single programs in the iPhone app** (#191): an App Store
   non-consumable per program, product id `apex_solo_program_<programId>`
@@ -729,6 +731,10 @@ any Train Solo work from now on:
 - **Chooser** (#208): `LitLogo crisp` (glow from blurred copies, no reflection) and frosted-glass buttons (`GLASS`/`GLASS_STRONG`). Logo PNGs must have no faint near-transparent pixels (they show as a box).
 - **Clean mark** (#209, #210): no radial halo and no CSS blur on the mark. The login area draws it as a vector, `ApexMarkSvg` (LoginHero.jsx), with a tight SVG glow (owner's pick, mock-up B); never a stretched PNG there. Log-in screens use `LitLogo crisp`. The login background is 103% tall, top-pinned and clipped so an upload's bottom edge never shows.
 - **Styling only**: buttons and fields are unchanged. The coach's login background still shows when one is set.
+
+## Coach activity notifications (#215)
+
+- Workout / progress photo / weigh-in pushes to the coach come from server triggers (`functions/coachActivityNotify.js`), never from client-app code; switches are `notificationPrefs.workouts` / `progressPhotos` / `weighIns`. No RPE in them.
 
 ## Bottom sheets and the keyboard (#138)
 

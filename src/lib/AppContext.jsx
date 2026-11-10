@@ -1857,7 +1857,9 @@ export function AppProvider({ children }) {
       // client's history from another platform. Today (or none) keeps the
       // real current time; a past date is stamped at midday local time so
       // it can never drift onto the neighbouring day in any timezone view.
-      async logWeight(clientId, weight, dateKey) {
+      // `by: "coach"` (coach console only) marks a weigh-in the coach typed
+      // in, so it never sends the coach a "logged a weigh-in" push (#215).
+      async logWeight(clientId, weight, dateKey, { by } = {}) {
         const id = newDocId("weighIns");
         let date = Date.now();
         if (dateKey && dateKey !== localDateKey()) {
@@ -1865,7 +1867,7 @@ export function AppProvider({ children }) {
           date = new Date(y, m - 1, d, 12, 0, 0).getTime();
         }
         try {
-          await setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date });
+          await setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date, ...(by === "coach" ? { loggedBy: "coach" } : {}) });
         } catch (err) {
           logClientError(clientId, "Log weigh-in", err.message || "unknown error");
           throw new Error("Couldn't save your weigh-in — " + (err.message || "check your connection and try again."));

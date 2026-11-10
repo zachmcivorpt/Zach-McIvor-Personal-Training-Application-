@@ -1283,7 +1283,9 @@ exports.soloStripeWebhook = onRequest(async (req, res) => {
     } else if (event.type === "charge.refunded") {
       const charge = event.data.object;
       const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : null;
-      if (paymentIntentId) {
+      // Partial refunds send this event too; only a full refund takes the
+      // program away (#214).
+      if (paymentIntentId && solo.chargeFullyRefunded(charge)) {
         const snap = await db.collection("soloPurchases").where("stripePaymentIntentId", "==", paymentIntentId).limit(1).get();
         if (!snap.empty) {
           await snap.docs[0].ref.update({ refunded: true, refundedAt: Date.now() });
@@ -1487,6 +1489,23 @@ exports.soloFreeSessionLimit = onDocumentCreated("soloCustomSessions/{id}", asyn
     console.error("soloFreeSessionLimit failed", event.params?.id, err.message);
   }
 });
+
+// Coach push notifications for coached clients' activity (#215,
+// functions/coachActivityNotify.js). Each has its own switch in the coach
+// console; best-effort, never retried.
+const { notifyCoachOfActivity } = require("./coachActivityNotify");
+const coachActivityTrigger = (path, kind) =>
+  onDocumentCreated(path, async (event) => {
+    if (!event.data) return;
+    try {
+      await notifyCoachOfActivity(db, notifyUser, kind, event.data.data());
+    } catch (err) {
+      console.error(`coach ${kind} notification failed`, event.params?.id, err.message);
+    }
+  });
+exports.notifyCoachWorkoutLogged = coachActivityTrigger("workoutLogs/{id}", "workout");
+exports.notifyCoachProgressPhoto = coachActivityTrigger("progressPhotos/{id}", "photo");
+exports.notifyCoachWeighIn = coachActivityTrigger("weighIns/{id}", "weighIn");
 
 // Coach console → Train Solo → Subscriptions: add or remove a test account
 // (by its Train Solo email) that sees the tiers before launch.
