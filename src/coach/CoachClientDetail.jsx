@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
@@ -6057,9 +6058,13 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
   const client = db.users.find((u) => u.id === clientId);
   if (!client) return null;
 
-  return (
+  // Drawn on document.body (#217): inside the console's scrolling area
+  // (-webkit-overflow-scrolling, its own layer on iPhone) this full-screen
+  // page sat UNDER the console's top and bottom bars — the client's name row
+  // hidden behind the logo bar and the console tab bar floating over it.
+  return createPortal(
     <CoachGlass>
-    <div className="fixed inset-0 z-[80] flex flex-col md:flex-row" style={JARVIS_BACKDROP} data-testid="coach-client-jarvis">
+    <div className="fixed inset-0 z-[80] flex flex-col md:flex-row pt-safe" style={JARVIS_BACKDROP} data-testid="coach-client-jarvis">
       {/* client mini-sidebar (desktop) — glass over the Jarvis backdrop (#208) */}
       <div className="hidden md:flex w-64 shrink-0 h-full flex-col border-r" style={{ backgroundColor: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
         <div className="p-5 border-b" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
@@ -6289,7 +6294,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
       </div>
 
       {/* main panel */}
-      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto pb-safe">
         <LiveSessionBanner live={db.liveSessions[client.id]} exercises={db.exercises} />
         {clientTab === "summary" && (
           <SummaryPanel client={client} showToast={showToast} onSendLogin={() => setSendOpen(true)} onClose={onClose} />
@@ -6348,6 +6353,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
         </div>
       </BottomSheet>
     </div>
-    </CoachGlass>
+    </CoachGlass>,
+    document.body
   );
 }

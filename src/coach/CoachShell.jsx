@@ -87,6 +87,10 @@ function NotificationsPanel({ open, onClose, notifications, onMarkRead, onMarkAl
   );
 }
 
+// The tab bar sits low (#217, owner: "flush on the bottom"): the icons use
+// some of the home-indicator margin instead of floating above all of it.
+const TAB_BAR_BOTTOM = "max(calc(env(safe-area-inset-bottom) - 14px), 4px)";
+
 export default function CoachShell() {
   const { currentUser, logout, db, markNotificationRead, markAllNotificationsRead } = useApp();
   const navigate = useNavigate();
@@ -290,7 +294,7 @@ export default function CoachShell() {
           instead of growing the (now non-scrolling) root to fit it. */}
       <div
         ref={mainRef}
-        className="flex-1 min-w-0 pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(4rem+env(safe-area-inset-bottom))] md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+        className="flex-1 min-w-0 pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
       >
         {/* Centred on very wide screens (#190); keyed so each tab fades in. */}
         <div key={tab} className="coach-tab-in mx-auto w-full max-w-[1440px]">
@@ -325,7 +329,7 @@ export default function CoachShell() {
       {/* Hidden while typing (keyboard up), so it never sits between a
           message box and the keyboard (#127). */}
       <div className={`dark-chrome md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center ${typing ? "hidden" : ""}`} style={{ transform: "translateZ(0)" }}>
-        <div className="w-full bg-[#0A0A0C]/97 backdrop-blur flex px-1 pb-safe border-t border-white/[0.06]">
+        <div className="w-full bg-[#0A0A0C]/97 backdrop-blur flex px-1 border-t border-white/[0.06]" style={{ paddingBottom: TAB_BAR_BOTTOM }} data-testid="coach-tab-bar">
           {MAIN_MENU.map((item) => {
             const Icon = item.icon;
             const active = tab === item.id;

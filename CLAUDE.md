@@ -720,6 +720,7 @@ any Train Solo work from now on:
 
 - **Every client tab** (#209) follows this: action buttons are `GLASS_BLUE`, selected toggles white.
 - **Whole coach console** (#212): `CoachShell` provides `CoachGlass` + `CardSurfaceContext`=`GLASS` over `JARVIS_BACKDROP`, so every page is glass. It is more black than blue: blue is a border or glow accent, never a fill. New coach pages use `DarkPage`/`DarkPanel` and get this for free.
+- **Client page is portalled** (#217): `CoachClientDetail` renders into `document.body` (createPortal) so it covers the console's bars on iPhone; full-screen coach overlays must do the same. The console tab bar's bottom inset is `TAB_BAR_BOTTOM`.
 - **Glass shell**: the client page (`CoachClientDetail`) is a glass HUD. It uses the `JARVIS_BACKDROP` page, and `CoachGlass` makes every `DarkPanel` inside it glass. Use `GlassButton` / `GLASS` / `GLASS_BLUE` (darkUI.jsx) for its buttons, never solid white or solid blue blocks. No yellow or orange, and no colour emoji: lucide line icons only.
 - **One-tap actions**: the Training tab's "Needs you" comes only from `needsYouItems` (`src/coach/needsYou.js`, the client's own logs plus `computePlateaus`), with one action each. Add new items there.
 - **Library > Programs** (#213): it opens on program cards (`ProgramCardsGrid`), black glass with a glassy white `ApexMarkSvg` and no photos, with level filters and search. A card opens the program detail full width, with "All programs" to go back. Never go back to the cramped list + detail frame.
