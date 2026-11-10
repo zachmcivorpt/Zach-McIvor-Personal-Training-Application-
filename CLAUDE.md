@@ -789,6 +789,8 @@ any Train Solo work from now on:
   new movements to `MOVEMENT_RULES` (most specific first) and re-run the
   library check in `exerciseMuscles.test.js`; never free-text muscle names
   in code.
+  Audited exercise by exercise (#217): flies have no triceps, rear-delt work
+  before chest flies, never match on "grip" alone.
 
 ## Data listeners (`src/lib/AppContext.jsx`)
 

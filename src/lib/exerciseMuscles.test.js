@@ -22,12 +22,12 @@ describe("every library exercise has specific muscles", () => {
 
   it.each([
     ["Back Squat", "Legs", ["Quads", "Glutes"], ["Hamstrings"]],
-    ["Cyclist Squat", "Legs", ["Quads", "Glutes"], ["Hamstrings"]],
+    ["Cyclist Squat", "Legs", ["Quads"], ["Glutes"]], // #217
     ["Bicycle Crunch", "Core", ["Abs"], ["Obliques"]],
     ["Low Row Machine", "Back", ["Lats", "Upper Back"], ["Biceps", "Shoulders"]],
     ["Rowing Machine", "Cardio", ["Lats", "Quads"], ["Hamstrings", "Biceps", "Abs"]],
     ["Walking Lunge", "Legs", ["Quads", "Glutes"], ["Hamstrings"]],
-    ["Farmer's Walk", "Full Body", ["Forearms"], ["Upper Back", "Abs"]],
+    ["Farmer's Walk", "Full Body", ["Forearms", "Upper Back"], ["Abs"]], // #217
     ["Incline Dumbbell Press", "Chest", ["Chest"], ["Triceps", "Shoulders"]],
     ["Seated Dumbbell Press", "Shoulders", ["Shoulders"], ["Triceps", "Upper Back"]],
     ["Tate Press", "Triceps", ["Triceps"], ["Chest"]],
