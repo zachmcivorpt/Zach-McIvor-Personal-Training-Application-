@@ -107,6 +107,9 @@ import { parseVideoUrl } from "../lib/video";
 import { matchesSearch } from "../lib/search";
 import { needsYouItems, filterSessionLogs } from "./needsYou";
 
+// Train Solo's muscle map card, shown as-is on the client's Progress tab (#216); loaded only there.
+const MuscleMapCard = React.lazy(() => import("../solo/SoloMuscleMap").then((m) => ({ default: m.SoloMuscleMapCard })));
+
 // The first exercise in the day that has a YouTube video gives us a real
 // thumbnail to fall back to (vimeo/file videos have no static thumbnail
 // without an extra fetch, so those still fall back to the plain icon).
@@ -4983,6 +4986,10 @@ export function ProgressPanel({ client, showToast }) {
 
   return (
     <div className="max-w-3xl px-4 py-5 md:px-6 md:py-6 space-y-5">
+      <React.Suspense fallback={null}>
+        <MuscleMapCard logs={logs} exercisesById={exercisesById} dark />
+      </React.Suspense>
+
       <PersonalBestsCard dark personalBests={personalBests} />
 
       <ConsistencyHeatmap dark logs={logs} scheduledWorkouts={scheduledWorkouts} />

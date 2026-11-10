@@ -160,6 +160,8 @@ import { ShoppingListSheet } from "../components/ShoppingListSheet";
 // (and the coach exercise screens it pulls in) loads when first opened,
 // not with every client's app start (#126).
 const WorkoutEditor = React.lazy(() => import("../coach/WorkoutEditor"));
+// Train Solo's muscle map card, shown as-is on Progress (#216); loaded only there.
+const MuscleMapCard = React.lazy(() => import("../solo/SoloMuscleMap").then((m) => ({ default: m.SoloMuscleMapCard })));
 import { NutritionTargetsCard } from "../coach/NutritionTargetsCard";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
 import { AddFoodPage } from "./AddFoodPage";
@@ -6968,6 +6970,10 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
             ))}
           </div>
         </div>
+
+        <React.Suspense fallback={null}>
+          <MuscleMapCard logs={logsForClient} exercisesById={exercisesById} dark={dark} />
+        </React.Suspense>
 
         <Card dark={dark}>
           <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Strength Personal Bests</p>

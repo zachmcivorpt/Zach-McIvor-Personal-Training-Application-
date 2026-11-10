@@ -206,6 +206,7 @@ rather than inventing new colors per screen:
 - **Estimated Max chart** removed from Progress (#202, owner).
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
+- The muscle map card is also on the coached client's Progress and the coach's client Progress tab (#216), lazy-loaded, unchanged.
 
 ## APEX Nutrition (coached client app)
 
