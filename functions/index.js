@@ -1283,7 +1283,9 @@ exports.soloStripeWebhook = onRequest(async (req, res) => {
     } else if (event.type === "charge.refunded") {
       const charge = event.data.object;
       const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : null;
-      if (paymentIntentId) {
+      // Partial refunds send this event too; only a full refund takes the
+      // program away (#214).
+      if (paymentIntentId && solo.chargeFullyRefunded(charge)) {
         const snap = await db.collection("soloPurchases").where("stripePaymentIntentId", "==", paymentIntentId).limit(1).get();
         if (!snap.empty) {
           await snap.docs[0].ref.update({ refunded: true, refundedAt: Date.now() });

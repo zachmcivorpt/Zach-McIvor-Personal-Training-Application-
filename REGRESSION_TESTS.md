@@ -3378,6 +3378,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Width**: the page is now full width.
 - **Tests**: `src/coach/programCards213.test.jsx` checks cards and figures, the level filter and search, and card → detail → Back. All 3 fail without the change. `CoachProgramsPhases.test.jsx` still passes.
 - **Browser check**: in Chromium at 1180×820 and 820×1180, the cards were shown and one was tapped to its detail, with no page errors.
+### 214. Weekly QA audit — a partial Stripe refund took a bought Train Solo program away (2026-11-08)
+
+- **Problem**: found in the 2026-11-08 weekly audit. `soloStripeWebhook` marked the `soloPurchases` doc `refunded: true` on every `charge.refunded` event, but Stripe sends that event for partial refunds too. A partial refund (goodwill, a price adjustment) locked the program the member still paid for.
+- **Fix**: `chargeFullyRefunded(charge)` (`functions/soloSubscriptions.js`): only a charge refunded in full (`refunded: true`, or `amount_refunded >= amount`) marks the purchase refunded. Refunding the rest later sends `charge.refunded` again with `refunded: true`, which still locks it.
+- **Tests**: `functions/soloSubscriptions.test.js` "program refunds: only a full refund takes the program away (#214)" (2): partial vs full refund, and the webhook checks it before writing. Both fail on the old code. Full suite passed; build clean.
 
 ## What still requires manual testing
 
