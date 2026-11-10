@@ -9,7 +9,7 @@ describe("muscles by movement", () => {
   it.each([
     ["Barbell Bench Press", ["chest"], ["triceps", "shoulders"]],
     ["Push-Up", ["chest"], ["triceps", "shoulders"]],
-    ["Incline Dumbbell Fly", ["chest"], ["triceps", "shoulders"]],
+    ["Incline Dumbbell Fly", ["chest"], ["shoulders"]], // #217: no elbow extension in a fly
     ["Overhead Press", ["shoulders"], ["triceps", "traps"]],
     ["Lateral Raise", ["shoulders"], ["traps"]],
     ["Face Pull", ["shoulders", "traps"], []],
@@ -33,7 +33,7 @@ describe("muscles by movement", () => {
     ["Plank", ["abs"], ["obliques"]],
     ["Russian Twist", ["obliques"], ["abs"]],
     ["Barbell Shrug", ["traps"], ["forearms"]],
-    ["Fat-Grip Farmer's Carry", ["forearms"], ["traps", "abs"]],
+    ["Fat-Grip Farmer's Carry", ["forearms", "traps"], ["abs"]], // #217
     ["Back Extension", ["lowerBack"], ["glutes", "hamstrings"]],
   ])("%s", (name, primary, secondary) => {
     expect(m(name)).toEqual({ primary, secondary });

@@ -3394,6 +3394,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change**: Train Solo's muscle map card (`SoloMuscleMapCard`, unchanged) now also shows on the coached client's Progress (above Strength Personal Bests) and on the coach's client Progress tab (top), from that client's own `workoutLogs`. Loaded with `React.lazy` only on those screens; Train Solo untouched.
 - **Tests**: `src/coach/muscleMap216.test.jsx` (2), both fail on the old code: the coach tab renders the real panel with grouped-by-client data and shows only that client's trained muscles; the client app loads it lazily. Opened the coach tab in Chromium at 390 and 1180 wide: Chest 3, Quads 2, Glutes 2, Shoulders/Triceps 1.5, Hamstrings 1 (hand-checked), no errors, no sideways scroll. Full suite passed; build clean.
 
+### 217. Exercise library muscle audit, all 610 exercises (owner, 2026-11-10)
+
+- **Problem**: a full review of every library exercise's primary / secondary muscles (as `exerciseMuscleKeys` assigns them) found 79 wrong: rear-delt flies and Reverse Pec Deck tagged Chest; flies with Triceps; "grip" in a name made Wide/Close-Grip Curls and the Parallel Grip Press forearm exercises; glute kickbacks tagged Triceps and a triceps kickback tagged Glutes; Handstand Push-Up tagged Chest; Knee-to-Chest Stretch tagged Chest; Suitcase Carry, pullovers, straight-arm pulldowns, carries, wrist work, Atlas Stone, Reverse Sled Drag, Pool Jogging, hip-flexor stretches and others.
+- **Fix**: targeted `MOVEMENT_RULES` changes in `src/lib/exerciseMuscles.js` only (no IDs, names or descriptions touched). Stored exercises are corrected by the existing pass when the coach console opens (`muscleCorrections`); coach "manual" edits are kept.
+- **Tests**: `src/lib/exerciseMuscles217.test.js` (23): 22 corrected exercises fail on the old rules; every exercise keeps a primary muscle. Four old assertions that encoded the errors were updated. Full suite passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
