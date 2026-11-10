@@ -1490,6 +1490,23 @@ exports.soloFreeSessionLimit = onDocumentCreated("soloCustomSessions/{id}", asyn
   }
 });
 
+// Coach push notifications for coached clients' activity (#215,
+// functions/coachActivityNotify.js). Each has its own switch in the coach
+// console; best-effort, never retried.
+const { notifyCoachOfActivity } = require("./coachActivityNotify");
+const coachActivityTrigger = (path, kind) =>
+  onDocumentCreated(path, async (event) => {
+    if (!event.data) return;
+    try {
+      await notifyCoachOfActivity(db, notifyUser, kind, event.data.data());
+    } catch (err) {
+      console.error(`coach ${kind} notification failed`, event.params?.id, err.message);
+    }
+  });
+exports.notifyCoachWorkoutLogged = coachActivityTrigger("workoutLogs/{id}", "workout");
+exports.notifyCoachProgressPhoto = coachActivityTrigger("progressPhotos/{id}", "photo");
+exports.notifyCoachWeighIn = coachActivityTrigger("weighIns/{id}", "weighIn");
+
 // Coach console → Train Solo → Subscriptions: add or remove a test account
 // (by its Train Solo email) that sees the tiers before launch.
 exports.setSoloTestAccount = onCall(async (request) => {

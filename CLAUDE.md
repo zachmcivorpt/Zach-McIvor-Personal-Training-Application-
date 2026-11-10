@@ -732,6 +732,10 @@ any Train Solo work from now on:
 - **Clean mark** (#209, #210): no radial halo and no CSS blur on the mark. The login area draws it as a vector, `ApexMarkSvg` (LoginHero.jsx), with a tight SVG glow (owner's pick, mock-up B); never a stretched PNG there. Log-in screens use `LitLogo crisp`. The login background is 103% tall, top-pinned and clipped so an upload's bottom edge never shows.
 - **Styling only**: buttons and fields are unchanged. The coach's login background still shows when one is set.
 
+## Coach activity notifications (#215)
+
+- Workout / progress photo / weigh-in pushes to the coach come from server triggers (`functions/coachActivityNotify.js`), never from client-app code; switches are `notificationPrefs.workouts` / `progressPhotos` / `weighIns`. No RPE in them.
+
 ## Bottom sheets and the keyboard (#138)
 
 - `BottomSheet` continues its own surface (and backdrop) below the visible

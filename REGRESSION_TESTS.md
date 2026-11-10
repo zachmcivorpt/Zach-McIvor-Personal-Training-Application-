@@ -3384,6 +3384,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `chargeFullyRefunded(charge)` (`functions/soloSubscriptions.js`): only a charge refunded in full (`refunded: true`, or `amount_refunded >= amount`) marks the purchase refunded. Refunding the rest later sends `charge.refunded` again with `refunded: true`, which still locks it.
 - **Tests**: `functions/soloSubscriptions.test.js` "program refunds: only a full refund takes the program away (#214)" (2): partial vs full refund, and the webhook checks it before writing. Both fail on the old code. Full suite passed; build clean.
 
+### 215. Coach push notifications: completed workouts, progress photos, weigh-ins (owner, 2026-11-10)
+
+- **Change**: the coach gets a push when a coached client finishes a workout ("Jarrod completed Pull Day" · "3 new personal bests."; no RPE), adds progress photos (one per set: quiet for 15 min after the first) or logs a weigh-in ("82.5 kg"). Server triggers on created `workoutLogs` / `progressPhotos` / `weighIns` (`functions/coachActivityNotify.js`), so the client app and Train Solo are unchanged and an offline workout notifies once it syncs. Coach-typed (`loggedBy: "coach"`) and backdated (> 36 h) weigh-ins don't notify. Three switches in More → Push Notifications, on by default.
+- **Tests**: `functions/coachActivityNotify.test.js` (7) and `src/coach/coachActivityToggles215.test.jsx` (2); 3 fail on the old code (switches, coach marker, trigger wiring). Full suite passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

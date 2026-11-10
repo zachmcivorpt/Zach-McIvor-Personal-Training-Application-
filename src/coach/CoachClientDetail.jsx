@@ -5082,7 +5082,7 @@ export function ProgressPanel({ client, showToast }) {
           entries={weighIns.map((w) => ({ id: w.id, date: w.date, value: w.weight }))}
           onClose={() => setWeightHistoryOpen(false)}
           onLog={(v, dateKey) =>
-            logWeight(client.id, v, dateKey)
+            logWeight(client.id, v, dateKey, { by: "coach" })
               .then(() => showToast?.("Weigh-in saved"))
               .catch((err) => showToast?.(err.message || "Couldn't save — check your connection and try again"))
           }
