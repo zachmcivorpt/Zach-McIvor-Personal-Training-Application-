@@ -3389,6 +3389,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change**: the coach gets a push when a coached client finishes a workout ("Jarrod completed Pull Day" · "3 new personal bests."; no RPE), adds progress photos (one per set: quiet for 15 min after the first) or logs a weigh-in ("82.5 kg"). Server triggers on created `workoutLogs` / `progressPhotos` / `weighIns` (`functions/coachActivityNotify.js`), so the client app and Train Solo are unchanged and an offline workout notifies once it syncs. Coach-typed (`loggedBy: "coach"`) and backdated (> 36 h) weigh-ins don't notify. Three switches in More → Push Notifications, on by default.
 - **Tests**: `functions/coachActivityNotify.test.js` (7) and `src/coach/coachActivityToggles215.test.jsx` (2); 3 fail on the old code (switches, coach marker, trigger wiring). Full suite passed; build clean.
 
+### 216. Muscle map on the coaching side (owner, 2026-11-10)
+
+- **Change**: Train Solo's muscle map card (`SoloMuscleMapCard`, unchanged) now also shows on the coached client's Progress (above Strength Personal Bests) and on the coach's client Progress tab (top), from that client's own `workoutLogs`. Loaded with `React.lazy` only on those screens; Train Solo untouched.
+- **Tests**: `src/coach/muscleMap216.test.jsx` (2), both fail on the old code: the coach tab renders the real panel with grouped-by-client data and shows only that client's trained muscles; the client app loads it lazily. Opened the coach tab in Chromium at 390 and 1180 wide: Chest 3, Quads 2, Glutes 2, Shoulders/Triceps 1.5, Hamstrings 1 (hand-checked), no errors, no sideways scroll. Full suite passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
