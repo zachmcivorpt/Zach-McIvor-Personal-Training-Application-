@@ -3400,6 +3400,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: targeted `MOVEMENT_RULES` changes in `src/lib/exerciseMuscles.js` only (no IDs, names or descriptions touched). Stored exercises are corrected by the existing pass when the coach console opens (`muscleCorrections`); coach "manual" edits are kept.
 - **Tests**: `src/lib/exerciseMuscles217.test.js` (23): 22 corrected exercises fail on the old rules; every exercise keeps a primary muscle. Four old assertions that encoded the errors were updated. Full suite passed; build clean.
 
+### 217. Coach console: client page sat under the console's top and bottom bars on iPhone (owner, 2026-11-10)
+
+- **Problem**: on the coach's client page (iPhone app) the console's logo bar covered the client's name row (a half-hidden button peeked under it), and the console's tab bar floated over the page with the content showing above it. The full-screen client page was mounted inside the console's scrolling area, which on iPhone (-webkit-overflow-scrolling) is its own layer, so its z-80 sat beneath the bars' z-40.
+- **Fix**: `CoachClientDetail` is drawn on `document.body` (createPortal), with `pt-safe` and its scroller `pb-safe`; the console tab bar sits lower (`TAB_BAR_BOTTOM`: the safe area minus 14px, min 4px) and the content's bottom padding matches.
+- **Tests**: `src/coach/coachClientPortal217.test.jsx` (3): the page is a direct child of body, not inside the console; safe-area padding; the tab bar's bottom inset. All 3 fail on the old code. Checked in a browser at 390 wide over stand-in console bars (fully covered, name row shown). Full suite passing; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
