@@ -10,7 +10,7 @@ import { computeApexInsights } from "../lib/apexInsights";
 import { buildRecentActivity } from "../lib/recentActivity";
 import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED } from "../theme";
 import { DarkPage, DarkPanel } from "./darkUI";
-import { GlassMarkSvg } from "../components/LoginHero";
+import { BevelGlassMark, GLASS_HEADING_STYLE } from "../components/LoginHero";
 
 import {
   CalendarPlus,
@@ -729,27 +729,33 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
 
   return (
     <DarkPage padded={false}>
-      {/* Hero (#225, owner): open on the page — no photo, no box — with a
-          see-through glassy APEX mark in the background to the right of the
-          greeting. Every number is a button to the same place its old stat
-          tile went. */}
-      <div className="relative px-5 pt-4 pb-1 sm:px-7 sm:pt-7" data-testid="overview-hero">
-        <div className="absolute pointer-events-none right-3 -top-1 sm:right-10 sm:-top-2" style={{ opacity: 0.32 }} role="img" aria-label="APEX" data-testid="overview-mark">
+      {/* Hero (#225, #226 owner): open on the page — no photo, no box — with
+          a bevelled frosted-glass APEX mark in the background to the right
+          and the greeting + count in matching glass type. Every number is a
+          button to the same place its old stat tile went. */}
+      <div className="relative px-5 pt-4 pb-1 sm:px-7 sm:pt-7 min-h-[150px] sm:min-h-[220px]" data-testid="overview-hero">
+        <div className="absolute pointer-events-none -right-5 -top-4 sm:right-6 sm:-top-14" role="img" aria-label="APEX" data-testid="overview-mark">
           <span className="sm:hidden">
-            <GlassMarkSvg width={118} />
+            <BevelGlassMark size={160} />
           </span>
           <span className="hidden sm:block">
-            <GlassMarkSvg width={190} />
+            <BevelGlassMark size={300} />
           </span>
         </div>
-        <div className="relative pr-24 sm:pr-56">
-          <h1 className="text-white text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] leading-tight truncate">
+        <div className="relative pr-28 sm:pr-[320px]">
+          <h1 className="text-[24px] sm:text-[30px] font-semibold tracking-[-0.02em] leading-tight" style={GLASS_HEADING_STYLE}>
             {timeOfDayGreeting()}, {currentUser?.name?.split(" ")[0] || "Coach"}
           </h1>
           <p className="text-white/70 text-[13.5px] mt-1">Your roster and what needs your attention.</p>
         </div>
         <div className="relative flex items-end gap-4 mt-4">
-          <button type="button" onClick={() => onNavigate("clients")} aria-label={`${active.length} active clients`} className="text-white text-[56px] font-semibold tracking-[-0.05em] leading-[0.9] tabular-nums">
+          <button
+            type="button"
+            onClick={() => onNavigate("clients")}
+            aria-label={`${active.length} active clients`}
+            className="text-[56px] font-semibold tracking-[-0.05em] leading-[0.9] tabular-nums"
+            style={GLASS_HEADING_STYLE}
+          >
             {usersReady ? active.length : "–"}
           </button>
           <div className="pb-1.5 text-[13px] leading-snug">

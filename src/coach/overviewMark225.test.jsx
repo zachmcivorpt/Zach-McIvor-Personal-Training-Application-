@@ -36,7 +36,11 @@ describe("Coach Overview header (#225)", () => {
     expect(container.querySelector('img[src*="gym-dark"]')).toBeNull();
     expect(hero.getAttribute("style") || "").not.toMatch(/background|border/);
     expect(hero.className).not.toMatch(/rounded|border|bg-/);
-    expect(screen.getByTestId("overview-mark").querySelectorAll("[data-testid=glass-mark-svg]").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("overview-mark").querySelectorAll("[data-testid=bevel-glass-mark]").length).toBeGreaterThan(0);
+    // #226: the greeting and count use the same glass type as the mark.
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1.getAttribute("style")).toMatch(/background-clip: text|-webkit-background-clip: text/);
+    expect(screen.getByRole("button", { name: "1 active clients" }).getAttribute("style")).toMatch(/linear-gradient/);
     expect(screen.getByText(/Good (morning|afternoon|evening), Zachary/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "1 active clients" }));
     expect(onNavigate).toHaveBeenCalledWith("clients");

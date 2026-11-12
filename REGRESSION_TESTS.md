@@ -3454,6 +3454,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change** (owner picked mock-up D, smaller): the gym photo behind "Good evening, …" and the active-client count is gone; the header sits open on the page (no box) with a glassy see-through APEX mark (`GlassMarkSvg`: the login vector with a white-to-clear fill, hairline edge, faint blue glow) in the background to the right — 190px on iPad/desktop, 118px on iPhone, 32% opacity, text kept clear of it.
 - **Tests**: `src/coach/overviewMark225.test.jsx` renders the real `CoachDashboard`: no gym-dark image, no box styling on the header, the glass mark present, greeting shown, the client count still opens Clients (fails on the old photo header). `coachOverviewLayout.test.jsx` (#115) still passes. Browser at 1000 and 390 wide: no errors, mark clear of the text. Full suite passed.
 
+### 226. Coach Overview: bigger bevelled glass APEX mark, matching glass heading (owner, 2026-11-12)
+
+- **Change** (owner picked mock-up H, "the heading has to match that style"): the Overview's background mark is now `BevelGlassMark` — a frosted pane in the mark's shape (`backdrop-filter` through an SVG mask, so it blurs what's behind it), edges lit from the top left (`feSpecularLighting`), a hairline rim, a soft shadow and a faint blue backlight — 300px on iPad/desktop, 160px on iPhone, text kept clear of it. "Good evening, …" and the active-client count use `GLASS_HEADING_STYLE` (white-to-steel gradient text, faint rim light and blue glow).
+- **Tests**: `overviewMark225.test.jsx` now also checks the bevel mark is the one shown and the heading and count use the glass type. `coachOverviewLayout.test.jsx` (#115) still passes (every number goes where it did). Browser at 1000 and 390 wide: no errors, mark clear of the text. Full suite passed. On a real iPhone, check the frosted pane draws (WebKit's backdrop-filter through a mask); without it the lit edges and rim still show.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
