@@ -78,7 +78,13 @@ rather than inventing new colors per screen:
   days (`ENDING_SOON_DAYS`, `src/coach/endingSoon.js`), or ended with
   nothing after it, is flagged; missed sessions only from the last 7 days;
   every row opens something (APEX → its sheet, others → the client's
-  relevant tab); "Show all N" when there are more than 8. Its swipe-to-
+  relevant tab); "Show all N" when there are more than 8. Nothing old
+  (#229): every item is about the last 14 days
+  (`NEEDS_ATTENTION_MAX_AGE_DAYS`) — ended guides/phases, quiet clients,
+  weight changes, APEX insights (check-in answers ≤ 28 days). Nothing on
+  Overview may stick out past the screen edge (the page panned sideways
+  under a finger, #229): no negative right offsets; CoachShell's scroller
+  keeps `overflow-x-hidden`. Its swipe-to-
   dismiss follows the #107 iPhone rules (no capture on press, ref-based
   position, window-level end). Recent activity on phones is 6 rows +
   "Show more", never a box that scrolls inside the page. Then frosted-glass tiles (Challenges,

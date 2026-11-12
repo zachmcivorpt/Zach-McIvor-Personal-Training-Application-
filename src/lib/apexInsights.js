@@ -58,10 +58,15 @@ function findQuestionsByKeyword(forms, keywords) {
 // Real answers to any of the given questions from a client's formResponses,
 // oldest first (formResponses itself is stored newest-first). Skips blank
 // answers rather than treating them as a 0/negative data point.
+// #229: only answers from the last 4 weeks — an insight is never built on
+// a check-in from months ago.
+const ANSWER_MAX_AGE_MS = 28 * DAY_MS;
 function recentAnswers(clientId, db, questions, limit = 6) {
   const responses = (db.formResponses || {})[clientId] || [];
   const out = [];
+  const since = Date.now() - ANSWER_MAX_AGE_MS;
   for (const r of responses) {
+    if (!(r.date >= since)) continue;
     const matched = questions.find((q) => q.formId === r.formId);
     if (!matched) continue;
     const val = r.answers?.[matched.questionId];
@@ -128,6 +133,8 @@ function recoveryConflictInsight(client, db) {
   Object.values(byExercise).forEach((sessions) => {
     if (sessions.length < 3) return;
     const last3 = sessions.slice(-3);
+    // #229: only a decline that's still happening (last session ≤ 14 days).
+    if (last3[2].date < Date.now() - 14 * DAY_MS) return;
     // Strictly declining across all 3 most recent sessions of this lift —
     // a single off session doesn't count, only a real multi-session trend.
     if (last3[0].e1rm > last3[1].e1rm && last3[1].e1rm > last3[2].e1rm) {
@@ -205,6 +212,8 @@ function bodyweightTrendInsight(client, db) {
   if (weighIns.length < 2) return null;
   const windowMs = 21 * DAY_MS;
   const latest = weighIns[weighIns.length - 1];
+  // #229: nothing built on weigh-ins that stopped weeks ago.
+  if (latest.date < Date.now() - 14 * DAY_MS) return null;
   const cutoff = latest.date - windowMs;
   const baseline = [...weighIns].reverse().find((w) => w.date <= cutoff);
   if (!baseline) return null;
