@@ -230,6 +230,16 @@ export function useFeedbackDraft({ coachUid, clientId, checkInId, checkInDate, e
     [commit]
   );
 
+  // The coach's talking points (#223) — notes for them only, on the draft.
+  const setTalkingPoints = useCallback(
+    (talkingPoints) => {
+      const p = projectRef.current;
+      if (!p) return;
+      commit({ ...p, talkingPoints });
+    },
+    [commit]
+  );
+
   // One undo step for a change made in many small moves (a trim drag).
   const pushUndoSnapshot = useCallback((previousSegments) => {
     setHistory((h) => pushHistory(h, previousSegments));
@@ -305,6 +315,7 @@ export function useFeedbackDraft({ coachUid, clientId, checkInId, checkInDate, e
     addTake,
     setSegments,
     setSummary,
+    setTalkingPoints,
     pushUndoSnapshot,
     undo,
     redo,

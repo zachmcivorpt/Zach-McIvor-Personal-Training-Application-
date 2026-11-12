@@ -779,6 +779,14 @@ any Train Solo work from now on:
   video (`checkInToAnswer`); never auto-link an older one.
 - The coach's client Check-ins tab runs page width (#222); no `max-w-*`
   column on coach client tabs that leaves the right side empty.
+- **Talking points** (#223, `talkingPoints.js`): the This week tab (and
+  Write) opens with points from a scan of the week, every figure from the
+  client's data; the coach edits/removes/adds, Rescan keeps their changes.
+  Coach-only, on the draft (`project.talkingPoints`), never published.
+- **Hit / missed colours** (#223, owner): in the workspace a missed session
+  or a logged day that missed calories/protein is a red dot (not logged =
+  "–"); the Nutrition tab shows kcal, P, C, F per day green (hit) / red
+  (missed). Carbs and fat hit within 15% (`MACRO_TOLERANCE`).
 
 ## Coach activity notifications (#215)
 

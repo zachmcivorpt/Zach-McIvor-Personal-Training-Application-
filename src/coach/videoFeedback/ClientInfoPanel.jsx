@@ -20,7 +20,7 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { useApp } from "../../lib/AppContext";
-import { MEASURE_BLUE } from "../../theme";
+import { MEASURE_BLUE, GOAL_GREEN, OVER_RED } from "../../theme";
 import { resolveNutritionTargets } from "../../lib/nutritionTargets";
 import { BODY_FAT_CONFIG, BODY_MEASUREMENTS_CONFIG, LEAN_MASS_CONFIG } from "../../components/ProgressWidgets";
 import { localDateKey } from "../../lib/dateKey";
@@ -28,7 +28,7 @@ import { liftProgress, measurementChanges, nutritionWeek, trainingWeek, weightSu
 import { computePlateaus } from "../../lib/trainingStats";
 import { adherenceWindows } from "../CoachClientDetail";
 import { checkinChanges } from "../../lib/videoFeedback/checkinChanges";
-import { WeekRings, WeekFigures, DayGrid, LiftLists, CheckinSummary, GlassCard } from "./WeeklyScorecard";
+import { WeekRings, WeekFigures, DayGrid, LiftLists, CheckinSummary, GlassCard, TalkingPoints } from "./WeeklyScorecard";
 import { formatClock } from "../../lib/videoFeedback/timeline";
 
 export const INFO_SECTIONS = [
@@ -181,6 +181,20 @@ function WeightSection({ data }) {
   );
 }
 
+// #223 (owner): every macro on the day row, green when hit, red when missed.
+function MacroCell({ label, value, unit, hit }) {
+  return (
+    <span className="flex items-center gap-1.5 min-w-0" data-hit={hit ? "yes" : "no"}>
+      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: hit ? GOAL_GREEN : OVER_RED }} />
+      <span className="text-white truncate">
+        {label && <span className="text-white/45 mr-1">{label}</span>}
+        {value}
+        {unit && <span className="text-white/40 ml-1">{unit}</span>}
+      </span>
+    </span>
+  );
+}
+
 function NutritionSection({ data }) {
   const { nutrition, targets } = data;
   return (
@@ -198,10 +212,12 @@ function NutritionSection({ data }) {
           <Empty>No food logged in the last 7 days.</Empty>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-5 gap-3 mb-4">
               <Figure value={`${nutrition.loggedCount}/7`} label="Days logged" />
-              <Figure value={`${nutrition.calorieHits}/7`} label="On calorie target" accent />
-              <Figure value={`${nutrition.proteinHits}/7`} label="Protein hit" accent />
+              <Figure value={`${nutrition.calorieHits}/7`} label="Calories hit" />
+              <Figure value={`${nutrition.proteinHits}/7`} label="Protein hit" />
+              <Figure value={`${nutrition.carbHits}/7`} label="Carbs hit" />
+              <Figure value={`${nutrition.fatHits}/7`} label="Fat hit" />
             </div>
             <div className="grid grid-cols-4 gap-3 mb-4">
               <Figure value={nutrition.avgCalories} label="Avg kcal" />
@@ -214,23 +230,19 @@ function NutritionSection({ data }) {
                 <div key={d.dateKey} className="flex items-center py-2 text-sm gap-3">
                   <span className="text-white/60 w-10 shrink-0">{d.weekday}</span>
                   {d.logged ? (
-                    <>
-                      <span className="flex-1 text-white tabular-nums">
-                        {d.calories} <span className="text-white/40">kcal</span>
-                      </span>
-                      <span className="text-white/70 tabular-nums">P {d.protein}</span>
-                      <span className="flex gap-1 shrink-0" aria-label="targets hit">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: d.calorieHit ? MEASURE_BLUE : "rgba(255,255,255,0.15)" }} />
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: d.proteinHit ? MEASURE_BLUE : "rgba(255,255,255,0.15)" }} />
-                      </span>
-                    </>
+                    <span className="flex-1 grid gap-2 tabular-nums" style={{ gridTemplateColumns: "1.3fr 1fr 1fr 1fr" }}>
+                      <MacroCell value={d.calories} unit="kcal" hit={d.calorieHit} />
+                      <MacroCell label="P" value={d.protein} hit={d.proteinHit} />
+                      <MacroCell label="C" value={d.carbs} hit={d.carbHit} />
+                      <MacroCell label="F" value={d.fat} hit={d.fatHit} />
+                    </span>
                   ) : (
                     <span className="flex-1 text-white/35">Not logged</span>
                   )}
                 </div>
               ))}
             </div>
-            <p className="text-white/35 text-[10px] mt-2">Dots: calories within 12% · protein at 90%+</p>
+            <p className="text-white/35 text-[10px] mt-2">Green hit, red missed · calories within 12% · protein 90%+ · carbs and fat within 15%</p>
           </>
         )}
       </Section>
@@ -393,10 +405,11 @@ function NotesSection({ data }) {
   );
 }
 
-function WeekSection({ client, data, compact }) {
+function WeekSection({ client, data, compact, talkingPoints, onTalkingPoints, onRescan }) {
   return (
     <div className="space-y-2.5 pt-2">
       {client.preferences?.goals && <p className="text-white/55 text-[12px] px-1 truncate">Goal · {client.preferences.goals}</p>}
+      {onTalkingPoints && <TalkingPoints points={talkingPoints} onChange={onTalkingPoints} onRescan={onRescan} compact={compact} />}
       <WeekRings week={data.week} nutritionScore={data.nutritionScore} compact={compact} />
       <WeekFigures week={data.week} targets={data.targets} columns={compact ? 2 : 4} />
       <DayGrid week={data.week} compact={compact} />
@@ -514,7 +527,7 @@ export function useClientSnapshot(client, now, checkInId = null) {
 
 // collapsed: the panel shrinks to a strip of section icons; tapping one
 // opens it again on that section.
-export default function ClientInfoPanel({ client, checkInId, section, onSection, collapsed, onToggleCollapsed, layout = "side", compact = false }) {
+export default function ClientInfoPanel({ client, checkInId, talkingPoints, onTalkingPoints, onRescan, section, onSection, collapsed, onToggleCollapsed, layout = "side", compact = false }) {
   const [now] = useState(() => Date.now());
   const { data, exercisesById } = useClientSnapshot(client, now, checkInId);
   const linkedWorse = data.linkedChanges.keyChanges.length;
@@ -581,7 +594,7 @@ export default function ClientInfoPanel({ client, checkInId, section, onSection,
         </button>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-4" data-testid={`info-section-${section}`}>
-        {section === "week" && <WeekSection client={client} data={data} compact={compact} />}
+        {section === "week" && <WeekSection client={client} data={data} compact={compact} talkingPoints={talkingPoints} onTalkingPoints={onTalkingPoints} onRescan={onRescan} />}
         {section === "checkin" && <CheckInSection data={data} checkInId={checkInId} compact={compact} />}
         {!["week", "checkin"].includes(section) && (
           <GlassCard className="mt-2" padding={compact ? 14 : 18}>

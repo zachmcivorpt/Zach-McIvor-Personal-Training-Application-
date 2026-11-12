@@ -17,7 +17,8 @@ import { useApp } from "../../lib/AppContext";
 import { CoachGlass, GLASS, GLASS_BLUE, JARVIS_BACKDROP, GlassButton } from "../darkUI";
 import { MEASURE_BLUE } from "../../theme";
 import ClientInfoPanel, { useClientSnapshot } from "./ClientInfoPanel";
-import { WeekStrip, DayGrid, LiftLists, CheckinSummary, CARD_GLASS } from "./WeeklyScorecard";
+import { WeekStrip, DayGrid, LiftLists, CheckinSummary, CARD_GLASS, TalkingPoints } from "./WeeklyScorecard";
+import { buildTalkingPoints, mergeTalkingPoints } from "./talkingPoints";
 import EditTimeline, { TimelinePreview } from "./EditTimeline";
 import { useFeedbackDraft } from "./useFeedbackDraft";
 import { useCameraRecorder, cameraRecordingSupported, MAX_TAKE_SECONDS } from "../../lib/videoFeedback/recorder";
@@ -196,6 +197,15 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
 
   const [snapshotNow] = useState(() => Date.now());
   const { data: snapshot } = useClientSnapshot(client, snapshotNow, project?.checkInId || checkInId);
+
+  // Talking points (#223): the scan of this week until the coach changes
+  // them; then the coach's own list (kept on the draft, never published).
+  const scannedPoints = useMemo(
+    () => buildTalkingPoints({ week: snapshot.week, nutrition: snapshot.nutrition, targets: snapshot.targets, changes: snapshot.linkedChanges }),
+    [snapshot.week, snapshot.nutrition, snapshot.targets, snapshot.linkedChanges]
+  );
+  const talkingPoints = project?.talkingPoints ?? scannedPoints;
+  const rescanPoints = () => draft.setTalkingPoints(mergeTalkingPoints(project?.talkingPoints, scannedPoints));
 
   const segments = project?.segments || [];
   const sources = project?.sources || {};
@@ -538,6 +548,9 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
             <div className={`min-w-0 min-h-0 rounded-2xl overflow-hidden ${collapsed && !isWide ? "mt-2" : ""} ${collapsed && isWide ? "ml-2" : ""}`} style={{ ...(collapsed ? GLASS : null), ...panelStyle }}>
               <ClientInfoPanel
                 client={client}
+                talkingPoints={talkingPoints}
+                onTalkingPoints={draft.setTalkingPoints}
+                onRescan={rescanPoints}
                 checkInId={project.checkInId}
                 section={section}
                 onSection={setSection}
@@ -557,6 +570,7 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
                 clientName={client.name}
                 context={
                   <>
+                    <TalkingPoints points={talkingPoints} onChange={draft.setTalkingPoints} onRescan={rescanPoints} />
                     <WeekStrip week={snapshot.week} nutritionScore={snapshot.nutritionScore} />
                     {snapshot.linkedChanges.keyChanges.length > 0 && (
                       <CheckinSummary response={snapshot.responses.find((r) => r.id === project.checkInId)} formName={null} changes={{ ...snapshot.linkedChanges, ratings: [], answers: [] }} compact />
