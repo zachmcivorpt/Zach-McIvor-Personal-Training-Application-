@@ -26,6 +26,10 @@ STATUS — 2026-11-08 (1.0.4 App Store submission, where we stopped)
   iPad 13" 2064x2752 (the two start screens).
   2026-11-09: rejected (no Terms of Use link in the description); EULA +
   privacy links added to the description, resubmitted 2026-11-10.
+  2026-11-11: Apple couldn't find the IAPs (2.1(b)): the sign-in field had
+  the coach account and tylah owned 5 of 7 programs. New clean review
+  account apexreview@outlook.com (Free, no purchases) in Sign-in + Notes,
+  reply with steps sent, resubmitted 2026-11-12.
   NEXT, once Apple approves: Go live on (coach console → Train Solo →
   Subscriptions), then Release 1.0.4 the same day.
 
