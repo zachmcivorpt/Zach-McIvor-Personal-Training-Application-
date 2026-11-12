@@ -73,7 +73,15 @@ rather than inventing new colors per screen:
   (`GLASS_HEADING_STYLE`: white-to-steel gradient text, faint blue glow).
   On phones the heading is smaller (greeting 20px, count 44px, mark 130px;
   30/56/300 from `sm`). Coach's notes sit directly above Needs attention,
-  in a frosted-glass box like the tiles, never a solid charcoal one (#227). Then frosted-glass tiles (Challenges,
+  in a frosted-glass box like the tiles, never a solid charcoal one (#227).
+  Needs attention (#228): a program phase or meal guide ending within 4
+  days (`ENDING_SOON_DAYS`, `src/coach/endingSoon.js`), or ended with
+  nothing after it, is flagged; missed sessions only from the last 7 days;
+  every row opens something (APEX → its sheet, others → the client's
+  relevant tab); "Show all N" when there are more than 8. Its swipe-to-
+  dismiss follows the #107 iPhone rules (no capture on press, ref-based
+  position, window-level end). Recent activity on phones is 6 rows +
+  "Show more", never a box that scrolls inside the page. Then frosted-glass tiles (Challenges,
   Check-ins, Messages) and open sections under thin rules. Every number
   keeps its old destination (#115).
 - The coach console is otherwise still dark-only, glass on near-black (#212).
