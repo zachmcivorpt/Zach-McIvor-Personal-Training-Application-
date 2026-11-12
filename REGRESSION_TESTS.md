@@ -3459,6 +3459,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change** (owner picked mock-up H, "the heading has to match that style"): the Overview's background mark is now `BevelGlassMark` (`src/components/GlassMark.jsx`, separate from the login mark, which must stay blur-free per #209) — a frosted pane in the mark's shape (`backdrop-filter` through an SVG mask, so it blurs what's behind it), edges lit from the top left (`feSpecularLighting`), a hairline rim, a soft shadow and a faint blue backlight — 300px on iPad/desktop, 160px on iPhone, text kept clear of it. "Good evening, …" and the active-client count use `GLASS_HEADING_STYLE` (white-to-steel gradient text, faint rim light and blue glow).
 - **Tests**: `overviewMark225.test.jsx` now also checks the bevel mark is the one shown and the heading and count use the glass type. `coachOverviewLayout.test.jsx` (#115) still passes (every number goes where it did). Browser at 1000 and 390 wide: no errors, mark clear of the text. Full suite passed. The first build put the new mark in LoginHero.jsx and broke `loginClean209.test.js` (no CSS blur on the login mark); it now lives in GlassMark.jsx and that test passes. On a real iPhone, check the frosted pane draws (WebKit's backdrop-filter through a mask); without it the lit edges and rim still show.
 
+### 227. Coach Overview: smaller phone heading, Coach's notes above Needs attention in glass (owner, 2026-11-12)
+
+- **Change**: on phones the greeting is 20px (was 24), the active-client count 44px (was 56), the subtitle 12.5px and the glass mark 130px (was 160); iPad/desktop unchanged. Coach's notes moved from below Recent activity to directly above Needs attention, and its box is frosted glass (translucent white, hairline border, backdrop blur) instead of the solid charcoal `CLIENT_DARK_SURFACE`. Saving works as before.
+- **Tests**: `src/coach/overviewNotes227.test.jsx` (3, real `CoachDashboard`): notes come before Needs attention, the box is glass, phone sizes on the heading and count. All 3 fail on the old code. #115, #225 and #226 tests still pass (numbers go where they did; notes save only after an edit). Browser at 1000 and 390 wide: no errors. Full suite passed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
