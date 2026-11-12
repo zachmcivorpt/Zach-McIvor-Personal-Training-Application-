@@ -3449,6 +3449,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change** (owner's iPad screenshot): the "Recent Training Load" card (sets per muscle group, last 14 days) at the top of the coach's client Calendar tab is gone for all clients; the month's adherence and the calendar now lead. Its now-unused computation and muscle-name helpers (`muscleBalance`, `MUSCLE_CATEGORIES`, `MUSCLE_SYNONYMS`, `normalizeMuscle`) were removed with it — nothing else used them.
 - **Tests**: `src/coach/calendarNoTrainingLoad224.test.jsx` renders the real `CoachClientDetail` on Calendar with a client who has logged sets: no "Recent Training Load", adherence still there. Fails on the old code. Browser (1000×750): card gone, adherence shown, no errors. Full suite passed.
 
+### 225. Coach Overview header: no photo, see-through APEX mark (owner, 2026-11-12)
+
+- **Change** (owner picked mock-up D, smaller): the gym photo behind "Good evening, …" and the active-client count is gone; the header sits open on the page (no box) with a glassy see-through APEX mark (`GlassMarkSvg`: the login vector with a white-to-clear fill, hairline edge, faint blue glow) in the background to the right — 190px on iPad/desktop, 118px on iPhone, 32% opacity, text kept clear of it.
+- **Tests**: `src/coach/overviewMark225.test.jsx` renders the real `CoachDashboard`: no gym-dark image, no box styling on the header, the glass mark present, greeting shown, the client count still opens Clients (fails on the old photo header). `coachOverviewLayout.test.jsx` (#115) still passes. Browser at 1000 and 390 wide: no errors, mark clear of the text. Full suite passed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
