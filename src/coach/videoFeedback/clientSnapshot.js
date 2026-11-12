@@ -166,3 +166,152 @@ export function measurementChanges(bodyMetrics, configs) {
     })
     .filter(Boolean);
 }
+
+// ---- This week (#220) -----------------------------------------------------
+// The client's last 7 COMPLETED days (ending yesterday) on one card: planned
+// sessions done, nutrition, steps, sleep, weight, kg lifted, best and stuck
+// lifts. Every figure from their own logs; a figure with no data is null
+// (shown as "–"), never 0.
+export const DEFAULT_STEP_GOAL = 10000;
+
+function dayKeys(now, days, offsetDays = 0) {
+  const out = [];
+  for (let i = days; i >= 1; i--) {
+    const d = new Date(now);
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() - i - offsetDays);
+    out.push({ key: localDateKey(d), weekday: d.toLocaleDateString(undefined, { weekday: "short" }), date: d });
+  }
+  return out;
+}
+
+function avg(list) {
+  return list.length ? list.reduce((a, b) => a + b, 0) / list.length : null;
+}
+
+export function weekScorecard({ workoutLogs, scheduledWorkouts, nutritionLogs, bodyMetrics, weighIns, targets, exercisesById, plateaus = [], now = Date.now(), stepGoal = DEFAULT_STEP_GOAL }) {
+  const week = dayKeys(now, 7);
+  const prevWeek = dayKeys(now, 7, 7);
+  const keys = new Set(week.map((d) => d.key));
+  const prevKeys = new Set(prevWeek.map((d) => d.key));
+  const logs = (workoutLogs || []).slice();
+  const logKey = (l) => localDateKey(new Date(l.date));
+  const weekLogs = logs.filter((l) => keys.has(logKey(l)));
+  const prevLogs = logs.filter((l) => prevKeys.has(logKey(l)));
+  const trainedKeys = new Set(weekLogs.filter((l) => !l.cardio).map(logKey));
+  const planned = new Set((scheduledWorkouts || []).filter((s) => keys.has(s.date)).map((s) => s.date));
+  const nutritionByKey = Object.fromEntries((nutritionLogs || []).map((n) => [n.date, n]));
+  const metricsByKey = Object.fromEntries((bodyMetrics || []).map((m) => [m.date, m]));
+
+  const days = week.map(({ key, weekday }) => {
+    const n = nutritionByKey[key];
+    const logged = hasFoodLogged(n);
+    const m = metricsByKey[key] || {};
+    const steps = Number(m.steps) > 0 ? Number(m.steps) : null;
+    const sleep = Number(m.sleepHours) > 0 ? Number(m.sleepHours) : null;
+    let session = "rest";
+    if (planned.has(key)) session = trainedKeys.has(key) ? "done" : "missed";
+    else if (trainedKeys.has(key)) session = "extra";
+    return {
+      dateKey: key,
+      weekday,
+      session,
+      logged,
+      calorieHit: logged && targets.calories > 0 && Math.abs((n.calories || 0) - targets.calories) <= targets.calories * 0.12,
+      proteinHit: logged && targets.protein > 0 && (n.protein || 0) >= targets.protein * 0.9,
+      calories: logged ? Math.round(n.calories || 0) : null,
+      steps,
+      sleep,
+    };
+  });
+
+  const plannedCount = days.filter((d) => d.session === "done" || d.session === "missed").length;
+  const plannedDone = days.filter((d) => d.session === "done").length;
+  const loggedDays = days.filter((d) => d.logged);
+  const stepDays = days.filter((d) => d.steps !== null);
+  const sleepDays = days.filter((d) => d.sleep !== null);
+  const stepsAvg = stepDays.length ? Math.round(avg(stepDays.map((d) => d.steps))) : null;
+  const weightIn = (set) => (weighIns || []).filter((w) => set.has(localDateKey(new Date(w.date))) && Number(w.weight) > 0).map((w) => Number(w.weight));
+  const wNow = avg(weightIn(keys));
+  const wPrev = avg(weightIn(prevKeys));
+  const volume = (list) => list.reduce((a, l) => a + logVolume(l), 0);
+  const lifted = volume(weekLogs);
+  const liftedPrev = volume(prevLogs);
+
+  return {
+    from: week[0].key,
+    to: week[6].key,
+    days,
+    sessions: { planned: plannedCount, done: plannedDone, total: trainedKeys.size, pct: plannedCount ? Math.round((plannedDone / plannedCount) * 100) : null },
+    nutrition: {
+      logged: loggedDays.length,
+      calorieHits: days.filter((d) => d.calorieHit).length,
+      proteinHits: days.filter((d) => d.proteinHit).length,
+      avgCalories: loggedDays.length ? Math.round(avg(loggedDays.map((d) => d.calories))) : null,
+    },
+    steps: { avg: stepsAvg, goal: stepGoal, pct: stepsAvg === null ? null : Math.round((stepsAvg / stepGoal) * 100), days: stepDays.length },
+    sleep: { avg: sleepDays.length ? Math.round(avg(sleepDays.map((d) => d.sleep)) * 10) / 10 : null },
+    weight: { avg: wNow === null ? null : round1(wNow), change: wNow !== null && wPrev !== null ? round1(wNow - wPrev) : null },
+    lifted: { kg: weekLogs.length ? lifted : null, changePct: weekLogs.length && liftedPrev > 0 ? Math.round(((lifted - liftedPrev) / liftedPrev) * 100) : null },
+    bestLifts: bestLiftsThisWeek(logs, keys, exercisesById),
+    stagnant: stagnantLifts(plateaus, logs, exercisesById),
+  };
+}
+
+function bestSetOf(sets) {
+  let best = null;
+  (sets || []).forEach((s) => {
+    const w = Number(s.weight);
+    const r = Number(s.reps);
+    if (!(w > 0 && r > 0)) return;
+    const e1 = epley1RM(w, r);
+    if (!best || e1 > best.e1rm) best = { weight: w, reps: r, e1rm: e1 };
+  });
+  return best;
+}
+
+// Each lift trained this week: its best set, est. max, change on the last
+// session before this week, and PR when it beats every earlier session.
+export function bestLiftsThisWeek(logs, weekKeySet, exercisesById, limit = 5) {
+  const sorted = (logs || []).filter((l) => !l.cardio).sort((a, b) => a.date - b.date);
+  const map = new Map();
+  for (const log of sorted) {
+    const inWeek = weekKeySet.has(localDateKey(new Date(log.date)));
+    for (const e of log.entries || []) {
+      const best = bestSetOf(e.sets);
+      if (!e.exerciseId || !best) continue;
+      const rec = map.get(e.exerciseId) || { before: [], week: null };
+      if (inWeek) {
+        if (!rec.week || best.e1rm > rec.week.e1rm) rec.week = best;
+      } else if (!rec.week) rec.before.push(best);
+      map.set(e.exerciseId, rec);
+    }
+  }
+  return [...map.entries()]
+    .filter(([, r]) => r.week)
+    .map(([id, r]) => {
+      const last = r.before[r.before.length - 1] || null;
+      const allTime = r.before.reduce((m, b) => Math.max(m, b.e1rm), 0);
+      return {
+        id,
+        name: exercisesById?.[id]?.name || "Exercise",
+        set: r.week,
+        e1rm: Math.round(r.week.e1rm),
+        change: last ? Math.round(r.week.e1rm - last.e1rm) : null,
+        pr: r.before.length > 0 && r.week.e1rm > allTime,
+      };
+    })
+    .sort((a, b) => Number(b.pr) - Number(a.pr) || (b.change ?? -999) - (a.change ?? -999) || b.e1rm - a.e1rm)
+    .slice(0, limit);
+}
+
+// computePlateaus' stuck lifts with their latest best set.
+export function stagnantLifts(plateaus, logs, exercisesById) {
+  return (plateaus || []).map((p) => {
+    const latest = (logs || [])
+      .filter((l) => (l.entries || []).some((e) => e.exerciseId === p.exerciseId))
+      .sort((a, b) => b.date - a.date)[0];
+    const best = latest ? bestSetOf(latest.entries.find((e) => e.exerciseId === p.exerciseId)?.sets) : null;
+    return { id: p.exerciseId, name: exercisesById?.[p.exerciseId]?.name || p.exerciseName || "Exercise", sessions: p.sessions, set: best, e1rm: best ? Math.round(best.e1rm) : null };
+  });
+}

@@ -6,6 +6,7 @@ import { Plus, Minus } from "lucide-react";
 import { MEASURE_BLUE } from "../../theme";
 import { SUMMARY_SECTIONS, MAX_PRIORITIES, summaryReady } from "../../lib/videoFeedback/timeline";
 import VideoFeedbackSummary from "../../components/VideoFeedbackSummary";
+import { CARD_GLASS } from "./WeeklyScorecard";
 
 function AutoTextArea({ value, onChange, placeholder, label, minRows = 2 }) {
   const ref = useRef(null);
@@ -28,12 +29,12 @@ function AutoTextArea({ value, onChange, placeholder, label, minRows = 2 }) {
   );
 }
 
-export default function SummaryEditor({ summary, onChange, clientName, showPreview = true }) {
+export default function SummaryEditor({ summary, onChange, clientName, showPreview = true, context = null }) {
   const set = (key, v) => onChange({ ...summary, [key]: v });
   const priorities = summary.priorities?.length ? summary.priorities : [""];
   return (
-    <div className={showPreview ? "grid md:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-6 md:gap-10" : ""} data-testid="summary-editor">
-      <div>
+    <div className={showPreview ? "grid gap-2 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]" : ""} data-testid="summary-editor">
+      <div className={showPreview ? "rounded-[22px] min-w-0" : ""} style={showPreview ? { ...CARD_GLASS, padding: 20 } : undefined}>
         <p className="text-white/45 text-xs mb-5">Write freely — only the overall note is required. Empty sections don't show.</p>
         {SUMMARY_SECTIONS.map(({ key, label, placeholder }, i) => (
           <div key={key} className={`py-4 ${i ? "border-t border-white/[0.08]" : ""}`}>
@@ -75,14 +76,13 @@ export default function SummaryEditor({ summary, onChange, clientName, showPrevi
             </button>
           )}
         </div>
+        {context && <div className="mt-2 space-y-2.5">{context}</div>}
       </div>
       {showPreview && (
-      <div>
-        <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-white/50 mb-3">What {clientName?.split(" ")[0] || "your client"} will read</p>
-        <div className="rounded-2xl bg-white px-5 py-5 text-black" data-testid="summary-preview">
-          {summaryReady(summary) ? <VideoFeedbackSummary summary={summary} /> : <p className="text-black/40 text-sm">Start with the overall note — the preview fills in as you write.</p>}
+        <div className="rounded-[22px] min-w-0 md:sticky md:top-0 self-start" style={{ ...CARD_GLASS, padding: 20 }} data-testid="summary-preview">
+          <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-white/50 mb-4">What {clientName?.split(" ")[0] || "your client"} will read</p>
+          {summaryReady(summary) ? <VideoFeedbackSummary summary={summary} onDarkStage /> : <p className="text-white/40 text-sm">Start with the overall note — the preview fills in as you write.</p>}
         </div>
-      </div>
       )}
     </div>
   );

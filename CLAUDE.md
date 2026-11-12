@@ -754,9 +754,21 @@ any Train Solo work from now on:
   recorder ignores 1 s slices, so a crash would lose the take). Rendering:
   WebCodecs via `mediabunny`, real-time MediaRecorder fallback. Keep all of
   it lazy (workspace chunk, client `VideoFeedbackClient.jsx` on Check-ins).
-- The client's film page: video on a black stage, overview under it on the
-  client's own page colour (`VideoFeedbackSummary`, shared with the coach's
-  preview). A client may change only `viewedAt` (firestore.rules); videos are
+- **Glass, full width** (#220, owner): workspace, Write, Publish and the
+  client's film page are frosted glass over the blurred gym photo
+  (`CARD_GLASS` in `WeeklyScorecard.jsx`), 8px gutters, never white boxes
+  or centred narrow columns. The overview is `VideoFeedbackSummary`
+  (`onDarkStage` on coach glass, the client's own light/dark on theirs).
+- **The panel opens on "This week"** (`weekScorecard`, last 7 completed
+  days, own data only, "–" not 0): sessions %, nutrition adherence (same
+  score as the client page's card, `adherenceWindows`), protein days, steps,
+  weight/kcal/sleep/kg lifted, day-by-day grid, best and stagnant lifts.
+- **The "Check-in" tab is the check-in the video answers**: changes since
+  the previous response of the same form via `checkinChanges` (one shared
+  function for coach and client); worse ratings are the key changes. A
+  rating's direction is the form question's `higherIsWorse` (Library →
+  Forms), else guessed from its wording.
+- A client may change only `viewedAt` (firestore.rules); videos are
   readable only by that client and the coach (storage.rules).
 
 ## Coach activity notifications (#215)

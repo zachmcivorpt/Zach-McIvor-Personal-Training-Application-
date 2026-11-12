@@ -10,8 +10,9 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, Play, Check } from "lucide-react";
 import { useApp } from "../lib/AppContext";
-import { MEASURE_BLUE, BG, CLIENT_DARK_BG, BORDER, CLIENT_DARK_BORDER } from "../theme";
+import { MEASURE_BLUE, CLIENT_DARK_BG } from "../theme";
 import { formatClock } from "../lib/videoFeedback/timeline";
+import { checkinChanges, headlineChanges } from "../lib/videoFeedback/checkinChanges";
 import CinematicVideoPlayer from "../components/CinematicVideoPlayer";
 import VideoFeedbackSummary from "../components/VideoFeedbackSummary";
 
@@ -45,7 +46,26 @@ function FilmThumb({ f, large = false, dark }) {
   );
 }
 
-export function FeedbackFilmPage({ feedback: f, coachName, dark, onClose, onFirstPlay }) {
+const GLASS_DARK = {
+  background: "rgba(255,255,255,0.055)",
+  border: "1px solid rgba(255,255,255,0.11)",
+  backdropFilter: "blur(26px) saturate(140%)",
+  WebkitBackdropFilter: "blur(26px) saturate(140%)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 20px 60px -30px rgba(0,0,0,0.8)",
+};
+const GLASS_LIGHT = {
+  background: "rgba(255,255,255,0.55)",
+  border: "1px solid rgba(255,255,255,0.85)",
+  backdropFilter: "blur(26px) saturate(160%)",
+  WebkitBackdropFilter: "blur(26px) saturate(160%)",
+  boxShadow: "0 20px 50px -30px rgba(0,0,0,0.35)",
+};
+const VERDICT = { worse: "WORSE", better: "BETTER" };
+
+// #220: glass on the APEX gym photo (softly blurred) in the client's own
+// light/dark choice; the film full width, then the check-in it answers and
+// the written overview.
+export function FeedbackFilmPage({ feedback: f, coachName, dark, onClose, onFirstPlay, checkinHeadline = [] }) {
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const id = requestAnimationFrame(() => setShown(true));
@@ -57,27 +77,34 @@ export function FeedbackFilmPage({ feedback: f, coachName, dark, onClose, onFirs
     };
   }, []);
   const text = dark ? "text-white" : "text-black";
-  const muted = dark ? "text-white/45" : "text-black/45";
+  const muted = dark ? "text-white/50" : "text-black/45";
+  const glass = dark ? GLASS_DARK : GLASS_LIGHT;
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
-      style={{ backgroundColor: dark ? CLIENT_DARK_BG : BG, opacity: shown ? 1 : 0, transform: shown ? "none" : "translateY(12px)", transition: "opacity 0.28s ease, transform 0.32s cubic-bezier(.2,.8,.2,1)" }}
+      className="fixed inset-0 z-[100] flex flex-col overflow-hidden"
+      style={{ backgroundColor: dark ? CLIENT_DARK_BG : "#EEF0F4", opacity: shown ? 1 : 0, transform: shown ? "none" : "translateY(12px)", transition: "opacity 0.28s ease, transform 0.32s cubic-bezier(.2,.8,.2,1)" }}
       data-testid="feedback-film-page"
       role="dialog"
       aria-label="Weekly feedback"
     >
-      <div className="shrink-0 flex items-center gap-2 px-2 pt-[max(1.25rem,env(safe-area-inset-top))] pb-2 border-b" style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}>
-        <button type="button" onClick={onClose} aria-label="Back" className={`w-10 h-10 rounded-full flex items-center justify-center ${text}`}>
-          <ArrowLeft size={22} />
+      <img
+        src="/brand/gym-dark.jpg"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover"
+        style={{ filter: dark ? "blur(30px) brightness(0.55)" : "blur(40px) brightness(1.6) grayscale(1)", transform: "scale(1.15)", opacity: dark ? 0.9 : 0.55 }}
+      />
+      <div className="relative shrink-0 flex items-center gap-2 px-2 pt-[max(1.25rem,env(safe-area-inset-top))] pb-2">
+        <button type="button" onClick={onClose} aria-label="Back" className={`w-10 h-10 rounded-full flex items-center justify-center ${text}`} style={glass}>
+          <ArrowLeft size={20} />
         </button>
         <div className="flex-1 min-w-0 text-center">
           <p className={`font-semibold text-[17px] ${text}`}>Weekly feedback</p>
         </div>
         <span className="w-10" />
       </div>
-      <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
-        {/* The film, on its own black stage. */}
-        <div className="bg-black px-3 pt-4 pb-5">
+      <div className="relative flex-1 overflow-y-auto overscroll-contain px-2 pb-16 space-y-2" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="pt-1">
           <CinematicVideoPlayer
             src={f.videoUrl}
             poster={f.posterUrl}
@@ -88,14 +115,37 @@ export function FeedbackFilmPage({ feedback: f, coachName, dark, onClose, onFirs
             onFirstPlay={onFirstPlay}
             maxHeight="68vh"
           />
-          <div className="flex items-center justify-between px-1 mt-3">
-            <p className="text-white/55 text-xs">{coachName ? `From ${coachName}` : "From your coach"}</p>
-            <p className="text-white/55 text-xs tabular-nums">{formatClock(f.duration)}</p>
+          <div className="flex items-center justify-between px-2 mt-2.5">
+            <p className={`text-xs ${muted}`}>{coachName ? `From ${coachName}` : "From your coach"}</p>
+            <p className={`text-xs tabular-nums ${muted}`}>{formatClock(f.duration)}</p>
           </div>
         </div>
-        <div className="px-5 pt-6 pb-16 max-w-2xl mx-auto">
+        {checkinHeadline.length > 0 && (
+          <div className="rounded-[22px] p-4" style={glass} data-testid="client-checkin-changes">
+            <div className="flex items-center justify-between">
+              <p className={`text-[10px] font-bold tracking-[0.16em] uppercase ${muted}`}>Answers your check-in</p>
+              {f.checkInDate && <span className={`text-[11px] ${muted}`}>{fmtShort(f.checkInDate)}</span>}
+            </div>
+            <div className="grid gap-2 mt-3" style={{ gridTemplateColumns: `repeat(${checkinHeadline.length}, minmax(0,1fr))` }}>
+              {checkinHeadline.map((c) => (
+                <div key={c.id} className="rounded-2xl p-3 text-center min-w-0" style={{ background: dark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.5)", border: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.06)" }}>
+                  <p className={`text-[20px] font-semibold tabular-nums ${text}`}>
+                    {c.prev}
+                    <span className={`mx-1 text-[14px] ${muted}`}>→</span>
+                    {c.now}
+                  </p>
+                  <p className={`text-[11px] truncate ${muted}`}>{c.label}</p>
+                  <p className="text-[10px] font-bold mt-0.5" style={{ color: c.verdict === "better" ? MEASURE_BLUE : dark ? "#fff" : "#0A0A0B" }}>
+                    {VERDICT[c.verdict]}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="rounded-[22px] px-5 pt-5 pb-3" style={glass}>
           <p className={`text-[11px] font-bold tracking-[0.14em] uppercase ${muted}`}>{f.checkInDate ? "Your check-in" : "Published"}</p>
-          <p className={`text-[22px] font-semibold mt-1 mb-6 ${text}`}>{fmtLong(f.checkInDate || f.publishedAt)}</p>
+          <p className={`text-[22px] font-semibold mt-1 mb-5 ${text}`}>{fmtLong(f.checkInDate || f.publishedAt)}</p>
           <VideoFeedbackSummary summary={f.summary} dark={dark} />
         </div>
       </div>
@@ -120,6 +170,14 @@ export default function ClientVideoFeedback({ userId, dark = false, autoOpenId =
   }, [autoOpenId, feedback, onAutoOpened]);
 
   const open = feedback.find((f) => f.id === openId) || null;
+  // The check-in this video answers, against the one before it (#220).
+  function headlineFor(f) {
+    if (!f?.checkInId) return [];
+    const responses = db.formResponses?.[userId] || EMPTY_LIST;
+    const response = responses.find((r) => r.id === f.checkInId);
+    const form = response ? (db.forms || []).find((x) => x.id === response.formId) : null;
+    return headlineChanges(checkinChanges(form, response, responses));
+  }
 
   function openFilm(f) {
     setOpenId(f.id);
@@ -171,7 +229,16 @@ export default function ClientVideoFeedback({ userId, dark = false, autoOpenId =
         </div>
       )}
 
-      {open && <FeedbackFilmPage feedback={open} coachName={coachName} dark={dark} onClose={() => setOpenId(null)} onFirstPlay={() => !open.viewedAt && markVideoFeedbackViewed(open.id)} />}
+      {open && (
+        <FeedbackFilmPage
+          feedback={open}
+          coachName={coachName}
+          dark={dark}
+          checkinHeadline={headlineFor(open)}
+          onClose={() => setOpenId(null)}
+          onFirstPlay={() => !open.viewedAt && markVideoFeedbackViewed(open.id)}
+        />
+      )}
     </div>
   );
 }

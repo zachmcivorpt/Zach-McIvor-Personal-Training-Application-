@@ -142,8 +142,8 @@ export default function CoachFeedbackPanel({ client, showToast, workspace, setWo
         {watching && (
           <div className="space-y-5">
             <CinematicVideoPlayer src={watching.videoUrl} poster={watching.posterUrl} width={watching.width} height={watching.height} duration={watching.duration} maxHeight="60vh" />
-            <div className="rounded-2xl bg-white px-5 py-5 text-black">
-              <VideoFeedbackSummary summary={watching.summary} />
+            <div className="rounded-[22px] px-5 py-5" style={{ background: "rgba(255,255,255,0.055)", border: "1px solid rgba(255,255,255,0.11)" }}>
+              <VideoFeedbackSummary summary={watching.summary} onDarkStage />
             </div>
           </div>
         )}

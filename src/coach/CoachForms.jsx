@@ -6,6 +6,7 @@ import { NotebookPen, Plus, ChevronLeft, ChevronUp, ChevronDown, Trash2, Type, H
 import { CHECKIN_TEMPLATES } from "../lib/checkinTemplates";
 import { DarkPanel } from "./darkUI";
 import { MEASURE_BLUE } from "../theme";
+import { higherIsWorse } from "../lib/videoFeedback/checkinChanges";
 
 const QUESTION_TYPES = [
   { type: "text", label: "Short text", icon: Type },
@@ -54,6 +55,19 @@ function QuestionRow({ q, index, total, onChange, onRemove, onMove }) {
             <input type="checkbox" checked={!!q.required} onChange={(e) => onChange({ ...q, required: e.target.checked })} className="accent-blue-500" />
             Required
           </label>
+          {q.type === "rating" && (
+            // Video feedback (#220) compares ratings week to week; for stress,
+            // soreness and the like a higher score is the worse one.
+            <label className="flex items-center gap-1.5 text-black/45 text-[11px] font-medium">
+              <input
+                type="checkbox"
+                checked={q.higherIsWorse ?? higherIsWorse(q)}
+                onChange={(e) => onChange({ ...q, higherIsWorse: e.target.checked })}
+                className="accent-blue-500"
+              />
+              Higher is worse
+            </label>
+          )}
         </div>
         {q.type === "choice" && (
           <div className="mt-2.5 space-y-1.5">

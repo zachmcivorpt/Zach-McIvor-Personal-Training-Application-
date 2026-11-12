@@ -104,11 +104,12 @@ describe("Video feedback workspace (#219)", () => {
     const rec = recorders[0];
     expect(rec.state).toBe("recording");
 
-    for (const name of ["Weight", "Nutrition", "Training", "Lifts", "Check-ins", "Photos", "Notes", "Overview"]) {
-      await act(async () => fireEvent.click(screen.getByRole("tab", { name })));
-      expect(screen.getByTestId(`info-section-${name === "Check-ins" ? "checkins" : name.toLowerCase()}`)).toBeTruthy();
+    const ids = { "This week": "week", "Check-in": "checkin" };
+    for (const name of ["Weight", "Nutrition", "Training", "Lifts", "Check-in", "Photos", "Notes", "This week"]) {
+      await act(async () => fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${name}`) })));
+      expect(screen.getByTestId(`info-section-${ids[name] || name.toLowerCase()}`)).toBeTruthy();
     }
-    expect(screen.getByText("81.7")).toBeTruthy(); // Overview shows the real latest weigh-in
+    expect(screen.getByText("81.7")).toBeTruthy(); // This week shows the real weigh-in average
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Hide client information" })));
     expect(screen.getByTestId("client-info-panel").dataset.collapsed).toBe("true");
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Show client information" })));

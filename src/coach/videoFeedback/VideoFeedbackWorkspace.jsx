@@ -16,7 +16,8 @@ import { X, Circle, Pause, Square, Loader2, Check, AlertTriangle, RotateCcw, Tra
 import { useApp } from "../../lib/AppContext";
 import { CoachGlass, GLASS, GLASS_BLUE, JARVIS_BACKDROP, GlassButton } from "../darkUI";
 import { MEASURE_BLUE } from "../../theme";
-import ClientInfoPanel from "./ClientInfoPanel";
+import ClientInfoPanel, { useClientSnapshot } from "./ClientInfoPanel";
+import { WeekStrip, DayGrid, LiftLists, CheckinSummary, CARD_GLASS } from "./WeeklyScorecard";
 import EditTimeline, { TimelinePreview } from "./EditTimeline";
 import { useFeedbackDraft } from "./useFeedbackDraft";
 import { useCameraRecorder, cameraRecordingSupported, MAX_TAKE_SECONDS } from "../../lib/videoFeedback/recorder";
@@ -173,10 +174,10 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
   const isWide = useIsWide();
 
   const [step, setStep] = useState("record");
-  const [section, setSection] = useState("overview");
+  const [section, setSection] = useState("week");
   const [collapsed, setCollapsed] = useState(false);
   const [split, setSplit] = useState(48); // % of width for the camera (iPad/desktop)
-  const [panelFrac, setPanelFrac] = useState(0.42); // share of height for the panel (iPhone)
+  const [panelFrac, setPanelFrac] = useState(0.58); // share of height for the panel (iPhone)
   const [selectedId, setSelectedId] = useState(null);
   const [playhead, setPlayhead] = useState(0);
   const [replaceTarget, setReplaceTarget] = useState(null); // segment id being re-recorded
@@ -192,6 +193,9 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
   const recorder = useCameraRecorder({ projectKey: projectKeyFor(coachUid, client.id), onTakeStarted: draft.takeStarted });
   const recActive = recorder.state === "recording" || recorder.state === "paused" || recorder.state === "saving";
   const supported = cameraRecordingSupported();
+
+  const [snapshotNow] = useState(() => Date.now());
+  const { data: snapshot } = useClientSnapshot(client, snapshotNow, project?.checkInId || checkInId);
 
   const segments = project?.segments || [];
   const sources = project?.sources || {};
@@ -402,9 +406,12 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
 
   const page = (
     <CoachGlass>
-      <div className="fixed inset-0 z-[95] flex flex-col pt-safe" style={JARVIS_BACKDROP} data-testid="video-feedback-workspace" role="dialog" aria-label="Video feedback">
+      <div className="fixed inset-0 z-[95] flex flex-col pt-safe overflow-hidden" style={JARVIS_BACKDROP} data-testid="video-feedback-workspace" role="dialog" aria-label="Video feedback">
+        {/* The glass needs something to blur: the APEX gym photo, softly. */}
+        <img src="/brand/gym-dark.jpg" alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 w-full h-full object-cover" style={{ filter: "blur(30px) brightness(0.5)", transform: "scale(1.15)", opacity: 0.9 }} />
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(60% 40% at 85% 0%, rgba(47,143,255,0.14), transparent 70%), radial-gradient(50% 40% at 0% 100%, rgba(47,143,255,0.08), transparent 70%)" }} />
         {/* Header */}
-        <div className="shrink-0 flex items-center gap-3 px-3 md:px-5 h-14 border-b border-white/[0.07]">
+        <div className="relative shrink-0 flex items-center gap-3 px-3 md:px-5 h-14 border-b border-white/[0.07]">
           <button
             type="button"
             onClick={() => (recActive || publish.status === "publishing" ? showToast?.(recActive ? "Stop the recording first" : "Publishing — one moment", true) : onClose())}
@@ -428,12 +435,12 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
             <HardDrive size={12} /> {saveLabel}
           </p>
         </div>
-        <div className="md:hidden shrink-0 px-3 py-2 border-b border-white/[0.07]">
+        <div className="relative md:hidden shrink-0 px-2 py-2 border-b border-white/[0.07]">
           <StepTabs step={step} setStep={setStep} locked={!canLeaveRecord} hasClips={segments.length > 0} />
         </div>
 
         {(draft.notice || storageNote || draftForOtherCheckIn || !isPersistent() || !supported) && (
-          <div className="shrink-0 px-4 py-2 text-[12px] text-white/75 border-b border-white/[0.07] space-y-1" style={{ background: "rgba(47,143,255,0.06)" }}>
+          <div className="relative shrink-0 px-4 py-2 text-[12px] text-white/75 border-b border-white/[0.07] space-y-1" style={{ background: "rgba(47,143,255,0.06)" }}>
             {!supported && <p>This device can't record from the camera here. On iPhone, update APEX from the App Store; on a computer, use Chrome or Safari.</p>}
             {draft.notice && <p>{draft.notice}</p>}
             {!isPersistent() && <p>This browser can't keep recordings on the device — don't reload until you've published.</p>}
@@ -450,11 +457,11 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
         )}
 
         {!ready ? (
-          <div className="flex-1 flex items-center justify-center text-white/60 text-sm gap-2" data-apex-loading>
+          <div className="relative flex-1 flex items-center justify-center text-white/60 text-sm gap-2" data-apex-loading>
             <Loader2 size={16} className="animate-spin" /> Opening your draft…
           </div>
         ) : step === "record" || step === "edit" ? (
-          <div ref={bodyRef} className={`flex-1 min-h-0 flex ${isWide ? "flex-row" : "flex-col"} gap-0 p-2 md:p-3`} data-testid="workspace-body" data-layout={isWide ? "side" : "stacked"}>
+          <div ref={bodyRef} className={`relative flex-1 min-h-0 flex ${isWide ? "flex-row" : "flex-col"} gap-0 p-2`} data-testid="workspace-body" data-layout={isWide ? "side" : "stacked"}>
             {/* Camera / preview column */}
             <div className="relative min-w-0 min-h-0 flex flex-col gap-2" style={stageStyle} data-testid="stage-column">
               <div className="relative flex-1 min-h-[140px] rounded-2xl overflow-hidden" style={{ boxShadow: "0 0 0 1px rgba(255,255,255,0.08)" }}>
@@ -527,24 +534,40 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
             )}
 
             {/* Client information */}
-            <div className={`min-w-0 min-h-0 rounded-2xl overflow-hidden ${collapsed && !isWide ? "mt-2" : ""} ${collapsed && isWide ? "ml-2" : ""}`} style={{ ...GLASS, ...panelStyle }}>
+            <div className={`min-w-0 min-h-0 rounded-2xl overflow-hidden ${collapsed && !isWide ? "mt-2" : ""} ${collapsed && isWide ? "ml-2" : ""}`} style={{ ...(collapsed ? GLASS : null), ...panelStyle }}>
               <ClientInfoPanel
                 client={client}
                 checkInId={project.checkInId}
-                checkInDate={project.checkInDate}
                 section={section}
                 onSection={setSection}
                 collapsed={collapsed}
                 onToggleCollapsed={() => setCollapsed((c) => !c)}
                 layout={isWide ? "side" : "bottom"}
+                compact={!isWide}
               />
             </div>
           </div>
         ) : step === "write" ? (
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-            <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 pb-24">
-              <SummaryEditor summary={project.summary} onChange={draft.setSummary} clientName={client.name} />
-              <div className="mt-6 flex justify-end">
+          <div className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain">
+            <div className="p-2 pb-24">
+              <SummaryEditor
+                summary={project.summary}
+                onChange={draft.setSummary}
+                clientName={client.name}
+                context={
+                  <>
+                    <WeekStrip week={snapshot.week} nutritionScore={snapshot.nutritionScore} />
+                    {snapshot.linkedChanges.keyChanges.length > 0 && (
+                      <CheckinSummary response={snapshot.responses.find((r) => r.id === project.checkInId)} formName={null} changes={{ ...snapshot.linkedChanges, ratings: [], answers: [] }} compact />
+                    )}
+                    <div className="grid gap-2.5 lg:grid-cols-2">
+                      <DayGrid week={snapshot.week} compact />
+                      <LiftLists week={snapshot.week} />
+                    </div>
+                  </>
+                }
+              />
+              <div className="mt-3 flex justify-end">
                 <GlassButton tone="blue" onClick={() => setStep("publish")} disabled={!summaryOk || !segments.length}>
                   Review & publish
                 </GlassButton>
@@ -553,6 +576,7 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
           </div>
         ) : (
           <PublishStep
+            snapshot={snapshot}
             client={client}
             project={project}
             total={total}
@@ -570,7 +594,7 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
 
         {/* Footer: discard + save state (phones) */}
         {ready && publish.status !== "done" && (
-          <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-2 pb-safe border-t border-white/[0.07]">
+          <div className="relative shrink-0 flex items-center justify-between gap-3 px-4 py-2 pb-safe border-t border-white/[0.07]">
             <p className="lg:hidden flex items-center gap-1.5 text-white/45 text-[11px] truncate">
               <HardDrive size={12} /> {saveLabel}
             </p>
@@ -631,7 +655,8 @@ function StepTabs({ step, setStep, locked, hasClips }) {
             aria-selected={step === s.id}
             disabled={disabled}
             onClick={() => setStep(s.id)}
-            className={`flex-1 md:flex-none h-8 px-3 md:px-4 rounded-lg text-xs font-bold tracking-[0.04em] transition-colors disabled:opacity-35 ${step === s.id ? "bg-white text-black" : "text-white/75"}`}
+            className={`flex-1 md:flex-none h-8 px-3 md:px-4 rounded-lg text-xs font-bold tracking-[0.04em] transition-colors disabled:opacity-35 ${step === s.id ? "text-white" : "text-white/75"}`}
+            style={step === s.id ? GLASS_BLUE : { border: "1px solid transparent" }}
           >
             <span className="tabular-nums mr-1.5 opacity-50">{i + 1}</span>
             {s.label}
@@ -650,11 +675,11 @@ function ProgressLine({ value }) {
   );
 }
 
-function PublishStep({ client, project, total, render, onRender, publish, onPublish, summaryOk, onWrite, onRecord, onClose, existing }) {
+function PublishStep({ snapshot, client, project, total, render, onRender, publish, onPublish, summaryOk, onWrite, onRecord, onClose, existing }) {
   const first = client.name?.split(" ")[0] || "your client";
   if (publish.status === "done") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-6" data-testid="publish-done">
+      <div className="relative flex-1 flex flex-col items-center justify-center text-center px-6" data-testid="publish-done">
         <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5" style={GLASS_BLUE}>
           <Check size={28} className="text-white" />
         </div>
@@ -670,11 +695,11 @@ function PublishStep({ client, project, total, render, onRender, publish, onPubl
   const publishing = publish.status === "publishing";
   const canPublish = summaryOk && project.segments.length > 0 && !publishing;
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" data-testid="publish-step">
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 pb-24 grid lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
-        <div>
-          <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-white/50 mb-3">Exactly what {first} will see</p>
-          <div className="rounded-[22px] p-3 md:p-5" style={{ background: "#000" }}>
+    <div className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain" data-testid="publish-step">
+      <div className="p-2 pb-24 grid lg:grid-cols-[minmax(0,1fr)_380px] gap-2">
+        <div className="rounded-[22px] p-3 md:p-4 space-y-3 min-w-0" style={CARD_GLASS}>
+          <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-white/50">Exactly what {first} will see</p>
+          <div>
             {render.status === "ready" ? (
               <CinematicVideoPlayer src={render.url} poster={render.posterUrl} width={project.render?.width} height={project.render?.height} duration={total} maxHeight="60vh" />
             ) : (
@@ -699,11 +724,9 @@ function PublishStep({ client, project, total, render, onRender, publish, onPubl
               </div>
             )}
           </div>
-          <div className="mt-5 rounded-2xl bg-white px-5 py-5 text-black">
-            {summaryOk ? <VideoFeedbackSummary summary={project.summary} /> : <p className="text-black/40 text-sm">No written overview yet.</p>}
-          </div>
+          <WeekStrip week={snapshot.week} nutritionScore={snapshot.nutritionScore} />
         </div>
-        <div className="lg:sticky lg:top-6 self-start space-y-5">
+        <div className="lg:sticky lg:top-2 self-start space-y-4 rounded-[22px] p-4 md:p-5 min-w-0" style={CARD_GLASS}>
           <div className="divide-y divide-white/[0.08]">
             <Row ok={project.segments.length > 0} label="Video" value={project.segments.length ? `${formatClock(total)} · ${project.segments.length} clip${project.segments.length === 1 ? "" : "s"}` : "Not recorded"} action={!project.segments.length ? { label: "Record", onClick: onRecord } : null} />
             <Row ok={summaryOk} label="Written overview" value={summaryOk ? "Ready" : "Overall note missing"} action={{ label: summaryOk ? "Edit" : "Write", onClick: onWrite }} />
@@ -736,6 +759,9 @@ function PublishStep({ client, project, total, render, onRender, publish, onPubl
             {publishing ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
             {publishing ? "PUBLISHING…" : publish.status === "error" ? "RETRY PUBLISH" : existing ? "PUBLISH NEW VERSION" : "PUBLISH FEEDBACK"}
           </button>
+          <div className="border-t border-white/[0.08] pt-4">
+            {summaryOk ? <VideoFeedbackSummary summary={project.summary} onDarkStage /> : <p className="text-white/40 text-sm">No written overview yet.</p>}
+          </div>
         </div>
       </div>
     </div>

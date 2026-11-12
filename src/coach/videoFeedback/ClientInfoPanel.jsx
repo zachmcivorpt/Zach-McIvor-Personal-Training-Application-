@@ -24,16 +24,20 @@ import { MEASURE_BLUE } from "../../theme";
 import { resolveNutritionTargets } from "../../lib/nutritionTargets";
 import { BODY_FAT_CONFIG, BODY_MEASUREMENTS_CONFIG, LEAN_MASS_CONFIG } from "../../components/ProgressWidgets";
 import { localDateKey } from "../../lib/dateKey";
-import { liftProgress, measurementChanges, nutritionWeek, trainingWeek, weightSummary } from "./clientSnapshot";
+import { liftProgress, measurementChanges, nutritionWeek, trainingWeek, weightSummary, weekScorecard } from "./clientSnapshot";
+import { computePlateaus } from "../../lib/trainingStats";
+import { adherenceWindows } from "../CoachClientDetail";
+import { checkinChanges } from "../../lib/videoFeedback/checkinChanges";
+import { WeekRings, WeekFigures, DayGrid, LiftLists, CheckinSummary, GlassCard } from "./WeeklyScorecard";
 import { formatClock } from "../../lib/videoFeedback/timeline";
 
 export const INFO_SECTIONS = [
-  { id: "overview", label: "Overview", icon: LayoutGrid },
+  { id: "week", label: "This week", icon: LayoutGrid },
+  { id: "checkin", label: "Check-in", icon: ClipboardList },
   { id: "weight", label: "Weight", icon: Scale },
   { id: "nutrition", label: "Nutrition", icon: Utensils },
   { id: "training", label: "Training", icon: Dumbbell },
   { id: "lifts", label: "Lifts", icon: TrendingUp },
-  { id: "checkins", label: "Check-ins", icon: ClipboardList },
   { id: "photos", label: "Photos", icon: ImageIcon },
   { id: "notes", label: "Notes", icon: NotebookPen },
 ];
@@ -109,29 +113,6 @@ function WeightChart({ series }) {
         <span>{fmtShort(t1)}</span>
       </div>
     </div>
-  );
-}
-
-function OverviewSection({ client, data, checkInDate }) {
-  const { weight, nutrition, training, targets } = data;
-  return (
-    <>
-      <Section first>
-        <p className="text-white text-lg font-semibold">{client.name}</p>
-        {client.preferences?.goals && <p className="text-white/60 text-sm mt-1 leading-snug">{client.preferences.goals}</p>}
-        {checkInDate && <p className="text-white/45 text-xs mt-2">Answering the check-in from {fmtDay(checkInDate)}</p>}
-      </Section>
-      <Section title="This week">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-5">
-          <Figure value={weight.latest ? weight.latest.weight.toFixed(1) : "–"} unit="kg" label={`Weight · ${signed(weight.change7, " kg")} in 7 days`} />
-          <Figure value={`${training.plannedDone}/${training.planned.length}`} label="Planned sessions done" accent />
-          <Figure value={`${nutrition.loggedCount}/7`} label="Days with food logged" />
-          <Figure value={nutrition.avgCalories ?? "–"} unit="kcal" label={`Average · target ${targets.calories}`} />
-          <Figure value={nutrition.avgProtein ?? "–"} unit="g" label={`Protein · target ${targets.protein} g`} />
-          <Figure value={training.completed7} label="Sessions in the last 7 days" />
-        </div>
-      </Section>
-    </>
   );
 }
 
@@ -358,77 +339,6 @@ function LiftsSection({ data }) {
   );
 }
 
-function CheckInsSection({ data, checkInId }) {
-  const { responses, formsById, previousFeedback } = data;
-  const [openId, setOpenId] = useState(checkInId || responses[0]?.id || null);
-  return (
-    <>
-      <Section first title="Check-in responses">
-        {responses.length === 0 && <Empty>No check-ins submitted yet.</Empty>}
-        {responses.slice(0, 8).map((r) => {
-          const form = formsById[r.formId];
-          const open = openId === r.id;
-          return (
-            <div key={r.id} className={`border-t ${RULE} first:border-t-0`}>
-              <button type="button" onClick={() => setOpenId(open ? null : r.id)} className="w-full flex items-center gap-3 py-2.5 text-left">
-                <span className="flex-1 min-w-0">
-                  <span className="block text-white text-sm font-medium truncate">{form?.name || "Check-in"}</span>
-                  <span className="block text-white/45 text-[11px]">
-                    {fmtDay(r.date)}
-                    {r.id === checkInId && " · this check-in"}
-                  </span>
-                </span>
-                <ChevronDown size={15} className={`text-white/50 transition-transform ${open ? "rotate-180" : ""}`} />
-              </button>
-              {open && (
-                <div className="pb-3 space-y-3">
-                  {(form?.questions || []).map((q) => (
-                    <div key={q.id}>
-                      <p className="text-white/45 text-[11px]">{q.label || "Question"}</p>
-                      {q.type === "photo" && r.answers?.[q.id] ? (
-                        <img src={r.answers[q.id]} alt="" className="mt-1 rounded-lg max-h-40 object-cover" />
-                      ) : (
-                        <p className="text-white text-sm mt-0.5 whitespace-pre-line">
-                          {q.type === "rating" && r.answers?.[q.id] ? `${r.answers[q.id]} / 5` : r.answers?.[q.id] || "–"}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </Section>
-      {previousFeedback.length > 0 && (
-        <Section title="Your previous feedback">
-          {previousFeedback.slice(0, 4).map((f) => (
-            <div key={f.id} className={`py-2.5 border-t ${RULE} first:border-t-0`}>
-              <p className="text-white/45 text-[11px]">
-                {fmtDay(f.publishedAt)} · {formatClock(f.duration)}
-              </p>
-              {(f.summary?.priorities || []).length > 0 ? (
-                <ol className="mt-1 space-y-0.5">
-                  {f.summary.priorities.map((p, i) => (
-                    <li key={i} className="text-white/80 text-sm">
-                      <span className="tabular-nums mr-2" style={{ color: MEASURE_BLUE }}>
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      {p}
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="text-white/80 text-sm mt-1 line-clamp-3">{f.summary?.overall}</p>
-              )}
-            </div>
-          ))}
-        </Section>
-      )}
-    </>
-  );
-}
-
 function PhotosSection({ data }) {
   const [index, setIndex] = useState(null);
   const photos = data.photos;
@@ -483,7 +393,81 @@ function NotesSection({ data }) {
   );
 }
 
-export function useClientSnapshot(client, now) {
+function WeekSection({ client, data, compact }) {
+  return (
+    <div className="space-y-2.5 pt-2">
+      {client.preferences?.goals && <p className="text-white/55 text-[12px] px-1 truncate">Goal · {client.preferences.goals}</p>}
+      <WeekRings week={data.week} nutritionScore={data.nutritionScore} compact={compact} />
+      <WeekFigures week={data.week} targets={data.targets} columns={compact ? 2 : 4} />
+      <DayGrid week={data.week} compact={compact} />
+      <LiftLists week={data.week} />
+    </div>
+  );
+}
+
+function CheckInSection({ data, checkInId, compact }) {
+  const { responses, formsById, previousFeedback } = data;
+  const linked = responses.find((r) => r.id === checkInId) || null;
+  const [openId, setOpenId] = useState(null);
+  const others = responses.filter((r) => r.id !== checkInId).slice(0, 8);
+  return (
+    <div className="space-y-2.5 pt-2">
+      <CheckinSummary response={linked} formName={linked ? formsById[linked.formId]?.name : null} changes={data.linkedChanges} compact={compact} />
+      {others.length > 0 && (
+        <GlassCard padding={compact ? 14 : 18}>
+          <Label className="mb-2">Earlier check-ins</Label>
+          {others.map((r) => {
+            const open = openId === r.id;
+            return (
+              <div key={r.id} className={`border-t ${RULE} first:border-t-0`}>
+                <button type="button" onClick={() => setOpenId(open ? null : r.id)} className="w-full flex items-center gap-3 py-2.5 text-left">
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-white text-sm font-medium truncate">{formsById[r.formId]?.name || "Check-in"}</span>
+                    <span className="block text-white/45 text-[11px]">{fmtDay(r.date)}</span>
+                  </span>
+                  <ChevronDown size={15} className={`text-white/50 transition-transform ${open ? "rotate-180" : ""}`} />
+                </button>
+                {open && (
+                  <div className="pb-3">
+                    <CheckinSummary response={r} formName={formsById[r.formId]?.name} changes={checkinChanges(formsById[r.formId], r, responses)} linked={false} compact />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </GlassCard>
+      )}
+      {previousFeedback.length > 0 && (
+        <GlassCard padding={compact ? 14 : 18}>
+          <Label className="mb-2">Your previous feedback</Label>
+          {previousFeedback.slice(0, 4).map((f) => (
+            <div key={f.id} className={`py-2.5 border-t ${RULE} first:border-t-0`}>
+              <p className="text-white/45 text-[11px]">
+                {fmtDay(f.publishedAt)} · {formatClock(f.duration)}
+              </p>
+              {(f.summary?.priorities || []).length > 0 ? (
+                <ol className="mt-1 space-y-0.5">
+                  {f.summary.priorities.map((p, i) => (
+                    <li key={i} className="text-white/80 text-sm">
+                      <span className="tabular-nums mr-2" style={{ color: MEASURE_BLUE }}>
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      {p}
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="text-white/80 text-sm mt-1 line-clamp-3">{f.summary?.overall}</p>
+              )}
+            </div>
+          ))}
+        </GlassCard>
+      )}
+    </div>
+  );
+}
+
+export function useClientSnapshot(client, now, checkInId = null) {
   const { db } = useApp();
   const id = client.id;
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
@@ -504,16 +488,36 @@ export function useClientSnapshot(client, now) {
       previousFeedback: db.videoFeedback?.[id] || [],
       photos: db.progressPhotos?.[id] || [],
       notes: db.clientNotes?.[id] || [],
+      week: weekScorecard({
+        workoutLogs: db.workoutLogs?.[id],
+        scheduledWorkouts: db.scheduledWorkouts?.[id],
+        nutritionLogs: db.nutritionLogs?.[id],
+        bodyMetrics: db.bodyMetrics?.[id],
+        weighIns: db.weighIns?.[id],
+        targets,
+        exercisesById,
+        plateaus: computePlateaus(db.workoutLogs?.[id] || [], exercisesById),
+        now,
+      }),
+      // Same score as the client page's Nutrition Adherence card (last 7 completed days).
+      nutritionScore: adherenceWindows(db.nutritionLogs?.[id] || [], targets, 7).current.score,
     };
   }, [db, id, client.nutritionTargets, exercisesById, now]);
-  return { data, exercisesById };
+  const linkedChanges = useMemo(() => {
+    const responses = db.formResponses?.[id] || [];
+    const response = responses.find((r) => r.id === checkInId) || null;
+    const form = response ? (db.forms || []).find((f) => f.id === response.formId) : null;
+    return checkinChanges(form, response, responses);
+  }, [db.formResponses, db.forms, id, checkInId]);
+  return { data: { ...data, linkedChanges }, exercisesById };
 }
 
 // collapsed: the panel shrinks to a strip of section icons; tapping one
 // opens it again on that section.
-export default function ClientInfoPanel({ client, checkInId, checkInDate, section, onSection, collapsed, onToggleCollapsed, layout = "side" }) {
+export default function ClientInfoPanel({ client, checkInId, section, onSection, collapsed, onToggleCollapsed, layout = "side", compact = false }) {
   const [now] = useState(() => Date.now());
-  const { data, exercisesById } = useClientSnapshot(client, now);
+  const { data, exercisesById } = useClientSnapshot(client, now, checkInId);
+  const linkedWorse = data.linkedChanges.keyChanges.length;
 
   if (collapsed) {
     return (
@@ -542,7 +546,7 @@ export default function ClientInfoPanel({ client, checkInId, checkInDate, sectio
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="client-info-panel" data-collapsed="false">
-      <div className={`flex items-center gap-1 px-2 py-2 border-b ${RULE} shrink-0`}>
+      <div className="flex items-center gap-1 px-1 pb-1 shrink-0">
         <div
           className="flex-1 flex gap-1 overflow-x-auto no-scrollbar"
           role="tablist"
@@ -558,10 +562,16 @@ export default function ClientInfoPanel({ client, checkInId, checkInDate, sectio
                 role="tab"
                 aria-selected={active}
                 onClick={() => onSection(s.id)}
-                className={`shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold transition-colors ${active ? "bg-white text-black" : "text-white/70 hover:text-white"}`}
+                className={`shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold transition-colors ${active ? "text-white" : "text-white/70 hover:text-white"}`}
+                style={active ? { background: "rgba(47,143,255,0.10)", border: "1px solid rgba(47,143,255,0.55)", boxShadow: "0 0 14px rgba(47,143,255,0.25)" } : { border: "1px solid transparent" }}
               >
                 <s.icon size={13} />
                 {s.label}
+                {s.id === "checkin" && linkedWorse > 0 && (
+                  <span className="ml-0.5 min-w-4 h-4 px-1 rounded-full text-[9px] text-white flex items-center justify-center" style={{ background: MEASURE_BLUE }} aria-label={`${linkedWorse} key changes`}>
+                    {linkedWorse}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -570,15 +580,19 @@ export default function ClientInfoPanel({ client, checkInId, checkInDate, sectio
           <PanelRightClose size={17} />
         </button>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-6" data-testid={`info-section-${section}`}>
-        {section === "overview" && <OverviewSection client={client} data={data} checkInDate={checkInDate} />}
-        {section === "weight" && <WeightSection data={data} />}
-        {section === "nutrition" && <NutritionSection data={data} />}
-        {section === "training" && <TrainingSection data={data} exercisesById={exercisesById} />}
-        {section === "lifts" && <LiftsSection data={data} />}
-        {section === "checkins" && <CheckInsSection data={data} checkInId={checkInId} />}
-        {section === "photos" && <PhotosSection data={data} />}
-        {section === "notes" && <NotesSection data={data} />}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-4" data-testid={`info-section-${section}`}>
+        {section === "week" && <WeekSection client={client} data={data} compact={compact} />}
+        {section === "checkin" && <CheckInSection data={data} checkInId={checkInId} compact={compact} />}
+        {!["week", "checkin"].includes(section) && (
+          <GlassCard className="mt-2" padding={compact ? 14 : 18}>
+            {section === "weight" && <WeightSection data={data} />}
+            {section === "nutrition" && <NutritionSection data={data} />}
+            {section === "training" && <TrainingSection data={data} exercisesById={exercisesById} />}
+            {section === "lifts" && <LiftsSection data={data} />}
+            {section === "photos" && <PhotosSection data={data} />}
+            {section === "notes" && <NotesSection data={data} />}
+          </GlassCard>
+        )}
       </div>
     </div>
   );
