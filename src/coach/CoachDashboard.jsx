@@ -10,7 +10,7 @@ import { computeApexInsights } from "../lib/apexInsights";
 import { buildRecentActivity } from "../lib/recentActivity";
 import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED } from "../theme";
 import { DarkPage, DarkPanel } from "./darkUI";
-import { phaseAlert, mealPlanAlert, recentMissedSession, daysBetweenKeys } from "./endingSoon";
+import { phaseAlert, mealPlanAlert, recentMissedSession, daysBetweenKeys, NEEDS_ATTENTION_MAX_AGE_DAYS } from "./endingSoon";
 import { BevelGlassMark, GLASS_HEADING_STYLE } from "../components/GlassMark";
 
 import {
@@ -661,7 +661,9 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
       : c.createdAt
         ? Math.floor((Date.now() - c.createdAt) / 86400000)
         : null;
-    if (daysSinceFood !== null && daysSinceFood >= NUTRITION_QUIET_DAYS) {
+    // #229: only a client who stopped recently (or joined recently) — not
+    // one who hasn't logged food in months.
+    if (daysSinceFood !== null && daysSinceFood >= NUTRITION_QUIET_DAYS && daysSinceFood <= NEEDS_ATTENTION_MAX_AGE_DAYS) {
       needsAttention.push({
         id: `nutrition-${c.id}`,
         client: c,
@@ -685,7 +687,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
     const lastOpenedAt = c.lastActiveAt || c.lastLoginAt;
     const daysSinceLogin = lastOpenedAt ? Math.floor((Date.now() - lastOpenedAt) / 86400000) : null;
 
-    if (daysSinceWorkout !== null && daysSinceWorkout >= QUIET_DAYS && (daysSinceLogin === null || daysSinceLogin >= QUIET_DAYS)) {
+    if (daysSinceWorkout !== null && daysSinceWorkout >= QUIET_DAYS && daysSinceWorkout <= NEEDS_ATTENTION_MAX_AGE_DAYS && (daysSinceLogin === null || daysSinceLogin >= QUIET_DAYS)) {
       needsAttention.push({
         id: `quiet-${c.id}`,
         client: c,
@@ -711,7 +713,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
     }
 
     const weighIns = db.weighIns[c.id] || [];
-    if (weighIns.length >= 2) {
+    if (weighIns.length >= 2 && weighIns[weighIns.length - 1].date >= Date.now() - NEEDS_ATTENTION_MAX_AGE_DAYS * 86400000) {
       const latest = weighIns[weighIns.length - 1];
       const priorOptions = weighIns.filter((w) => latest.date - w.date >= 13 * 86400000);
       const prior = priorOptions[priorOptions.length - 1];
@@ -774,8 +776,8 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           a bevelled frosted-glass APEX mark in the background to the right
           and the greeting + count in matching glass type. Every number is a
           button to the same place its old stat tile went. */}
-      <div className="relative px-5 pt-4 pb-1 sm:px-7 sm:pt-7 min-h-[124px] sm:min-h-[220px]" data-testid="overview-hero">
-        <div className="absolute pointer-events-none -right-5 -top-4 sm:right-6 sm:-top-14" role="img" aria-label="APEX" data-testid="overview-mark">
+      <div className="relative overflow-x-clip px-5 pt-4 pb-1 sm:px-7 sm:pt-7 min-h-[124px] sm:min-h-[220px]" data-testid="overview-hero">
+        <div className="absolute pointer-events-none right-0 -top-4 sm:right-6 sm:-top-14" role="img" aria-label="APEX" data-testid="overview-mark">
           <span className="sm:hidden">
             <BevelGlassMark size={130} />
           </span>

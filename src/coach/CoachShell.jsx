@@ -294,7 +294,7 @@ export default function CoachShell() {
           instead of growing the (now non-scrolling) root to fit it. */}
       <div
         ref={mainRef}
-        className="flex-1 min-w-0 pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+        className="flex-1 min-w-0 pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)] overflow-y-auto overflow-x-hidden overscroll-contain [-webkit-overflow-scrolling:touch]"
       >
         {/* Centred on very wide screens (#190); keyed so each tab fades in. */}
         <div key={tab} className="coach-tab-in mx-auto w-full max-w-[1440px]">

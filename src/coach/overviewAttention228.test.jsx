@@ -32,7 +32,7 @@ describe("phase and meal guide alerts (#228)", () => {
     // starts 3 Nov, 2 weeks → last day 16 Nov = 4 days out
     expect(mealPlanAlert(c, plan("2026-11-03", 2), TODAY)).toMatchObject({ kind: "mealPlan", tab: "nutrition", title: "Meal guide ending" });
     expect(mealPlanAlert(c, plan("2026-11-04", 2), TODAY)).toBeNull(); // 5 days out
-    expect(mealPlanAlert(c, plan("2026-10-01", 2), TODAY)).toMatchObject({ title: "Meal guide ended" });
+    expect(mealPlanAlert(c, plan("2026-10-20", 2), TODAY)).toMatchObject({ title: "Meal guide ended" }); // ended 2 Nov (#229: ≤14 days)
   });
   it("only misses from the last week count", () => {
     const logged = new Set(["2026-11-10"]);

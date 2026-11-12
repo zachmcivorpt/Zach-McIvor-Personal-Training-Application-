@@ -5,7 +5,10 @@
 import { mealPlanEndDateKey, isMealPlanEnded } from "../lib/mealPlanEnd";
 
 export const ENDING_SOON_DAYS = 4;
-const ENDED_LOOKBACK_DAYS = 14;
+// #229 (owner): "stop putting old things in Needs attention" — nothing in
+// it is about something older than this.
+export const NEEDS_ATTENTION_MAX_AGE_DAYS = 14;
+const ENDED_LOOKBACK_DAYS = NEEDS_ATTENTION_MAX_AGE_DAYS;
 
 function keyToUTC(key) {
   const [y, m, d] = key.split("-").map(Number);
@@ -51,6 +54,8 @@ export function mealPlanAlert(client, plan, todayKey) {
   const end = mealPlanEndDateKey(plan);
   if (!end) return null;
   if (isMealPlanEnded(plan, todayKey)) {
+    // #229: an ended guide is flagged for two weeks, not for good.
+    if (daysBetweenKeys(end, todayKey) > ENDED_LOOKBACK_DAYS) return null;
     return {
       id: `mealplan-${client.id}-${end}`,
       client,
