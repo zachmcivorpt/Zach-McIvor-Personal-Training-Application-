@@ -263,6 +263,17 @@ service cloud.firestore {
       allow update, delete: if isCoach();
     }
 
+    // --- videoFeedback/{id}: the coach's published weekly video feedback
+    //     (#219). Created only when the coach presses Publish (recording
+    //     and editing never write here). The client can read their own and
+    //     change nothing but their "watched" time. ---
+    match /videoFeedback/{id} {
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
+      allow create, delete: if isCoach();
+      allow update: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["viewedAt"]));
+    }
+
     // --- clientNotes: private trainer notes. The client app never reads
     //     this collection — keep it that way at the rules level too. ---
     match /clientNotes/{id} {

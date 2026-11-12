@@ -19,8 +19,9 @@ export default async function handler(req, res) {
     return;
   }
 
+  let callerUid;
   try {
-    await requireUid(req);
+    callerUid = await requireUid(req);
   } catch (err) {
     res.status(err.statusCode || 401).json({ error: err.message });
     return;
@@ -125,6 +126,28 @@ export default async function handler(req, res) {
         if (coachId) {
           await notifyUser(db, messaging, coachId, { title: "New check-in submitted", body: "A client just submitted a check-in — tap to review." }, "checkins");
         }
+        break;
+      }
+
+      // Coach video feedback (#219), called by the coach's Publish after the
+      // doc is saved. Only the coach can trigger it (a client can't make
+      // the app tell itself, or anyone else, that feedback is ready).
+      case "videoFeedback": {
+        const coachId = await getCoachId(db);
+        if (!coachId || callerUid !== coachId) break;
+        const snap = await db.collection("videoFeedback").doc(id).get();
+        if (!snap.exists) break;
+        const f = snap.data();
+        if (!f.clientId) break;
+        await notifyUser(
+          db,
+          messaging,
+          f.clientId,
+          req.body?.update
+            ? { title: "Your coach updated your feedback", body: "Your weekly video feedback has a new version — tap to watch." }
+            : { title: "Your weekly feedback is ready", body: "Your coach recorded a video for you — tap to watch." },
+          "checkins"
+        );
         break;
       }
 

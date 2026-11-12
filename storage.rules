@@ -51,6 +51,24 @@ service firebase.storage {
           (request.resource.contentType.matches('video/.*') && request.resource.size < 25 * 1024 * 1024)
         );
     }
+    match /coachVideoFeedback/{clientId}/{fileName} {
+      // Coach video feedback (#219): only the finished video and its
+      // thumbnail, uploaded on Publish. Readable by that one client and the
+      // coach only (not every signed-in account, unlike chat attachments);
+      // only the coach can upload, replace or delete. The video cap matches
+      // MAX_FEEDBACK_VIDEO_BYTES in src/lib/storage.js.
+      allow read: if request.auth != null &&
+        (request.auth.uid == clientId ||
+         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "coach");
+      allow create, update: if request.auth != null &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "coach" &&
+        (
+          (request.resource.contentType.matches('video/.*') && request.resource.size < 600 * 1024 * 1024) ||
+          (request.resource.contentType.matches('image/.*') && request.resource.size < 8 * 1024 * 1024)
+        );
+      allow delete: if request.auth != null &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "coach";
+    }
     match /soloProgramArt/{fileName} {
       // Train Solo program cover artwork — public read (the catalogue
       // loads it pre-login), coach-only write. Same shape and size cap as

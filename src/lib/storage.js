@@ -3,7 +3,7 @@
 // PDF and profile photos stay base64 since they're capped small; a
 // form-check video or a real client-facing PDF is routinely too big for
 // Firestore's 1MB-per-document limit).
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "./firebase";
 import { maybeCompressVideo, ensureFastStart } from "./videoCompress";
 import { compressImageFile } from "./image";
@@ -228,4 +228,45 @@ export function uploadSoloProgramArtwork(programId, file, onProgress) {
     );
   }
   return uploadToPath(`soloProgramArt/${programId}_${Date.now()}_${file.name}`, file, "image", "Image", onProgress);
+}
+
+// Coach video feedback (#219). Only the FINISHED video and its thumbnail
+// are ever uploaded, and only when the coach presses Publish — recording
+// and editing stay on the coach's device (src/lib/videoFeedback/). The
+// path carries the client's id so storage.rules can let only that client
+// (and the coach) read it.
+export const MAX_FEEDBACK_VIDEO_BYTES = 600 * 1024 * 1024; // keep in step with storage.rules
+export async function uploadFeedbackVideo(clientId, feedbackId, version, file, onProgress) {
+  if (!/^video\//.test(file?.type || "")) throw new Error("The finished video couldn't be read.");
+  if (file.size > MAX_FEEDBACK_VIDEO_BYTES) {
+    throw new Error(`The finished video is ${(file.size / 1024 / 1024).toFixed(0)}MB — please keep it under ${MAX_FEEDBACK_VIDEO_BYTES / 1024 / 1024}MB (trim it shorter).`);
+  }
+  const ext = file.type.includes("webm") ? "webm" : "mp4";
+  const path = `coachVideoFeedback/${clientId}/${feedbackId}_${version}.${ext}`;
+  const { url } = await uploadToPath(path, file, "video", "Video", onProgress, {
+    contentType: file.type,
+    cacheControl: "private, max-age=31536000, immutable",
+  });
+  return { url, path };
+}
+
+export async function uploadFeedbackPoster(clientId, feedbackId, version, blob) {
+  if (!blob) return { url: null, path: null };
+  const path = `coachVideoFeedback/${clientId}/${feedbackId}_${version}_poster.jpg`;
+  const { url } = await uploadToPath(path, blob, "image", "Image", null, {
+    contentType: "image/jpeg",
+    cacheControl: "private, max-age=31536000, immutable",
+  });
+  return { url, path };
+}
+
+// Best-effort: an old version's files after a replacement, or a deleted
+// feedback's files. A failure leaves an orphaned file, never breaks the UI.
+export async function deleteStoragePath(path) {
+  if (!path) return;
+  try {
+    await deleteObject(ref(storage, path));
+  } catch (err) {
+    if (err?.code !== "storage/object-not-found") console.warn("deleteStoragePath failed:", path, err?.code || err);
+  }
 }

@@ -82,7 +82,7 @@ const CLIENT_ID_COLLECTIONS = [
   "workoutLogs", "messages", "workoutComments", "progressPhotos", "savedMeals",
   "habits", "clientPhases", "formSchedules", "formResponses", "weighIns",
   "scheduledWorkouts", "bodyStatsSchedules", "nutritionLogs", "bodyMetrics",
-  "notifications", "clientNotes",
+  "notifications", "clientNotes", "videoFeedback",
 ];
 
 // Same "already done it" window the client app itself uses (CheckInsScreen's

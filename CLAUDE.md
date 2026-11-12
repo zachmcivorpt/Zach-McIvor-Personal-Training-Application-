@@ -737,6 +737,28 @@ any Train Solo work from now on:
 - **Clean mark** (#209, #210): no radial halo and no CSS blur on the mark. The login area draws it as a vector, `ApexMarkSvg` (LoginHero.jsx), with a tight SVG glow (owner's pick, mock-up B); never a stretched PNG there. Log-in screens use `LitLogo crisp`. The login background is 103% tall, top-pinned and clipped so an upload's bottom edge never shows.
 - **Styling only**: buttons and fields are unchanged. The coach's login background still shows when one is set.
 
+## Coach video feedback (#219)
+
+- **Nothing leaves the coach's device before Publish Feedback.** Recording,
+  editing, the overview and the rendered file live only in IndexedDB
+  (`src/lib/videoFeedback/localStore.js`, keyed `coachUid::clientId`).
+  `publish.js` is the only code that uploads (finished MP4 + thumbnail to
+  `coachVideoFeedback/{clientId}/`), then writes `videoFeedback/{id}`, then
+  notifies (`/api/notify` kind `videoFeedback`). Never upload raw takes or
+  write a client-visible doc while recording/editing; keep each publish step
+  saved to the draft so a retry never re-renders, re-uploads or re-notifies.
+- **The recording belongs to the workspace, never a panel** (`useCameraRecorder`
+  at `VideoFeedbackWorkspace`'s root): switching, collapsing or resizing the
+  client panels must never stop or restart the camera/recorder.
+- Recording format: MP4 on Safari/iPhone, WebM elsewhere (Chrome's MP4
+  recorder ignores 1 s slices, so a crash would lose the take). Rendering:
+  WebCodecs via `mediabunny`, real-time MediaRecorder fallback. Keep all of
+  it lazy (workspace chunk, client `VideoFeedbackClient.jsx` on Check-ins).
+- The client's film page: video on a black stage, overview under it on the
+  client's own page colour (`VideoFeedbackSummary`, shared with the coach's
+  preview). A client may change only `viewedAt` (firestore.rules); videos are
+  readable only by that client and the coach (storage.rules).
+
 ## Coach activity notifications (#215)
 
 - Workout / progress photo / weigh-in pushes to the coach come from server triggers (`functions/coachActivityNotify.js`), never from client-app code; switches are `notificationPrefs.workouts` / `progressPhotos` / `weighIns`. No RPE in them.

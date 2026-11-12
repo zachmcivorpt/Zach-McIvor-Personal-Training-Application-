@@ -21,6 +21,7 @@ import {
 import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
 import { DarkPanel, CoachGlass, GlassButton, GLASS, GLASS_BLUE, JARVIS_BACKDROP } from "./darkUI";
 import { NutritionTargetsCard } from "./NutritionTargetsCard";
+import CoachFeedbackPanel from "./videoFeedback/CoachFeedbackPanel";
 // Re-exported for anything still importing it from here.
 export { NutritionTargetsCard };
 import { CLIENT_CONTEXT_CATEGORIES } from "../lib/apexInsights";
@@ -92,6 +93,7 @@ import {
   Footprints,
   Moon,
   Heart,
+  Video,
 } from "lucide-react";
 
 // Same keys/labels/units as ClientApp.jsx's BODY_METRICS_CONFIG (the
@@ -3262,6 +3264,8 @@ function CheckInsPanel({ client, showToast }) {
   const { db, unscheduleForm, toggleFormSchedule, markFormResponseRead } = useApp();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [viewingResponse, setViewingResponse] = useState(null);
+  // Video feedback workspace (#219): { checkInId, checkInDate, existing } while open.
+  const [feedbackWorkspace, setFeedbackWorkspace] = useState(null);
   const forms = db.forms || [];
   const schedules = (db.formSchedules || {})[client.id] || [];
   const responses = (db.formResponses || {})[client.id] || [];
@@ -3269,6 +3273,7 @@ function CheckInsPanel({ client, showToast }) {
 
   return (
     <div className="max-w-2xl px-4 py-5 md:px-6 md:py-6 space-y-5">
+      <CoachFeedbackPanel client={client} showToast={showToast} workspace={feedbackWorkspace} setWorkspace={setFeedbackWorkspace} />
       <DarkPanel className="p-4 md:p-5">
         <div className="relative flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
@@ -3347,22 +3352,36 @@ function CheckInsPanel({ client, showToast }) {
             {responses.map((r) => {
               const form = formsById[r.formId];
               return (
-                <button
-                  key={r.id}
-                  onClick={() => {
-                    setViewingResponse(r);
-                    if (r.read === false) markFormResponseRead(r.id);
-                  }}
-                  className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors border hover:bg-white/[0.05]"
-                  style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
-                >
-                  {r.read === false && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: MEASURE_BLUE }} />}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
-                    <p className="text-white text-xs">{new Date(r.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
-                  </div>
-                  <ChevronRight size={16} className="text-white shrink-0" />
-                </button>
+                <div key={r.id} className="flex items-stretch gap-2">
+                  <button
+                    onClick={() => {
+                      setViewingResponse(r);
+                      if (r.read === false) markFormResponseRead(r.id);
+                    }}
+                    className="flex-1 min-w-0 flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors border hover:bg-white/[0.05]"
+                    style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
+                  >
+                    {r.read === false && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: MEASURE_BLUE }} />}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
+                      <p className="text-white text-xs">{new Date(r.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
+                    </div>
+                    <ChevronRight size={16} className="text-white shrink-0" />
+                  </button>
+                  {/* Record video feedback for this check-in (#219). */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (r.read === false) markFormResponseRead(r.id);
+                      setFeedbackWorkspace({ checkInId: r.id, checkInDate: r.date, existing: null });
+                    }}
+                    className="w-12 shrink-0 rounded-xl flex items-center justify-center text-white border"
+                    style={{ backgroundColor: "rgba(47,143,255,0.08)", borderColor: "rgba(47,143,255,0.4)" }}
+                    aria-label="Record video feedback for this check-in"
+                  >
+                    <Video size={16} />
+                  </button>
+                </div>
               );
             })}
           </div>
