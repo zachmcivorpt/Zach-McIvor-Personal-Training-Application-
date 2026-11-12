@@ -1358,7 +1358,7 @@ export function CardioLogCard({ logs, onDelete, onUpdate }) {
   );
 }
 
-function HomeScreen({
+export function HomeScreen({
   user,
   onDeleteCardio,
   onUpdateCardio,
@@ -1390,11 +1390,14 @@ function HomeScreen({
   challenges,
   userId,
   cardioLogs,
+  onLogCardio,
   dbReady,
   groups,
   onOpenGroup,
 }) {
   const dark = useClientDark();
+  // #218: a past day on Home offers the same "Log a cardio session" as today's Training tab.
+  const [cardioOpen, setCardioOpen] = useState(false);
   return (
     <div className="pb-28 space-y-5">
       <div>
@@ -1431,6 +1434,19 @@ function HomeScreen({
         photo
       />
       <CardioLogCard logs={cardioLogs} onDelete={onDeleteCardio} onUpdate={onUpdateCardio} />
+      {dayOffset < 0 && onLogCardio && (
+        <div className="mx-2.5 px-1">
+          <TrainingActionRow icon={Footprints} label="Log a cardio session" onClick={() => setCardioOpen(true)} />
+          <LogCardioSheet
+            open={cardioOpen}
+            onClose={() => setCardioOpen(false)}
+            onSave={(cardio) => {
+              onLogCardio(cardio);
+              setCardioOpen(false);
+            }}
+          />
+        </div>
+      )}
       <DailyHabitsCard
         habits={habits}
         completedIds={isToday ? completedHabitIds : dayHabitCompletedIds}
@@ -10056,6 +10072,13 @@ export default function ClientApp() {
             challenges={db.challenges || []}
             userId={currentUser.id}
             cardioLogs={cardioLogsForSelectedDate}
+            onLogCardio={(cardio) => {
+              // #218: logged on the day shown, at midday (as backdated weigh-ins).
+              const [y, m, d] = selectedDateKey.split("-").map(Number);
+              logWorkout(currentUser.id, { dayLabel: `${cardio.activityLabel} (Cardio)`, entries: [], cardio, date: new Date(y, m - 1, d, 12, 0, 0).getTime() })
+                .then(() => showToast(`${cardio.activityLabel} logged`))
+                .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true));
+            }}
             dbReady={dbReady}
             groups={db.groups || []}
             onOpenGroup={setOpenGroupId}

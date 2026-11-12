@@ -3406,6 +3406,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `CoachClientDetail` is drawn on `document.body` (createPortal), with `pt-safe` and its scroller `pb-safe`; the console tab bar sits lower (`TAB_BAR_BOTTOM`: the safe area minus 14px, min 4px) and the content's bottom padding matches.
 - **Tests**: `src/coach/coachClientPortal217.test.jsx` (3): the page is a direct child of body, not inside the console; safe-area padding; the tab bar's bottom inset. All 3 fail on the old code. Checked in a browser at 390 wide over stand-in console bars (fully covered, name row shown). Full suite passing; build clean.
 
+### 218. Coached client: log cardio on a past day from Home (owner, 2026-11-12)
+
+- **Change**: on Home, a past day picked in the date strip shows the same "Log a cardio session" row as today's Training tab; the session is saved on that day at midday (as backdated weigh-ins). Today and future days unchanged. Coached client app only; Train Solo untouched.
+- **Tests**: `src/client/cardioPastDay218.test.jsx` (3) render the real `HomeScreen`: past day shows and logs, today/future don't, saved on the day shown. All fail on the old code. Full suite passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
