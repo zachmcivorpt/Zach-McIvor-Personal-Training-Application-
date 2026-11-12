@@ -35,6 +35,8 @@ export function weightSummary(weighIns, now = Date.now()) {
   };
 }
 
+export const MACRO_TOLERANCE = 0.15;
+
 // The last `days` COMPLETED days (ending yesterday), same thresholds as the
 // coach's Nutrition Adherence card: calories within 12%, protein >= 90%.
 export function nutritionWeek(nutritionLogs, targets, now = Date.now(), days = 7) {
@@ -56,6 +58,9 @@ export function nutritionWeek(nutritionLogs, targets, now = Date.now(), days = 7
       fat: logged ? Math.round(entry.fat || 0) : null,
       calorieHit: logged && targets.calories > 0 && Math.abs((entry.calories || 0) - targets.calories) <= targets.calories * 0.12,
       proteinHit: logged && targets.protein > 0 && (entry.protein || 0) >= targets.protein * 0.9,
+      // #223: carbs and fat count as hit within 15% of their target either way.
+      carbHit: logged && targets.carbs > 0 && Math.abs((entry.carbs || 0) - targets.carbs) <= targets.carbs * MACRO_TOLERANCE,
+      fatHit: logged && targets.fat > 0 && Math.abs((entry.fat || 0) - targets.fat) <= targets.fat * MACRO_TOLERANCE,
     });
   }
   const logged = out.filter((d) => d.logged);
@@ -65,6 +70,8 @@ export function nutritionWeek(nutritionLogs, targets, now = Date.now(), days = 7
     loggedCount: logged.length,
     calorieHits: out.filter((d) => d.calorieHit).length,
     proteinHits: out.filter((d) => d.proteinHit).length,
+    carbHits: out.filter((d) => d.carbHit).length,
+    fatHits: out.filter((d) => d.fatHit).length,
     avgCalories: avg("calories"),
     avgProtein: avg("protein"),
     avgCarbs: avg("carbs"),

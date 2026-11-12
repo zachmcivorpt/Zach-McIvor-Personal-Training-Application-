@@ -4,8 +4,9 @@
 // lifts — and the linked check-in's changes since last time. Used beside the
 // camera, in Write and in Publish. Figures come from weekScorecard /
 // checkinChanges (the client's own data); missing data shows "–".
-import { Check, Trophy, TrendingUp, MoveRight } from "lucide-react";
-import { MEASURE_BLUE } from "../../theme";
+import { useState } from "react";
+import { Check, Trophy, TrendingUp, MoveRight, RefreshCw, X, Plus } from "lucide-react";
+import { MEASURE_BLUE, OVER_RED, GOAL_GREEN } from "../../theme";
 
 export const CARD_GLASS = {
   background: "rgba(255,255,255,0.055)",
@@ -128,11 +129,11 @@ export function WeekFigures({ week, targets, columns = 4 }) {
   );
 }
 
+// #223 (owner): a missed session, calorie or protein day is a red dot.
 function Dot({ state }) {
-  if (state === "on") return <span className="w-3 h-3 rounded-full" style={{ background: MEASURE_BLUE, boxShadow: "0 0 8px rgba(47,143,255,0.7)" }} />;
-  if (state === "missed") return <span className="w-3 h-3 rounded-full" style={{ border: "1.5px solid rgba(255,255,255,0.5)" }} />;
-  if (state === "none") return <span className="text-white/25 text-xs leading-none">–</span>;
-  return <span className="w-3 h-3 rounded-full" style={{ background: "rgba(255,255,255,0.10)" }} />;
+  if (state === "on") return <span className="w-3 h-3 rounded-full" data-dot="hit" style={{ background: MEASURE_BLUE, boxShadow: "0 0 8px rgba(47,143,255,0.7)" }} />;
+  if (state === "missed" || state === "off") return <span className="w-3 h-3 rounded-full" data-dot="missed" style={{ background: OVER_RED, boxShadow: "0 0 8px rgba(239,68,68,0.55)" }} />;
+  return <span className="text-white/25 text-xs leading-none" data-dot="none">–</span>;
 }
 
 export function DayGrid({ week, compact = false }) {
@@ -162,7 +163,7 @@ export function DayGrid({ week, compact = false }) {
         right={
           <span className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full" style={{ background: MEASURE_BLUE }} /> hit
-            <span className="w-2 h-2 rounded-full border border-white/50" /> missed
+            <span className="w-2 h-2 rounded-full" style={{ background: OVER_RED }} /> missed
           </span>
         }
       >
@@ -359,5 +360,72 @@ export function CheckinSummary({ response, formName, changes, linked = true, com
         </GlassCard>
       )}
     </div>
+  );
+}
+
+// ---- talking points (#223) ----
+// Notes for the coach only: what to talk about on this video. Built from a
+// scan of the week (talkingPoints.js); every line can be edited or removed
+// and the coach can add their own. Kept with the draft on this device.
+export function TalkingPoints({ points, onChange, onRescan, compact = false }) {
+  const [draftText, setDraftText] = useState("");
+  const visible = (points || []).filter((p) => !p.removed);
+  const update = (id, patch) => onChange((points || []).map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  const addNote = () => {
+    const text = draftText.trim();
+    if (!text) return;
+    onChange([{ id: `coach_${Date.now().toString(36)}`, text, kind: "focus", source: "coach" }, ...(points || [])]);
+    setDraftText("");
+  };
+  return (
+    <GlassCard padding={compact ? 14 : 18}>
+      <CardLabel
+        right={
+          onRescan && (
+            <button type="button" onClick={onRescan} className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: MEASURE_BLUE }} aria-label="Rescan the week">
+              <RefreshCw size={11} /> Rescan
+            </button>
+          )
+        }
+      >
+        Talking points · only you see these
+      </CardLabel>
+      <div className="flex items-center gap-2 mb-2">
+        <input
+          value={draftText}
+          onChange={(e) => setDraftText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addNote()}
+          placeholder="Add your own note…"
+          aria-label="Add a talking point"
+          className="flex-1 min-w-0 bg-white/[0.05] border border-white/10 rounded-xl px-3 h-9 text-white text-[13px] placeholder-white/35 outline-none focus:border-white/30"
+        />
+        <button type="button" onClick={addNote} disabled={!draftText.trim()} className="w-9 h-9 rounded-xl flex items-center justify-center text-white disabled:opacity-30" style={BLUE_GLASS} aria-label="Add note">
+          <Plus size={15} />
+        </button>
+      </div>
+      {visible.length === 0 && <p className="text-white/45 text-sm py-1">Nothing flagged this week.</p>}
+      <div data-testid="talking-points">
+        {visible.map((p, i) => (
+          <div key={p.id} className={`flex items-start gap-2.5 py-2 ${i ? "border-t border-white/[0.06]" : ""}`}>
+            <span className="w-2 h-2 rounded-full shrink-0 mt-[7px]" style={{ background: p.kind === "win" ? GOAL_GREEN : OVER_RED }} aria-label={p.kind === "win" ? "Win" : "To talk about"} />
+            <textarea
+              value={p.text}
+              rows={1}
+              onChange={(e) => update(p.id, { text: e.target.value, edited: p.source === "scan" ? true : p.edited })}
+              onInput={(e) => {
+                e.currentTarget.style.height = "auto";
+                e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+              }}
+              aria-label={`Talking point ${i + 1}`}
+              className="flex-1 min-w-0 bg-transparent text-white text-[13px] leading-snug outline-none resize-none"
+              style={{ fieldSizing: "content" }}
+            />
+            <button type="button" onClick={() => update(p.id, { removed: true })} className="w-6 h-6 shrink-0 flex items-center justify-center text-white/35 hover:text-white" aria-label={`Remove talking point ${i + 1}`}>
+              <X size={13} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </GlassCard>
   );
 }
