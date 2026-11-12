@@ -20,7 +20,7 @@ const markShade = {
 // any size, with a tight glow from an SVG blur of its own shape (no CSS
 // blur, no halo, no box). Same 384 x 384 framing as the bundled PNG, so it
 // sits and sizes exactly where the image did.
-const MARK_PATHS = [
+export const MARK_PATHS = [
   "M204.8 107.9 L98.8 263.5 L102.5 263.1 L173.4 192.4 L205 155.5 L213.5 165.5 L230.8 147.4 Z",
   "M232.6 149.5 L305.2 263.2 L245.8 220.1 L228.8 193.1 L174.8 223 L207.4 180.8 L217.8 175.5 L215.8 169.2 Z",
 ];
