@@ -49,6 +49,35 @@ export function ApexMarkSvg({ width, opacity = 1, glow = true }) {
   );
 }
 
+// Glassy, see-through mark (#225, coach Overview): the same vector filled
+// with a white-to-clear gradient, a hairline edge and a faint blue glow.
+export function GlassMarkSvg({ width = 24 }) {
+  const id = useId().replace(/:/g, "");
+  return (
+    <svg
+      viewBox="0 0 384 384"
+      width={width}
+      height={width}
+      aria-hidden="true"
+      data-testid="glass-mark-svg"
+      style={{ display: "block", overflow: "visible", filter: "drop-shadow(0 0 8px rgba(47,143,255,0.35)) drop-shadow(0 0 2px rgba(255,255,255,0.3))" }}
+    >
+      <defs>
+        <linearGradient id={`gm${id}`} x1="0" y1="0" x2="0.4" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.95" />
+          <stop offset="0.55" stopColor="#fff" stopOpacity="0.45" />
+          <stop offset="1" stopColor="#9cc8ff" stopOpacity="0.25" />
+        </linearGradient>
+      </defs>
+      <g fill={`url(#gm${id})`} stroke="rgba(255,255,255,0.55)" strokeWidth="3">
+        {MARK_PATHS.map((d) => (
+          <path key={d} d={d} />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
 // Solid lit mark (chooser + log-in screens). `crisp` (chooser, #208): full
 // strength with its own glow, no fade.
 export function LitLogo({ width = 104, reflection = false, crisp = false }) {

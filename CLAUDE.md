@@ -65,9 +65,12 @@ rather than inventing new colors per screen:
 
 ### Coach Overview (approved 2026-10-28)
 
-- Gym photo header with the greeting and a large active-client count, then
-  frosted-glass tiles (Challenges, Check-ins, Messages) and open
-  sections under thin rules. Every number keeps its old destination (#115).
+- Header (#225, owner — replaces the gym photo): the greeting and a large
+  active-client count open on the page, no photo and no box, with a
+  see-through glassy APEX mark (`GlassMarkSvg`, LoginHero.jsx) in the
+  background to the right. Then frosted-glass tiles (Challenges,
+  Check-ins, Messages) and open sections under thin rules. Every number
+  keeps its old destination (#115).
 - The coach console is otherwise still dark-only, glass on near-black (#212).
 
 ### Train Solo (self-guided app, `src/solo/`) design rules
