@@ -67,7 +67,7 @@ rather than inventing new colors per screen:
 
 - Header (#225, owner — replaces the gym photo): the greeting and a large
   active-client count open on the page, no photo and no box, with the
-  bevelled frosted-glass APEX mark (`BevelGlassMark`, LoginHero.jsx; #226,
+  bevelled frosted-glass APEX mark (`BevelGlassMark`, `src/components/GlassMark.jsx` — never in LoginHero.jsx, whose mark has no CSS blur (#209); #226,
   owner's pick "H": 300px iPad/desktop, 160px iPhone) in the background
   to the right. The greeting and the count use the matching glass type
   (`GLASS_HEADING_STYLE`: white-to-steel gradient text, faint blue glow). Then frosted-glass tiles (Challenges,

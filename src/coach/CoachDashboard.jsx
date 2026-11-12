@@ -10,7 +10,7 @@ import { computeApexInsights } from "../lib/apexInsights";
 import { buildRecentActivity } from "../lib/recentActivity";
 import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED } from "../theme";
 import { DarkPage, DarkPanel } from "./darkUI";
-import { BevelGlassMark, GLASS_HEADING_STYLE } from "../components/LoginHero";
+import { BevelGlassMark, GLASS_HEADING_STYLE } from "../components/GlassMark";
 
 import {
   CalendarPlus,
