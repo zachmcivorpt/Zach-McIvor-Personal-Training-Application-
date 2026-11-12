@@ -17,6 +17,15 @@ import VideoFeedbackSummary from "../../components/VideoFeedbackSummary";
 import SummaryEditor from "./SummaryEditor";
 
 const EMPTY_LIST = [];
+
+// #221: a new video answers the client's NEWEST check-in, and only while it
+// has no video yet. Once it's answered, the next video is plain weekly
+// feedback — never silently linked to an older check-in.
+export function checkInToAnswer(responses, feedback) {
+  const newest = (responses || []).slice().sort((a, b) => b.date - a.date)[0];
+  if (!newest) return null;
+  return (feedback || []).some((f) => f.checkInId === newest.id) ? null : newest;
+}
 const VideoFeedbackWorkspace = React.lazy(() => import("./VideoFeedbackWorkspace"));
 
 const fmtDay = (ts) => new Date(ts).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
@@ -43,9 +52,7 @@ export default function CoachFeedbackPanel({ client, showToast, workspace, setWo
     };
   }, [currentUser?.id, client.id, workspace]);
 
-  // The newest check-in without feedback yet is what a new video answers.
-  const answered = new Set(feedback.map((f) => f.checkInId).filter(Boolean));
-  const latestUnanswered = responses.find((r) => !answered.has(r.id)) || null;
+  const latestUnanswered = checkInToAnswer(responses, feedback);
 
   function openNew() {
     setWorkspace({ checkInId: latestUnanswered?.id || null, checkInDate: latestUnanswered?.date || null, existing: null });

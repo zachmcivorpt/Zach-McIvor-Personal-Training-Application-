@@ -80,10 +80,25 @@ export async function publishProject({ project, coachUid, existing = null, deps,
   // 2. Upload the finished video only.
   if (draft.publish.uploadedHash !== hash || !draft.publish.videoUrl) {
     onStage?.({ stage: "upload", progress: 0 });
-    const video = await deps.uploadVideo(draft.clientId, draft.feedbackId, version, rendered, (p) => onStage?.({ stage: "upload", progress: p * 0.95 }));
-    const posterUp = poster ? await deps.uploadPoster(draft.clientId, draft.feedbackId, version, poster).catch(() => ({ url: null, path: null })) : { url: null, path: null };
+    // The thumbnail goes up alongside the video, not after it (#221), and is
+    // kept even if the video upload fails, so a retry doesn't send it again.
+    const posterDone = draft.publish.posterHash === hash && draft.publish.posterUrl;
+    const [videoRes, posterRes] = await Promise.allSettled([
+      deps.uploadVideo(draft.clientId, draft.feedbackId, version, rendered, (p) =>
+        onStage?.({ stage: "upload", progress: p * 0.95, bytes: Math.round(p * rendered.size), total: rendered.size })
+      ),
+      posterDone || !poster
+        ? { url: draft.publish.posterUrl || null, path: draft.publish.posterPath || null }
+        : deps.uploadPoster(draft.clientId, draft.feedbackId, version, poster).catch(() => ({ url: null, path: null })),
+    ]);
+    const posterUp = posterRes.status === "fulfilled" ? posterRes.value : { url: null, path: null };
+    if (videoRes.status === "rejected") {
+      if (posterUp.url) await persist({ publish: { ...draft.publish, posterHash: hash, posterUrl: posterUp.url, posterPath: posterUp.path } });
+      throw videoRes.reason;
+    }
+    const video = videoRes.value;
     await persist({
-      publish: { uploadedHash: hash, videoUrl: video.url, videoPath: video.path, posterUrl: posterUp.url, posterPath: posterUp.path },
+      publish: { uploadedHash: hash, videoUrl: video.url, videoPath: video.path, posterHash: hash, posterUrl: posterUp.url, posterPath: posterUp.path },
     });
   }
 
@@ -124,4 +139,16 @@ export async function publishProject({ project, coachUid, existing = null, deps,
   }
   onStage?.({ stage: "done", progress: 1 });
   return feedback;
+}
+
+// "38 of 96 MB · about 40 s left" from the upload's progress so far (#221).
+export function uploadStatusText({ bytes, total, elapsedMs }) {
+  if (!total) return "";
+  const mb = (n) => (n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0);
+  let text = `${mb(bytes || 0)} of ${mb(total)} MB`;
+  if (bytes > 0 && elapsedMs > 1500 && bytes < total) {
+    const secs = Math.ceil(((total - bytes) / bytes) * (elapsedMs / 1000));
+    text += secs >= 90 ? ` · about ${Math.round(secs / 60)} min left` : ` · about ${Math.max(1, secs)} s left`;
+  }
+  return text;
 }

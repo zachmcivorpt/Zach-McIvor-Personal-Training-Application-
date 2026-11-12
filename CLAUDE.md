@@ -770,6 +770,13 @@ any Train Solo work from now on:
   Forms), else guessed from its wording.
 - A client may change only `viewedAt` (firestore.rules); videos are
   readable only by that client and the coach (storage.rules).
+- **Publish speed** (#221): the upload is the slow part. Keep the finished
+  film near `videoBitrateFor` (~100 MB for 5 min at 1080p), record at
+  5 Mbps, re-encode an untouched take only when it saves ≥30%
+  (`wholeTakePlan`), upload the thumbnail alongside the video (kept on the
+  draft across retries), and show MB + time left (`uploadStatusText`).
+- A new video answers the client's NEWEST check-in only while it has no
+  video (`checkInToAnswer`); never auto-link an older one.
 
 ## Coach activity notifications (#215)
 
