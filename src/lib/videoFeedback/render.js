@@ -23,12 +23,25 @@ const FADE_SEC = 0.35;
 const CUT_RAMP_SEC = 0.012;
 const KEYFRAME_SEC = 2;
 
-// Talking-head footage: enough bits for crisp 1080p, scaled down for long
-// films so the upload (and the client's download) stays reasonable.
+// Talking-head footage (#221): H.264 from the hardware encoder stays sharp
+// at 1080p on ~2.5 Mbps, so a 5-minute film is ~100 MB instead of ~160 MB —
+// the upload is the slow part, so this is the main lever on publish time.
+// Longer films step down so the upload stays reasonable.
 export function videoBitrateFor(durationSec, width, height) {
   const pixels = Math.max(1, width * height);
-  const base = durationSec <= 6 * 60 ? 4_000_000 : durationSec <= 10 * 60 ? 3_000_000 : 2_200_000;
-  return Math.round(base * Math.min(1, pixels / (1920 * 1080)) + 400_000);
+  const base = durationSec <= 6 * 60 ? 2_500_000 : durationSec <= 10 * 60 ? 2_000_000 : 1_500_000;
+  return Math.round(base * Math.min(1, pixels / (1920 * 1080)) + 250_000);
+}
+
+// A single untouched MP4 take: re-encode it smaller when that saves real
+// upload time (the camera records at ~5 Mbps), but use it as recorded when
+// this device can't re-encode quickly (no WebCodecs), rather than the
+// real-time fallback.
+export function wholeTakePlan({ size, duration, width, height }) {
+  const recorded = (size * 8) / Math.max(1, duration);
+  const target = videoBitrateFor(duration, width || 1920, height || 1080) + 128_000;
+  if (recorded <= target * 1.3) return "original";
+  return "reencode";
 }
 
 export function outputSize(width, height, maxDim = MAX_OUTPUT_DIM) {
@@ -109,18 +122,18 @@ export async function renderTimeline({ segments, sources, getSourceBlob, onProgr
   const filmDuration = totalDuration(segments);
   const first = sources[segments[0].sourceId] || {};
 
-  if (segments.length === 1 && isWholeTake(segments[0], first) && /mp4/.test(first.mime || "")) {
+  const wholeMp4 = segments.length === 1 && isWholeTake(segments[0], first) && /mp4/.test(first.mime || "");
+  const asRecorded = async () => {
     const blob = await getSourceBlob(segments[0].sourceId);
-    const bitrate = (blob.size * 8) / Math.max(1, first.duration);
-    // Recorded at up to 6 Mbps: used as it is unless that would make a long
-    // upload, then re-encoded below like any edit.
-    if (bitrate <= 7_000_000 && blob.size < 260 * 1024 * 1024) {
-      onProgress?.(0.5);
-      const file = await remuxFastStart(new File([blob], "feedback.mp4", { type: "video/mp4" }));
-      const poster = await posterFromBlob(file, Math.min(1, first.duration / 2));
-      onProgress?.(1);
-      return { blob: file, poster, duration: filmDuration, width: first.width, height: first.height, method: "original" };
-    }
+    onProgress?.(0.5);
+    const file = await remuxFastStart(new File([blob], "feedback.mp4", { type: "video/mp4" }));
+    const poster = await posterFromBlob(file, Math.min(1, first.duration / 2));
+    onProgress?.(1);
+    return { blob: file, poster, duration: filmDuration, width: first.width, height: first.height, method: "original" };
+  };
+  if (wholeMp4) {
+    const blob = await getSourceBlob(segments[0].sourceId);
+    if (blob && wholeTakePlan({ size: blob.size, duration: first.duration, width: first.width, height: first.height }) === "original") return asRecorded();
   }
 
   const fast = await renderWithWebCodecs({ segments, sources, getSourceBlob, onProgress, signal, filmDuration }).catch((err) => {
@@ -129,6 +142,10 @@ export async function renderTimeline({ segments, sources, getSourceBlob, onProgr
     return null;
   });
   if (fast) return fast;
+  // Can't re-encode quickly here: one untouched take goes as recorded (a
+  // bigger upload, but no real-time render); anything edited needs the
+  // playback render.
+  if (wholeMp4) return asRecorded();
   return renderByPlayback({ segments, sources, getSourceBlob, onProgress, signal, filmDuration });
 }
 

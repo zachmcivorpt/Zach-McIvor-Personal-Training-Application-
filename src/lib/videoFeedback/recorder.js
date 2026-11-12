@@ -126,7 +126,8 @@ export function useCameraRecorder({ projectKey, onTakeStarted } = {}) {
     try {
       recorder = new MediaRecorder(s, {
         ...(mimeType ? { mimeType } : {}),
-        videoBitsPerSecond: 6_000_000,
+        // Enough headroom for the final encode (#221), not more than needed.
+        videoBitsPerSecond: 5_000_000,
         audioBitsPerSecond: 128_000,
       });
     } catch {

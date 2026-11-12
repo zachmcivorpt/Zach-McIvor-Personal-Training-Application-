@@ -33,7 +33,7 @@ import {
   locate,
   segmentsHash,
 } from "../../lib/videoFeedback/timeline";
-import { ensureRendered, publishProject } from "../../lib/videoFeedback/publish";
+import { ensureRendered, publishProject, uploadStatusText } from "../../lib/videoFeedback/publish";
 import { renderTimeline } from "../../lib/videoFeedback/render";
 import { uploadFeedbackVideo, uploadFeedbackPoster, deleteStoragePath } from "../../lib/storage";
 import CinematicVideoPlayer from "../../components/CinematicVideoPlayer";
@@ -358,7 +358,8 @@ export default function VideoFeedbackWorkspace({ client, checkInId = null, check
         coachUid,
         existing,
         deps,
-        onStage: ({ stage, progress }) => setPublish((p) => ({ ...p, stage, progress })),
+        onStage: ({ stage, progress, bytes, total }) =>
+          setPublish((p) => ({ ...p, stage, progress, bytes, total, uploadStartedAt: stage === "upload" ? p.uploadStartedAt || Date.now() : p.uploadStartedAt })),
       });
       await draft.clearAfterPublish();
       setPublish({ status: "done", stage: "done", progress: 1, error: "" });
@@ -739,6 +740,11 @@ function PublishStep({ snapshot, client, project, total, render, onRender, publi
           {publishing && (
             <div className="space-y-2" data-testid="publish-progress">
               <p className="text-white text-sm">{stageLabel}…</p>
+              {publish.stage === "upload" && publish.total > 0 && (
+                <p className="text-white/55 text-xs tabular-nums" data-testid="upload-status">
+                  {uploadStatusText({ bytes: publish.bytes, total: publish.total, elapsedMs: Date.now() - (publish.uploadStartedAt || Date.now()) })}
+                </p>
+              )}
               <ProgressLine value={publish.stage === "save" ? 1 : publish.progress} />
             </div>
           )}

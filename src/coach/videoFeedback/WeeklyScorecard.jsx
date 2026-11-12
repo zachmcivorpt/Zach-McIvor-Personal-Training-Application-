@@ -241,7 +241,7 @@ export function LiftLists({ week }) {
           name={l.name}
           sub={`${l.set ? `${l.set.weight} kg × ${l.set.reps} · ` : ""}${l.sessions} sessions`}
           value={l.e1rm}
-          change="±0"
+          change="flat"
         />
       ))}
     </GlassCard>
