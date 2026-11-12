@@ -430,73 +430,6 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
 }
 
 const CAL_WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-// The real muscle-group categories exercises are tagged with (excludes
-// Warm-up/Cool-down/Full Body/Cardio, which aren't a "muscle" a coach would
-// track as trained-or-avoided).
-const MUSCLE_CATEGORIES = ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Legs", "Core", "Forearms"];
-
-// primaryMuscles is a free-text field on every exercise (Exercises → Edit
-// → "Primary Muscles", comma-separated) — a coach can type "Lats",
-// "Upper Back", "Pecs", "Quads", "Abs" etc. instead of the exact 8 labels
-// above. Rolling those sub-region/synonym tags up to their parent category
-// here (rather than requiring an exact string match) is what fixes sets
-// silently vanishing from the Training Load bars — e.g. every pull-up/row/
-// lat pulldown tagged "Lats" or "Upper Back" used to count toward nothing
-// at all, making Back (and similarly Chest/Core) read far lower than the
-// client's actual logged volume.
-const MUSCLE_SYNONYMS = {
-  back: "Back",
-  "upper back": "Back",
-  "lower back": "Back",
-  lats: "Back",
-  lat: "Back",
-  latissimus: "Back",
-  traps: "Back",
-  trapezius: "Back",
-  rhomboids: "Back",
-  chest: "Chest",
-  pecs: "Chest",
-  pectorals: "Chest",
-  "pec major": "Chest",
-  "pec minor": "Chest",
-  shoulders: "Shoulders",
-  shoulder: "Shoulders",
-  delts: "Shoulders",
-  deltoids: "Shoulders",
-  "front delts": "Shoulders",
-  "side delts": "Shoulders",
-  "rear delts": "Shoulders",
-  biceps: "Biceps",
-  bicep: "Biceps",
-  triceps: "Triceps",
-  tricep: "Triceps",
-  legs: "Legs",
-  leg: "Legs",
-  quads: "Legs",
-  quadriceps: "Legs",
-  hamstrings: "Legs",
-  glutes: "Legs",
-  calves: "Legs",
-  calf: "Legs",
-  adductors: "Legs",
-  abductors: "Legs",
-  "hip flexors": "Legs",
-  hips: "Legs",
-  core: "Core",
-  abs: "Core",
-  abdominals: "Core",
-  obliques: "Core",
-  forearms: "Forearms",
-  forearm: "Forearms",
-  grip: "Forearms",
-  wrists: "Forearms",
-};
-function normalizeMuscle(raw) {
-  if (!raw) return null;
-  const key = raw.trim().toLowerCase();
-  return MUSCLE_SYNONYMS[key] || (MUSCLE_CATEGORIES.includes(raw.trim()) ? raw.trim() : null);
-}
-
 // Extracts the plain "YYYY-MM-DD" a UTC-anchored grid cell (built via
 // Date.UTC in buildMonthGrid, below) already represents — deliberately
 // UTC, not localDateKey, since these Date objects were never meant to
@@ -1363,60 +1296,6 @@ function CalendarPanel({ client, showToast }) {
   const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
   const todayStr = localDateKey(now);
 
-  // Relative training volume per muscle group over a trailing 2-week
-  // window (not tied to whatever month is being viewed) — sorted lowest
-  // first, so the groups lagging behind the rest surface at a glance
-  // rather than a flat "trained / not trained" toggle.
-  //
-  // Credits each exercise's PRIMARY muscle(s), not its top-level
-  // `category` — category is a movement-pattern/type label ("Full
-  // Body", "Cardio", "Warm-up") that most compound lifts (thrusters,
-  // sled pushes, box jumps, wall balls, farmer carries, cleans...) fall
-  // under, so aggregating by category silently dropped every set logged
-  // against any of those ~45 exercises from the chart entirely — they
-  // never landed in any bucket, which could make a genuinely-trained
-  // group like Legs read 0 just because that work came from compound
-  // movements instead of isolation ones. primaryMuscles is the actual
-  // muscle-targeting data already on every exercise and is what this
-  // widget should have been reading all along.
-  const muscleBalance = useMemo(() => {
-    const since = new Date();
-    since.setDate(since.getDate() - 13);
-    const sinceKey = localDateKey(since);
-    const counts = Object.fromEntries(MUSCLE_CATEGORIES.map((c) => [c, 0]));
-    workoutLogs.forEach((log) => {
-      const key = localDateKey(log.date);
-      if (key < sinceKey || key > todayStr) return;
-      (log.entries || []).forEach((e) => {
-        const setCount = (e.sets || []).length;
-        const ex = exercisesById[e.exerciseId];
-        // "Primary Muscles" is an optional free-text field on an exercise
-        // (Exercises -> Edit) — plenty of real exercises, especially ones
-        // added via bulk video import, only ever got a name/category/
-        // equipment filled in and were left with no muscle tags at all. A
-        // set logged against one of those used to credit nothing, full
-        // stop. Category is the one field that's actually required on
-        // every exercise, so when there's no usable primaryMuscles tag,
-        // fall back to it — it still only credits a real single-muscle
-        // category (e.g. "Chest", "Legs"), never a movement-pattern label
-        // like "Full Body"/"Warm-up"/"Cardio" (normalizeMuscle returns
-        // null for those, same as it always did).
-        const muscles = ex?.primaryMuscles?.length > 0 ? ex.primaryMuscles : [ex?.category];
-        const credited = new Set();
-        muscles.forEach((m) => {
-          const bucket = normalizeMuscle(m);
-          if (bucket) credited.add(bucket);
-        });
-        credited.forEach((bucket) => {
-          counts[bucket] += setCount;
-        });
-      });
-    });
-    const max = Math.max(1, ...Object.values(counts));
-    return MUSCLE_CATEGORIES.map((c) => ({ category: c, sets: counts[c], pct: Math.max(4, Math.round((counts[c] / max) * 100)) })).sort(
-      (a, b) => a.sets - b.sets
-    );
-  }, [workoutLogs, exercisesById, todayStr]);
 
   // Adherence for whichever month is currently being viewed (not always the
   // real current month — the coach can navigate) capped at today so a
@@ -1669,31 +1548,7 @@ function CalendarPanel({ client, showToast }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
-      <DarkPanel className="p-4 md:p-5 mb-6">
-        <p className="relative text-white font-semibold text-sm mb-0.5">Recent Training Load</p>
-        <p className="relative text-white text-[11px] mb-3">Sets logged, last 14 days — lowest first</p>
-        {muscleBalance.every((m) => m.sets === 0) ? (
-          <p className="relative text-white text-xs">No sessions logged in the last 2 weeks — nothing to compare.</p>
-        ) : (
-          <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
-            {muscleBalance.map((m, i) => (
-              <div key={m.category} className="flex items-center gap-2">
-                <span
-                  className="text-xs w-16 shrink-0 truncate font-medium"
-                  style={{ color: i < 2 ? OVER_RED : "rgba(255,255,255,0.6)", fontWeight: i < 2 ? 600 : 500 }}
-                >
-                  {m.category}
-                </span>
-                <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${m.pct}%`, backgroundColor: i < 2 ? OVER_RED : "rgba(255,255,255,0.25)" }} />
-                </div>
-                <span className="text-white text-[11px] w-6 text-right shrink-0">{m.sets}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </DarkPanel>
-
+      {/* Recent Training Load removed for every client (#224, owner). */}
       <DarkPanel className="p-4 md:p-5 mb-6">
         <p className="relative text-white font-semibold text-sm mb-3">{monthLabel} Adherence</p>
         <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-4">
