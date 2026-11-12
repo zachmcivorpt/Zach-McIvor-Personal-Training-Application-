@@ -3272,7 +3272,7 @@ function CheckInsPanel({ client, showToast }) {
   const formsById = Object.fromEntries(forms.map((f) => [f.id, f]));
 
   return (
-    <div className="max-w-2xl px-4 py-5 md:px-6 md:py-6 space-y-5">
+    <div className="w-full px-4 py-5 md:px-6 md:py-6 space-y-5" data-testid="checkins-tab">
       <CoachFeedbackPanel client={client} showToast={showToast} workspace={feedbackWorkspace} setWorkspace={setFeedbackWorkspace} />
       <DarkPanel className="p-4 md:p-5">
         <div className="relative flex items-center justify-between mb-4">

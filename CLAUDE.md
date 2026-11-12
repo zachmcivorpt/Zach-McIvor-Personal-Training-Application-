@@ -777,6 +777,8 @@ any Train Solo work from now on:
   draft across retries), and show MB + time left (`uploadStatusText`).
 - A new video answers the client's NEWEST check-in only while it has no
   video (`checkInToAnswer`); never auto-link an older one.
+- The coach's client Check-ins tab runs page width (#222); no `max-w-*`
+  column on coach client tabs that leaves the right side empty.
 
 ## Coach activity notifications (#215)
 

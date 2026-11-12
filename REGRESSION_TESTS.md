@@ -3433,6 +3433,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: (1) `videoBitrateFor` 2.5 / 2.0 / 1.5 Mbps (≤6 min / ≤10 min / longer) at 1080p + 0.25 Mbps, scaled by picture size — a 5-minute film ≈ 100 MB (measured in Chromium: 1080p WebCodecs render at 2.76 Mbps for a 2.75 Mbps target, exact 9.3 s from three trimmed, reordered clips, plays). The camera records at 5 Mbps; an untouched take is re-encoded when that saves ≥30% (`wholeTakePlan`), else sent as recorded — and a device that can't re-encode quickly sends it as recorded rather than rendering in real time. (2) Thumbnail uploads in parallel with the video and is kept on the draft if the video fails (`posterHash`), so a retry sends only the video. (3) Publish shows "38 of 96 MB · about 40 s left" (`uploadStatusText`). (4) `checkInToAnswer`: a new video answers the newest check-in only while it has no video; otherwise it's plain weekly feedback. (5) "flat" instead of "±0".
 - **Tests**: `src/lib/videoFeedback/uploadSpeed221.test.js` (9): 5-min 1080p 90–105 MB, step-down by length/size, re-encode vs as-recorded, MB + time-left text, thumbnail starts before the video finishes, a failed upload's thumbnail isn't re-sent, newest check-in only / never an older one / none. On the old code 4 fail (size, untouched-take plan, parallel thumbnail, older check-in). Browser flow (1440 wide) re-run end to end: one thumbnail upload across a failed + retried publish, doc linked to the newest check-in, client playback. Full suite passed; build clean.
 
+### 222. Coach client Check-ins tab is page width (owner, 2026-11-12)
+
+- **Problem** (owner's iPad screenshot): Video Feedback, Scheduled Check-ins and Responses sat in a 672px column (`max-w-2xl`), leaving the right side of the page empty.
+- **Fix**: the tab's wrapper is `w-full` (same padding), `data-testid="checkins-tab"`.
+- **Tests**: `src/coach/checkinsFullWidth222.test.jsx` renders the real `CoachClientDetail` on Check-ins with real-shaped data and checks there's no `max-w-` on the tab (fails on the old `max-w-2xl`). Browser at 1180 wide: tab 924px = the whole content area beside the sidebar. Full suite passed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
