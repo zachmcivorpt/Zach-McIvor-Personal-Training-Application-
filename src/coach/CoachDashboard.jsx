@@ -476,8 +476,15 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
         }}
         placeholder="Anything to remember — plans, reminders, things to follow up on. Only you can see this."
         rows={4}
-        className="relative w-full border rounded-2xl px-4 py-3.5 text-sm leading-relaxed text-white outline-none placeholder:text-white/40 resize-none"
-        style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: "rgba(255,255,255,0.07)" }}
+        className="relative w-full rounded-2xl px-4 py-3.5 text-sm leading-relaxed text-white outline-none placeholder:text-white/40 resize-none focus:border-white/25"
+        // Frosted glass like the tiles and the rest of the console (#227).
+        style={{
+          background: "rgba(255,255,255,0.045)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07)",
+          backdropFilter: "blur(18px)",
+          WebkitBackdropFilter: "blur(18px)",
+        }}
       />
     </div>
   );
@@ -733,27 +740,27 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           a bevelled frosted-glass APEX mark in the background to the right
           and the greeting + count in matching glass type. Every number is a
           button to the same place its old stat tile went. */}
-      <div className="relative px-5 pt-4 pb-1 sm:px-7 sm:pt-7 min-h-[150px] sm:min-h-[220px]" data-testid="overview-hero">
+      <div className="relative px-5 pt-4 pb-1 sm:px-7 sm:pt-7 min-h-[124px] sm:min-h-[220px]" data-testid="overview-hero">
         <div className="absolute pointer-events-none -right-5 -top-4 sm:right-6 sm:-top-14" role="img" aria-label="APEX" data-testid="overview-mark">
           <span className="sm:hidden">
-            <BevelGlassMark size={160} />
+            <BevelGlassMark size={130} />
           </span>
           <span className="hidden sm:block">
             <BevelGlassMark size={300} />
           </span>
         </div>
         <div className="relative pr-28 sm:pr-[320px]">
-          <h1 className="text-[24px] sm:text-[30px] font-semibold tracking-[-0.02em] leading-tight" style={GLASS_HEADING_STYLE}>
+          <h1 className="text-[20px] sm:text-[30px] font-semibold tracking-[-0.02em] leading-tight" style={GLASS_HEADING_STYLE}>
             {timeOfDayGreeting()}, {currentUser?.name?.split(" ")[0] || "Coach"}
           </h1>
-          <p className="text-white/70 text-[13.5px] mt-1">Your roster and what needs your attention.</p>
+          <p className="text-white/70 text-[12.5px] sm:text-[13.5px] mt-1">Your roster and what needs your attention.</p>
         </div>
-        <div className="relative flex items-end gap-4 mt-4">
+        <div className="relative flex items-end gap-4 mt-3 sm:mt-4">
           <button
             type="button"
             onClick={() => onNavigate("clients")}
             aria-label={`${active.length} active clients`}
-            className="text-[56px] font-semibold tracking-[-0.05em] leading-[0.9] tabular-nums"
+            className="text-[44px] sm:text-[56px] font-semibold tracking-[-0.05em] leading-[0.9] tabular-nums"
             style={GLASS_HEADING_STYLE}
           >
             {usersReady ? active.length : "–"}
@@ -784,6 +791,11 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           }}
         />
         <GlassTile value={dbReady ? awaitingReply : "–"} label="Messages to reply" onClick={() => onNavigate("messages")} />
+      </div>
+
+      {/* Coach's notes sit above Needs attention (#227, owner). */}
+      <div className="relative mx-4 md:mx-0 mb-7" data-testid="coach-notes">
+        <CoachNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
       </div>
 
       <section className="relative mx-4 md:mx-0 mb-7">
@@ -883,10 +895,6 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           )}
         </div>
       </section>
-
-      <div className="relative mx-4 md:mx-0 mb-7">
-        <CoachNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
-      </div>
 
       <section className="relative mx-4 md:mx-0 mb-7">
         <SectionHead title="Segments" meta="What clients need next" />

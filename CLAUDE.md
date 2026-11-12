@@ -70,7 +70,10 @@ rather than inventing new colors per screen:
   bevelled frosted-glass APEX mark (`BevelGlassMark`, `src/components/GlassMark.jsx` — never in LoginHero.jsx, whose mark has no CSS blur (#209); #226,
   owner's pick "H": 300px iPad/desktop, 160px iPhone) in the background
   to the right. The greeting and the count use the matching glass type
-  (`GLASS_HEADING_STYLE`: white-to-steel gradient text, faint blue glow). Then frosted-glass tiles (Challenges,
+  (`GLASS_HEADING_STYLE`: white-to-steel gradient text, faint blue glow).
+  On phones the heading is smaller (greeting 20px, count 44px, mark 130px;
+  30/56/300 from `sm`). Coach's notes sit directly above Needs attention,
+  in a frosted-glass box like the tiles, never a solid charcoal one (#227). Then frosted-glass tiles (Challenges,
   Check-ins, Messages) and open sections under thin rules. Every number
   keeps its old destination (#115).
 - The coach console is otherwise still dark-only, glass on near-black (#212).
