@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
-import { isMealPlanEnded, mealPlanEndDateKey } from "../lib/mealPlanEnd";
+import { mealPlanEndDateKey } from "../lib/mealPlanEnd";
 import { Avatar, BottomSheet } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
 import WorkoutEditor from "./WorkoutEditor";
@@ -10,6 +10,7 @@ import { computeApexInsights } from "../lib/apexInsights";
 import { buildRecentActivity } from "../lib/recentActivity";
 import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED } from "../theme";
 import { DarkPage, DarkPanel } from "./darkUI";
+import { phaseAlert, mealPlanAlert, recentMissedSession, daysBetweenKeys } from "./endingSoon";
 import { BevelGlassMark, GLASS_HEADING_STYLE } from "../components/GlassMark";
 
 import {
@@ -101,12 +102,6 @@ function daysUntil(dateKey, todayKey) {
   return Math.round((new Date(dateKey) - new Date(todayKey)) / 86400000);
 }
 
-function addDaysISO(dateStr, days) {
-  const d = new Date(dateStr);
-  d.setDate(d.getDate() + days);
-  return localDateKey(d);
-}
-
 function timeAgo(ts) {
   const diff = Date.now() - ts;
   const min = Math.floor(diff / 60000);
@@ -168,39 +163,79 @@ function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
   );
 }
 
-const NEEDS_ATTENTION_ICONS = { mealPlan: Utensils, apex: Sparkles, nutrition: Utensils, quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
+const NEEDS_ATTENTION_ICONS = { phase: CalendarClock, mealPlan: Utensils, apex: Sparkles, nutrition: Utensils, quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
 
 // Swipe (or drag) left past the threshold to dismiss — reveals a red trash
 // affordance underneath as it moves. Built on pointer events so it works
 // with touch and mouse alike.
 function SwipeableRow({ onDelete, children }) {
+  // #228: rules from the real iPhone bugs (#107, #109) — never capture the
+  // pointer on press (it swallowed the tap, so rows did nothing), capture
+  // only once a sideways swipe starts, end it from window-level events, and
+  // decide delete-or-snap-back from the row's real position (a ref), never
+  // a value closed over by a render.
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const startXRef = useRef(0);
-  const widthRef = useRef(0);
+  const dragXRef = useRef(0);
+  const startRef = useRef(null);
   const rowRef = useRef(null);
+  const swipedRef = useRef(false);
 
-  function onPointerDown(e) {
-    startXRef.current = e.clientX;
-    widthRef.current = rowRef.current?.offsetWidth || 300;
-    setDragging(true);
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+  function setX(x) {
+    dragXRef.current = x;
+    setDragX(x);
   }
-  function onPointerMove(e) {
-    if (!dragging) return;
-    const dx = e.clientX - startXRef.current;
-    setDragX(Math.min(0, Math.max(dx, -widthRef.current)));
-  }
-  function onPointerUp(e) {
-    if (!dragging) return;
+  function end() {
+    const s = startRef.current;
+    startRef.current = null;
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", end);
+    window.removeEventListener("touchend", end);
+    window.removeEventListener("touchcancel", end);
+    if (!s) return;
+    if (s.captured) {
+      try {
+        s.el.releasePointerCapture(s.pointerId);
+      } catch {}
+    }
     setDragging(false);
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-    if (dragX < -(widthRef.current * 0.35)) {
-      setDragX(-widthRef.current);
+    const width = rowRef.current?.offsetWidth || 300;
+    if (dragXRef.current < -(width * 0.35)) {
+      setX(-width);
       setTimeout(onDelete, 150);
     } else {
-      setDragX(0);
+      setX(0);
     }
+  }
+  function onPointerDown(e) {
+    swipedRef.current = false;
+    startRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId, el: e.currentTarget, captured: false, sideways: null };
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    window.addEventListener("touchend", end);
+    window.addEventListener("touchcancel", end);
+  }
+  function onPointerMove(e) {
+    const s = startRef.current;
+    if (!s) return;
+    const dx = e.clientX - s.x;
+    const dy = e.clientY - s.y;
+    if (s.sideways === null) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      s.sideways = Math.abs(dx) > Math.abs(dy);
+      if (!s.sideways) {
+        end();
+        return;
+      }
+      swipedRef.current = true;
+      setDragging(true);
+      try {
+        s.el.setPointerCapture(s.pointerId);
+        s.captured = true;
+      } catch {}
+    }
+    const width = rowRef.current?.offsetWidth || 300;
+    setX(Math.min(0, Math.max(dx, -width)));
   }
 
   return (
@@ -211,10 +246,16 @@ function SwipeableRow({ onDelete, children }) {
       <div
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        // A swipe isn't also a tap on the row underneath.
+        onClickCapture={(e) => {
+          if (swipedRef.current) {
+            e.stopPropagation();
+            swipedRef.current = false;
+          }
+        }}
         style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease", backgroundColor: CLIENT_DARK_BG }}
         className="relative touch-pan-y select-none"
+        data-testid="swipe-row"
       >
         {children}
       </div>
@@ -222,14 +263,19 @@ function SwipeableRow({ onDelete, children }) {
   );
 }
 
-function NeedsAttentionRow({ alert, onDismiss, onOpen }) {
+function NeedsAttentionRow({ alert, onDismiss, onOpen, onOpenClient }) {
   const isApex = alert.kind === "apex";
+  // Every row opens something (#228): an APEX insight its sheet, the rest
+  // the client's page on the tab that matters.
+  const open = isApex ? () => onOpen(alert) : () => onOpenClient?.(alert.client.id, alert.tab ? { tab: alert.tab } : undefined);
   const Icon = alert.kind === "insight" && alert.direction === "down" ? TrendingDown : NEEDS_ATTENTION_ICONS[alert.kind];
   return (
     <SwipeableRow onDelete={onDismiss}>
       <div
-        onClick={isApex ? () => onOpen(alert) : undefined}
-        className={`flex items-center gap-3 py-3 border-b last:border-0 ${isApex ? "cursor-pointer hover:bg-white/[0.03] -mx-1 px-1 rounded-lg" : ""}`}
+        onClick={open}
+        role="button"
+        data-testid={`attention-${alert.kind}`}
+        className="flex items-center gap-3 py-3 min-h-[56px] border-b last:border-0 cursor-pointer active:bg-white/[0.04] hover:bg-white/[0.03]"
         style={{ borderColor: CLIENT_DARK_BORDER }}
       >
         <Avatar name={alert.client.name} url={alert.client.avatarUrl} size={32} dark />
@@ -242,7 +288,7 @@ function NeedsAttentionRow({ alert, onDismiss, onOpen }) {
             )}
             <span className="font-semibold text-white">{alert.client.name}</span> — {alert.title}
           </p>
-          <p className="text-white text-[11px] mt-0.5">{alert.detail}</p>
+          <p className="text-white/60 text-[12px] leading-snug mt-0.5">{alert.detail}</p>
         </div>
         <Icon size={16} className="shrink-0" style={{ color: isApex ? MEASURE_BLUE : OVER_RED }} />
       </div>
@@ -379,7 +425,7 @@ function ApexInsightSheet({ alert, onClose, onDismiss, onReviewClient, sendMessa
   );
 }
 
-function ActivityItem({ item, onClick }) {
+function ActivityItem({ item, onClick, hiddenOnPhone = false }) {
   const clickable = (item.type === "workout" && !!item.log) || (item.type === "checkin" && !!item.response) || (item.type === "weighin" && !!item.clientId);
   return (
     <div
@@ -388,7 +434,7 @@ function ActivityItem({ item, onClick }) {
       // on desktop (see the Recent Activity card in CoachDashboard.jsx),
       // where "last child" doesn't line up with "visually last in either
       // column", so every row keeps its own divider instead.
-      className={`break-inside-avoid flex items-start gap-3 py-3 border-b ${clickable ? "cursor-pointer hover:bg-white/[0.03] -mx-1 px-1 rounded-lg" : ""}`}
+      className={`break-inside-avoid ${hiddenOnPhone ? "hidden md:flex" : "flex"} items-start gap-3 py-3 border-b ${clickable ? "cursor-pointer active:bg-white/[0.04] hover:bg-white/[0.03]" : ""}`}
       style={{ borderColor: CLIENT_DARK_BORDER }}
     >
       <Avatar name={item.clientName} url={item.clientAvatar} size={32} dark />
@@ -402,7 +448,7 @@ function ActivityItem({ item, onClick }) {
           )}
           {item.suffix}
         </p>
-        <p className="text-white text-[11px] mt-1">
+        <p className="text-white/55 text-[12px] mt-1">
           {timeAgo(item.date)}
           {clickable && <span className="font-medium" style={{ color: MEASURE_BLUE }}> · Tap to view</span>}
         </p>
@@ -532,7 +578,12 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
   const newActiveThisWeek = active.filter((c) => c.createdAt && Date.now() - c.createdAt <= 7 * 86400000).length;
   const [viewingActivity, setViewingActivity] = useState(null); // the clicked Recent Activity item (workout or check-in) for the detail sheet
   const [broadcastOpen, setBroadcastOpen] = useState(false);
-  const [viewingApexAlert, setViewingApexAlert] = useState(null); // the tapped APEX Insight row, for its detail sheet
+  const [viewingApexAlert, setViewingApexAlert] = useState(null);
+  // #228: every alert the count promises can be shown; Recent activity is a
+  // short list with "Show more" on phones instead of a box that scrolls
+  // inside the page (a scroll inside a scroll on iPhone).
+  const [showAllAttention, setShowAllAttention] = useState(false);
+  const [showAllActivity, setShowAllActivity] = useState(false); // the tapped APEX Insight row, for its detail sheet
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
 
   // ---- smart segments ----
@@ -555,11 +606,9 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
   // tighter 2-day window, since by then it's not just "plan ahead" — it's
   // "the client runs out very soon").
   function mealPlanDaysLeft(c) {
-    const plan = (db.mealPlans[c.id] || [])[0];
-    if (!plan?.startDate || !plan.days?.length) return null;
-    const weeksCount = Math.max(...plan.days.map((d, i) => d.weekIndex ?? Math.floor(i / 7))) + 1;
-    const endDateKey = addDaysISO(plan.startDate, weeksCount * 7 - 1);
-    const days = daysUntil(endDateKey, todayKey);
+    const end = mealPlanEndDateKey((db.mealPlans[c.id] || [])[0]);
+    if (!end) return null;
+    const days = daysBetweenKeys(todayKey, end);
     return days >= 0 ? days : null;
   }
 
@@ -586,7 +635,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
   // above — nothing persisted, so it's always current.
   const QUIET_DAYS = 5;
   const NUTRITION_QUIET_DAYS = 3;
-  const KIND_PRIORITY = { mealPlan: 0, apex: 1, nutrition: 2, quiet: 3, missed: 4, insight: 5 };
+  const KIND_PRIORITY = { phase: 0, mealPlan: 0, apex: 1, nutrition: 2, quiet: 3, missed: 4, insight: 5 };
   const needsAttention = [];
   active.forEach((c) => {
     // APEX AI Insights — cross-referenced patterns across training,
@@ -595,30 +644,12 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
     // pattern rather than a single noisy data point).
     computeApexInsights(c, db).forEach((apexAlert) => needsAttention.push(apexAlert));
 
-    const mealPlanDays = mealPlanDaysLeft(c);
-    // Past its last day the client no longer sees the guide — flagged
-    // until the coach builds the next one (or removes it).
-    const endedPlan = (db.mealPlans[c.id] || [])[0];
-    if (isMealPlanEnded(endedPlan, todayKey)) {
-      needsAttention.push({
-        id: `mealplan-${c.id}`,
-        client: c,
-        kind: "mealPlan",
-        title: "Meal guide ended",
-        detail: `Ended ${new Date(`${mealPlanEndDateKey(endedPlan)}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })} — it no longer shows in their app. Build their next one.`,
-      });
-    } else if (mealPlanDays !== null && mealPlanDays <= 2) {
-      needsAttention.push({
-        id: `mealplan-${c.id}`,
-        client: c,
-        kind: "mealPlan",
-        title: "Meal guide running out",
-        detail:
-          mealPlanDays === 0
-            ? "Ends today — build or duplicate their next week before they run out."
-            : `Ends in ${mealPlanDays}d — build or duplicate their next week before they run out.`,
-      });
-    }
+    // Program phase and meal guide ending within 4 days, or ended with
+    // nothing after it (#228).
+    const phaseA = phaseAlert(c, (db.clientPhases || {})[c.id], todayKey);
+    if (phaseA) needsAttention.push(phaseA);
+    const mealA = mealPlanAlert(c, (db.mealPlans[c.id] || [])[0], todayKey);
+    if (mealA) needsAttention.push(mealA);
 
     // "Tracked food" means at least one item in some meal slot — logging
     // water alone still writes a nutritionLogs doc for that date, so an
@@ -635,6 +666,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         id: `nutrition-${c.id}`,
         client: c,
         kind: "nutrition",
+        tab: "nutrition",
         title: "Not tracking nutrition",
         detail: lastFoodLog
           ? `No food logged in ${daysSinceFood}d — worth a check-in on their nutrition.`
@@ -658,20 +690,21 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         id: `quiet-${c.id}`,
         client: c,
         kind: "quiet",
+        tab: "training",
         title: "Gone quiet",
         detail: `No training logged in ${daysSinceWorkout}d${daysSinceLogin !== null ? ` · last opened the app ${daysSinceLogin}d ago` : ""}.`,
       });
     }
 
     const loggedDateKeys = new Set(logs.map((l) => localDateKey(l.date)));
-    const pastScheduled = (db.scheduledWorkouts[c.id] || []).filter((w) => w.date < todayKey);
-    const missed = [...pastScheduled].reverse().find((w) => !loggedDateKeys.has(w.date));
+    const missed = recentMissedSession(db.scheduledWorkouts[c.id], loggedDateKeys, todayKey);
     if (missed) {
-      const daysAgo = -daysUntil(missed.date, todayKey);
+      const daysAgo = daysBetweenKeys(missed.date, todayKey);
       needsAttention.push({
         id: `missed-${c.id}`,
         client: c,
         kind: "missed",
+        tab: "training",
         title: "Missed session",
         detail: `${missed.label || "A scheduled session"} (${daysAgo}d ago) wasn't logged — worth a follow-up message.`,
       });
@@ -690,6 +723,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
             id: `weight-${c.id}`,
             client: c,
             kind: "insight",
+            tab: "progress",
             direction: delta > 0 ? "up" : "down",
             title: "Bodyweight change",
             detail: `${delta > 0 ? "Increased" : "Decreased"} ${Math.abs(delta)}kg over ${days} days.`,
@@ -814,9 +848,14 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
             </div>
           ) : (
             <>
-              {visibleNeedsAttention.slice(0, 8).map((a) => (
-                <NeedsAttentionRow key={a.id} alert={a} onDismiss={() => dismissAlert(a.id)} onOpen={setViewingApexAlert} />
+              {(showAllAttention ? visibleNeedsAttention : visibleNeedsAttention.slice(0, 8)).map((a) => (
+                <NeedsAttentionRow key={a.id} alert={a} onDismiss={() => dismissAlert(a.id)} onOpen={setViewingApexAlert} onOpenClient={onOpenClient} />
               ))}
+              {visibleNeedsAttention.length > 8 && (
+                <button type="button" onClick={() => setShowAllAttention((v) => !v)} className="w-full py-3 text-[13px] font-semibold" style={{ color: MEASURE_BLUE }} data-testid="attention-more">
+                  {showAllAttention ? "Show fewer" : `Show all ${visibleNeedsAttention.length}`}
+                </button>
+              )}
               <p className="text-white text-[10px] text-center pt-1 pb-1">Swipe an item left to dismiss it for a week</p>
             </>
           )}
@@ -879,7 +918,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
 
       <section className="relative mx-4 md:mx-0 mb-7">
         <SectionHead title="Recent activity" meta="Your latest client activity" />
-        <div className="border-t max-h-[420px] overflow-y-auto" style={{ borderColor: "rgba(255,255,255,0.22)" }}>
+        <div className="border-t md:max-h-[420px] md:overflow-y-auto" style={{ borderColor: "rgba(255,255,255,0.22)" }} data-testid="recent-activity">
           {recentActivity.length === 0 ? (
             <p className="text-white text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
           ) : (
@@ -887,11 +926,17 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
               {recentActivity.map((item, i) => (
                 <ActivityItem
                   key={i}
+                  hiddenOnPhone={!showAllActivity && i >= 6}
                   item={item}
                   onClick={() => (item.type === "weighin" ? onOpenClient?.(item.clientId, { tab: "progress" }) : setViewingActivity(item))}
                 />
               ))}
             </div>
+          )}
+          {recentActivity.length > 6 && (
+            <button type="button" onClick={() => setShowAllActivity((v) => !v)} className="md:hidden w-full py-3 text-[13px] font-semibold" style={{ color: MEASURE_BLUE }} data-testid="activity-more">
+              {showAllActivity ? "Show less" : `Show ${recentActivity.length - 6} more`}
+            </button>
           )}
         </div>
       </section>
@@ -902,7 +947,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={Trophy} label="New exercise personal bests" clients={newPRs} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={CalendarClock} label="Phase ending within a week" clients={phaseEndingSoon} onViewAll={() => onNavigate("clients")} />
-          <SegmentRow icon={Utensils} label="Meal guide ending in a couple of days" clients={mealPlanEndingSoon} onViewAll={() => onNavigate("clients")} />
+          <SegmentRow icon={Utensils} label="Meal guide ending within a week" clients={mealPlanEndingSoon} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
         </div>
       </section>
