@@ -737,6 +737,40 @@ any Train Solo work from now on:
 - **Clean mark** (#209, #210): no radial halo and no CSS blur on the mark. The login area draws it as a vector, `ApexMarkSvg` (LoginHero.jsx), with a tight SVG glow (owner's pick, mock-up B); never a stretched PNG there. Log-in screens use `LitLogo crisp`. The login background is 103% tall, top-pinned and clipped so an upload's bottom edge never shows.
 - **Styling only**: buttons and fields are unchanged. The coach's login background still shows when one is set.
 
+## Coach video feedback (#219)
+
+- **Nothing leaves the coach's device before Publish Feedback.** Recording,
+  editing, the overview and the rendered file live only in IndexedDB
+  (`src/lib/videoFeedback/localStore.js`, keyed `coachUid::clientId`).
+  `publish.js` is the only code that uploads (finished MP4 + thumbnail to
+  `coachVideoFeedback/{clientId}/`), then writes `videoFeedback/{id}`, then
+  notifies (`/api/notify` kind `videoFeedback`). Never upload raw takes or
+  write a client-visible doc while recording/editing; keep each publish step
+  saved to the draft so a retry never re-renders, re-uploads or re-notifies.
+- **The recording belongs to the workspace, never a panel** (`useCameraRecorder`
+  at `VideoFeedbackWorkspace`'s root): switching, collapsing or resizing the
+  client panels must never stop or restart the camera/recorder.
+- Recording format: MP4 on Safari/iPhone, WebM elsewhere (Chrome's MP4
+  recorder ignores 1 s slices, so a crash would lose the take). Rendering:
+  WebCodecs via `mediabunny`, real-time MediaRecorder fallback. Keep all of
+  it lazy (workspace chunk, client `VideoFeedbackClient.jsx` on Check-ins).
+- **Glass, full width** (#220, owner): workspace, Write, Publish and the
+  client's film page are frosted glass over the blurred gym photo
+  (`CARD_GLASS` in `WeeklyScorecard.jsx`), 8px gutters, never white boxes
+  or centred narrow columns. The overview is `VideoFeedbackSummary`
+  (`onDarkStage` on coach glass, the client's own light/dark on theirs).
+- **The panel opens on "This week"** (`weekScorecard`, last 7 completed
+  days, own data only, "–" not 0): sessions %, nutrition adherence (same
+  score as the client page's card, `adherenceWindows`), protein days, steps,
+  weight/kcal/sleep/kg lifted, day-by-day grid, best and stagnant lifts.
+- **The "Check-in" tab is the check-in the video answers**: changes since
+  the previous response of the same form via `checkinChanges` (one shared
+  function for coach and client); worse ratings are the key changes. A
+  rating's direction is the form question's `higherIsWorse` (Library →
+  Forms), else guessed from its wording.
+- A client may change only `viewedAt` (firestore.rules); videos are
+  readable only by that client and the coach (storage.rules).
+
 ## Coach activity notifications (#215)
 
 - Workout / progress photo / weigh-in pushes to the coach come from server triggers (`functions/coachActivityNotify.js`), never from client-app code; switches are `notificationPrefs.workouts` / `progressPhotos` / `weighIns`. No RPE in them.

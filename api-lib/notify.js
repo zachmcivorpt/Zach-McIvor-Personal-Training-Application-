@@ -52,5 +52,5 @@ export const CLIENT_ID_COLLECTIONS = [
   "workoutLogs", "messages", "workoutComments", "progressPhotos", "savedMeals",
   "habits", "clientPhases", "formSchedules", "formResponses", "weighIns",
   "scheduledWorkouts", "bodyStatsSchedules", "nutritionLogs", "bodyMetrics",
-  "notifications", "clientNotes",
+  "notifications", "clientNotes", "videoFeedback",
 ];

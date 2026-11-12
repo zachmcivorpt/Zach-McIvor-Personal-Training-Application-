@@ -216,6 +216,35 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
   //     which never does this itself) write a message into their own
   //     thread claiming `from: "coach"`, and it would render identically
   //     to a real coach-sent message.
+  // --- videoFeedback (#219): created only by the coach's Publish; a
+  //     client reads their own and can change only viewedAt. ---
+  describe("videoFeedback", () => {
+    const fb = { id: "vf1", clientId: CLIENT_A, videoUrl: "u", summary: { overall: "x", priorities: [] }, viewedAt: null };
+    async function seed() {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), "videoFeedback", "vf1"), fb));
+    }
+    it("only the coach can publish (create) feedback", async () => {
+      await assertSucceeds(setDoc(doc(dbAs(COACH_UID), "videoFeedback", "vf1"), fb));
+      await assertFails(setDoc(doc(dbAs(CLIENT_A), "videoFeedback", "vf2"), { ...fb, id: "vf2" }));
+    });
+    it("a client reads only their own feedback", async () => {
+      await seed();
+      await assertSucceeds(getDoc(doc(dbAs(CLIENT_A), "videoFeedback", "vf1")));
+      await assertFails(getDoc(doc(dbAs(CLIENT_B), "videoFeedback", "vf1")));
+      await assertSucceeds(getDocs(query(collection(dbAs(CLIENT_A), "videoFeedback"), where("clientId", "==", CLIENT_A))));
+      await assertFails(getDocs(collection(dbAs(CLIENT_B), "videoFeedback")));
+    });
+    it("a client can mark it watched but change nothing else, and never delete it", async () => {
+      await seed();
+      await assertSucceeds(updateDoc(doc(dbAs(CLIENT_A), "videoFeedback", "vf1"), { viewedAt: 123 }));
+      await assertFails(updateDoc(doc(dbAs(CLIENT_A), "videoFeedback", "vf1"), { summary: { overall: "hacked" } }));
+      await assertFails(updateDoc(doc(dbAs(CLIENT_B), "videoFeedback", "vf1"), { viewedAt: 1 }));
+      await assertFails(deleteDoc(doc(dbAs(CLIENT_A), "videoFeedback", "vf1")));
+      await assertSucceeds(updateDoc(doc(dbAs(COACH_UID), "videoFeedback", "vf1"), { summary: { overall: "edited" } }));
+      await assertSucceeds(deleteDoc(doc(dbAs(COACH_UID), "videoFeedback", "vf1")));
+    });
+  });
+
   describe("messages: from must match the authenticated writer's actual role", () => {
     // #162: why the auto-send welcome never arrived — activateAccount wrote
     // it from the new client's own session as from:"coach". It's sent by

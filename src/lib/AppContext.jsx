@@ -220,6 +220,7 @@ const CLIENT_ID_COLLECTIONS = [
   "nutritionLogs",
   "bodyMetrics",
   "mealPlans",
+  "videoFeedback",
 ];
 
 // A not-yet-activated client's doc id is their email — the only id that
@@ -550,6 +551,8 @@ export function AppProvider({ children }) {
       watch("clientPhases", "clientPhases");
       watch("formSchedules", "formSchedules");
       watch("formResponses", "formResponses");
+      // Published coach video feedback (#219) — drafts never reach here.
+      watch("videoFeedback", "videoFeedback");
       watch("clientNotes", "clientNotes");
       watch("clientContext", "clientContext");
       watch("habitLog", "habitLog");
@@ -579,6 +582,7 @@ export function AppProvider({ children }) {
       watch("clientPhases", "clientPhases", [where("clientId", "==", uid)]);
       watch("formSchedules", "formSchedules", [where("clientId", "==", uid)]);
       watch("formResponses", "formResponses", [where("clientId", "==", uid)]);
+      watch("videoFeedback", "videoFeedback", [where("clientId", "==", uid)]);
       watch("weighIns", "weighIns", [where("clientId", "==", uid)]);
       watch("scheduledWorkouts", "scheduledWorkouts", [where("clientId", "==", uid)]);
       watch("bodyStatsSchedules", "bodyStatsSchedules", [where("clientId", "==", uid)]);
@@ -731,6 +735,8 @@ export function AppProvider({ children }) {
       forms: raw.forms || [],
       formSchedules: bucket(raw.formSchedules),
       formResponses: bucket(raw.formResponses, (a, b) => b.date - a.date),
+      // Newest first (#219).
+      videoFeedback: bucket(raw.videoFeedback, (a, b) => (b.publishedAt || 0) - (a.publishedAt || 0)),
       welcomeMessage: raw.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
       clientTags: Object.fromEntries(users.filter((u) => u.role === "client").map((u) => [u.id, u.clientTags || []])),
       clientNotes: bucket(raw.clientNotes, (a, b) => b.date - a.date),
@@ -1141,6 +1147,7 @@ export function AppProvider({ children }) {
           "scheduledWorkouts",
           "bodyStatsSchedules",
           "notifications",
+          "videoFeedback",
         ].forEach((name) => deleteWhereClientId(name, clientId));
       },
 
@@ -2795,6 +2802,38 @@ export function AppProvider({ children }) {
       },
       markFormResponseRead(id) {
         updateDoc(doc(firestore, "formResponses", id), { read: true }).catch(console.error);
+      },
+
+      // Coach video feedback (#219). Called ONLY by Publish, after the
+      // finished video is uploaded — recording and editing never write
+      // anything here. The doc id is fixed per draft, so a retried publish
+      // overwrites the same doc instead of making a second one. The client
+      // is told once per publish/replacement, after the doc is saved.
+      async saveVideoFeedback(feedback, { notify } = {}) {
+        try {
+          await setDoc(doc(firestore, "videoFeedback", feedback.id), feedback, { merge: true });
+        } catch (err) {
+          throw new Error("Couldn't save the feedback — " + (err.message || "please try again."));
+        }
+        if (notify) pushNotify("videoFeedback", { id: feedback.id, update: notify === "updated" });
+      },
+      async updateVideoFeedbackSummary(id, summary) {
+        try {
+          await updateDoc(doc(firestore, "videoFeedback", id), { summary, updatedAt: Date.now() });
+        } catch (err) {
+          throw new Error("Couldn't save — " + (err.message || "please try again."));
+        }
+      },
+      async deleteVideoFeedback(id) {
+        try {
+          await deleteDoc(doc(firestore, "videoFeedback", id));
+        } catch (err) {
+          throw new Error("Couldn't delete — " + (err.message || "please try again."));
+        }
+      },
+      // The client's own "watched" mark — the only field rules let them change.
+      markVideoFeedbackViewed(id) {
+        updateDoc(doc(firestore, "videoFeedback", id), { viewedAt: Date.now() }).catch(console.error);
       },
       // Once a coach has seen a client-side save failure there's nothing
       // further to act on — removed rather than left to pile up forever.

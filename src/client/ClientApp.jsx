@@ -161,6 +161,8 @@ import { ShoppingListSheet } from "../components/ShoppingListSheet";
 // not with every client's app start (#126).
 const WorkoutEditor = React.lazy(() => import("../coach/WorkoutEditor"));
 // Train Solo's muscle map card, shown as-is on Progress (#216); loaded only there.
+// Coach video feedback (#219): only loaded when Check-ins opens.
+const ClientVideoFeedback = React.lazy(() => import("./VideoFeedbackClient"));
 const MuscleMapCard = React.lazy(() => import("../solo/SoloMuscleMap").then((m) => ({ default: m.SoloMuscleMapCard })));
 import { NutritionTargetsCard } from "../coach/NutritionTargetsCard";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
@@ -1394,6 +1396,8 @@ export function HomeScreen({
   dbReady,
   groups,
   onOpenGroup,
+  feedbackReady = null,
+  onWatchFeedback,
 }) {
   const dark = useClientDark();
   // #218: a past day on Home offers the same "Log a cardio session" as today's Training tab.
@@ -1417,6 +1421,21 @@ export function HomeScreen({
             LOG STATS
           </button>
         </div>
+      )}
+      {isToday && feedbackReady && (
+        <button
+          type="button"
+          onClick={onWatchFeedback}
+          data-testid="home-feedback-ready"
+          className={`mx-2.5 w-[calc(100%-1.25rem)] flex items-center gap-3 rounded-2xl px-4 py-3 border text-left ${dark ? "border-white/8" : "border-black/8"}`}
+          style={clientGlass(dark)}
+        >
+          <Play size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} fill={MEASURE_BLUE} />
+          <p className={`flex-1 text-[13px] font-medium ${dark ? "text-white/65" : "text-black/65"}`}>Your weekly feedback is ready</p>
+          <span className="text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0" style={{ backgroundColor: MEASURE_BLUE }}>
+            WATCH
+          </span>
+        </button>
       )}
       <ClientGroupsCard groups={groups} onOpen={onOpenGroup} />
       <ActiveChallengesCard challenges={challenges} userId={userId} />
@@ -8230,7 +8249,7 @@ function CheckInCard({ schedule, form, due, onFill }) {
   );
 }
 
-function CheckInsScreen({ userId, showToast }) {
+function CheckInsScreen({ userId, showToast, openFeedbackId = null, onFeedbackOpened }) {
   const dark = useClientDark();
   const { db, submitFormResponse } = useApp();
   const [filling, setFilling] = useState(null); // schedule object
@@ -8252,6 +8271,11 @@ function CheckInsScreen({ userId, showToast }) {
     <div className="pb-28 space-y-4">
       <TabHeader label="Check-ins" dark={dark} />
       <p className={dark ? "text-white/40 text-sm px-2.5 -mt-1 mb-1" : "text-black/40 text-sm px-2.5 -mt-1 mb-1"}>Scheduled by your coach</p>
+      {((db.videoFeedback || {})[userId] || []).length > 0 && (
+        <React.Suspense fallback={null}>
+          <ClientVideoFeedback userId={userId} dark={dark} autoOpenId={openFeedbackId} onAutoOpened={onFeedbackOpened} />
+        </React.Suspense>
+      )}
 
       {schedules.length === 0 ? (
         <Card dark={dark} className="mx-2.5 text-center py-10">
@@ -9287,6 +9311,14 @@ export default function ClientApp() {
   const dueCheckInsCount = ((db.formSchedules || {})[currentUser.id] || []).filter(
     (s) => s.active && isCheckInDue(s, checkInResponses)
   ).length;
+  // Coach video feedback the client hasn't opened yet (#219).
+  const unwatchedFeedback = ((db.videoFeedback || {})[currentUser.id] || EMPTY_LIST).find((f) => !f.viewedAt) || null;
+  const [openFeedbackId, setOpenFeedbackId] = useState(null);
+  const clearOpenFeedback = React.useCallback(() => setOpenFeedbackId(null), []);
+  function watchFeedback(id) {
+    setOpenFeedbackId(id);
+    setTab("checkins");
+  }
   const scheduledWorkoutsForClient = (db.scheduledWorkouts || {})[currentUser.id] || EMPTY_LIST;
   const scheduledWorkoutsByDate = useMemo(
     () => Object.fromEntries(scheduledWorkoutsForClient.map((w) => [w.date, w])),
@@ -9439,6 +9471,17 @@ export default function ClientApp() {
         },
       });
     }
+    if (unwatchedFeedback) {
+      items.push({
+        icon: Video,
+        title: "Your weekly feedback is ready",
+        subtitle: "A video from your coach",
+        onClick: () => {
+          setNotifOpen(false);
+          watchFeedback(unwatchedFeedback.id);
+        },
+      });
+    }
     if (dueCheckInsCount > 0) {
       items.push({
         icon: CalendarCheck,
@@ -9479,7 +9522,8 @@ export default function ClientApp() {
       });
     }
     return items;
-  }, [unreadCount, thread, todaySession, completedOnDate, dueCheckInsCount, bodyStatsDueToday, mealPlan, currentUser.id, currentUser.mealPlanSeenAt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unreadCount, thread, todaySession, completedOnDate, dueCheckInsCount, bodyStatsDueToday, mealPlan, currentUser.id, currentUser.mealPlanSeenAt, unwatchedFeedback]);
 
   // A save failure used to show as the exact same fleeting green-check
   // toast as a success — easy to miss mid-workout, and worse, easy to
@@ -10082,6 +10126,8 @@ export default function ClientApp() {
             dbReady={dbReady}
             groups={db.groups || []}
             onOpenGroup={setOpenGroupId}
+            feedbackReady={unwatchedFeedback}
+            onWatchFeedback={() => unwatchedFeedback && watchFeedback(unwatchedFeedback.id)}
           />
         )}
         {tab === "workouts" && (
@@ -10123,7 +10169,7 @@ export default function ClientApp() {
             showToast={showToast}
           />
         )}
-        {tab === "checkins" && <CheckInsScreen userId={currentUser.id} showToast={showToast} />}
+        {tab === "checkins" && <CheckInsScreen userId={currentUser.id} showToast={showToast} openFeedbackId={openFeedbackId} onFeedbackOpened={clearOpenFeedback} />}
         {tab === "calendar" && (
           <ClientCalendarScreen
             scheduledWorkoutsListByDate={scheduledWorkoutsListByDate}
