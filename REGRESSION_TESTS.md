@@ -3493,6 +3493,20 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/coach/sessionSheetGlass214.test.jsx` checks that `SHEET_GLASS` is under 50% opaque and blurred. It also renders the real `WorkoutLogCard` inside the dark glass sheet and checks the PB box is blue glass (no green) and the blocks are see-through. Both tests fail without the fix.
 - **Browser check**: the coach shell was rendered in Chromium at 1180 px, and "Tap to view" was tapped. Everything was readable, the page showed through, and there were no page errors.
 
+### 215. Coach console: a workout note can be sent to the client (owner, 2026-11-13)
+
+- **Change**: "This Workout's Note" was private only. The owner wants it sent to the client when needed.
+- **What it does now** (`WorkoutLogCard`): the note is "private until you send it".
+  - A saved note gets SEND TO CLIENT.
+  - The editor gets "Save & send to client".
+  - Sending posts a normal coach chat message: "About your <session> on <date>:" followed by the note.
+  - The label then reads "sent to the client", and the button reads SENT. That state comes from the chat itself (this exact note text from the coach), so nothing new is stored on the note and firestore.rules are unchanged.
+- **Tests**: `src/coach/workoutNoteSend215.test.jsx` checks three things, all failing without the change:
+  - Send to client sends one message in the right form.
+  - It shows SENT when the chat already has the note.
+  - Save & send saves the note and sends it.
+- **Browser check**: done in the coach shell at 1180 px with no page errors.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

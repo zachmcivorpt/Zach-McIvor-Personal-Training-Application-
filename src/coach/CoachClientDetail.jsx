@@ -4172,14 +4172,32 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
     moveWorkoutLog,
     revertWorkoutLogToScheduled,
     deleteWorkoutLog,
+    sendMessage,
   } = useApp();
   const [open, setOpen] = useState(defaultOpen);
+  const [noteSentNow, setNoteSentNow] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState(null); // "stats" | "move" | "revert" | "delete" | null
   const [commentsOpen, setCommentsOpen] = useState(false);
   const workoutNote = ((db.clientNotes || {})[log.clientId] || []).find((n) => n.workoutLogId === log.id);
+  // #215 (owner): a workout note is private until the coach sends it — then
+  // it goes to the client's chat as a normal coach message. "Sent" is read
+  // from the chat itself (this exact text from the coach), so nothing new is
+  // stored on the note.
+  const noteMessage = (text) =>
+    `About your ${log.dayLabel || "session"} on ${new Date(log.date).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}:\n${text}`;
+  const noteAlreadySent =
+    noteSentNow ||
+    (!!workoutNote &&
+      ((db.messages || {})[log.clientId] || []).some((m) => m.from === "coach" && typeof m.text === "string" && m.text.endsWith(`:\n${workoutNote.text}`)));
+  function sendNoteToClient(text) {
+    const t = (text || "").trim();
+    if (!t || !sendMessage) return;
+    sendMessage(log.clientId, "coach", noteMessage(t));
+    setNoteSentNow(true);
+  }
   const comments = ((db.workoutComments || {})[log.clientId] || []).filter((c) => c.workoutLogId === log.id);
   const hasFlags = log.entries.some((e) => e.note || e.swapReason) || !!workoutNote || !!log.sessionNote;
   const prCount = log.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
@@ -4419,7 +4437,9 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
               <div className="flex items-center gap-1.5">
                 <NotebookPen size={13} className="text-white" />
                 <p className="text-white text-xs font-semibold">This Workout's Note</p>
-                <span className="text-white text-[10px]">· private, only visible to you</span>
+                <span className="text-white/60 text-[10px]" data-testid="note-visibility">
+                  {noteAlreadySent ? "· sent to the client" : "· private until you send it"}
+                </span>
               </div>
               {!editingNote && workoutNote && (
                 <div className="flex items-center gap-2 shrink-0">
@@ -4435,6 +4455,14 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
                   <button onClick={() => deleteClientNote(log.clientId, workoutNote.id)} className="text-white hover:text-red-400">
                     <Trash2 size={13} />
                   </button>
+                  <button
+                    onClick={() => sendNoteToClient(workoutNote.text)}
+                    disabled={noteAlreadySent}
+                    className="ml-1 flex items-center gap-1 text-white text-[11px] font-bold tracking-[0.04em] px-2.5 py-1 rounded-lg disabled:opacity-50"
+                    style={GLASS_BLUE}
+                  >
+                    <Send size={11} /> {noteAlreadySent ? "SENT" : "SEND TO CLIENT"}
+                  </button>
                 </div>
               )}
             </div>
@@ -4444,7 +4472,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
                   dark
                   value={noteDraft}
                   onChange={(e) => setNoteDraft(e.target.value)}
-                  placeholder="Private note about this workout — only visible to you."
+                  placeholder="Note about this workout — private unless you send it."
                   rows={3}
                   autoFocus
                 />
@@ -4465,6 +4493,21 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
                   >
                     <Check size={13} /> Save
                   </button>
+                  <button
+                    onClick={() => {
+                      const trimmed = noteDraft.trim();
+                      if (!trimmed) return;
+                      if (workoutNote) updateClientNote(workoutNote.id, trimmed);
+                      else addClientNote(log.clientId, trimmed, log.id);
+                      sendNoteToClient(trimmed);
+                      setEditingNote(false);
+                    }}
+                    disabled={!noteDraft.trim()}
+                    className="text-xs font-semibold flex items-center gap-1 disabled:opacity-40"
+                    style={{ color: "#7FB8FF" }}
+                  >
+                    <Send size={13} /> Save &amp; send to client
+                  </button>
                   <button onClick={() => setEditingNote(false)} className="text-xs font-semibold text-white flex items-center gap-1">
                     <X size={13} /> Cancel
                   </button>
@@ -4480,7 +4523,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
                 }}
                 className="text-white text-xs italic"
               >
-                Add a private note about this workout…
+                Add a note about this workout…
               </button>
             )}
           </div>
