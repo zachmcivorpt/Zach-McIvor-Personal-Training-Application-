@@ -882,6 +882,8 @@ any Train Solo work from now on:
   that renders the real component with real-shaped data, and the coach's
   client page is opened in a browser before it ships.
 
+- **View as Client survives a reload** (#230): kept on the phone (`VIEW_AS_KEY`, coach uid-checked), cleared by `stopViewAsClient` / logout. Never hold it only in React state.
+
 - Subscribe a collection only for the roles firestore.rules lets read
   it. A refused listener isn't harmless: `subscribeWithRetry` retries it
   forever (backing off to every 16s) on every phone with the app open.
