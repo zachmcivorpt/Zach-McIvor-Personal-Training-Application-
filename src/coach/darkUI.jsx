@@ -40,6 +40,17 @@ export const GLASS_BLUE = {
   boxShadow: "0 0 12px rgba(47,143,255,0.18), inset 0 1px 0 rgba(255,255,255,0.08)",
 };
 
+// Super-transparent dark glass for coach pop-ups (#214, owner: "glassy see
+// through super transparent"): the page shows through, heavily blurred.
+// Use with BottomSheet's dark + surface.
+export const SHEET_GLASS = {
+  backgroundColor: "rgba(8,9,12,0.38)",
+  backdropFilter: "blur(30px) saturate(150%)",
+  WebkitBackdropFilter: "blur(30px) saturate(150%)",
+  borderTop: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+};
+
 // The page behind the glass: near-black, a soft blue glow top-right and
 // bottom-left, and a faint 40px grid.
 export const JARVIS_BACKDROP = {

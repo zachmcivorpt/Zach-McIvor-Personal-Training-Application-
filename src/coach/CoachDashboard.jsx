@@ -9,7 +9,7 @@ import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { computeApexInsights } from "../lib/apexInsights";
 import { buildRecentActivity } from "../lib/recentActivity";
 import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED } from "../theme";
-import { DarkPage, DarkPanel } from "./darkUI";
+import { DarkPage, DarkPanel, SHEET_GLASS } from "./darkUI";
 import { phaseAlert, mealPlanAlert, recentMissedSession, daysBetweenKeys, NEEDS_ATTENTION_MAX_AGE_DAYS } from "./endingSoon";
 import { BevelGlassMark, GLASS_HEADING_STYLE } from "../components/GlassMark";
 
@@ -960,6 +960,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         title={viewingActivity?.type === "checkin" ? viewingActivity.subject : viewingActivity?.clientName}
         wide
         bodyClassName="p-3 sm:p-5"
+        {...(viewingActivity?.type === "checkin" ? {} : { dark: true, surface: SHEET_GLASS, backdropClassName: "bg-black/30" })}
       >
         {viewingActivity?.type === "checkin" ? (
           <CheckInReviewCard

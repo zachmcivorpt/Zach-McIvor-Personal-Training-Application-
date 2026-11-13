@@ -3483,6 +3483,16 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `AppContext.jsx` keeps it on the phone (`apexViewAsClient`, `{ coachUid, clientId }`), restores it on load for that coach only, and holds the loading screen until the client's doc arrives (no frame of the console). Cleared on leaving View as Client and on sign-out; dropped if another account is signed in or the client no longer exists. The client app's own saved tab and in-progress workout (keyed by client id) then bring the coach back into the session.
 - **Tests**: `src/lib/viewAsClientReload230.test.jsx` (3) render the real `AppProvider`: remembered/forgotten, restored after a reload with loading held until the client arrives, never applied to another account. All fail on the old code. Full suite passed; build clean.
 
+### 214. Coach console: a session opened from Overview's Recent activity was unreadable (owner, 2026-11-13)
+
+- **Problem**: tapping "Tap to view" on a session opened a light (white) sheet. Since #212 the session inside is white glass with white text, so the header, title and PR pill were invisible. The Personal Bests box was mint green, and the exercise blocks were solid charcoal.
+- **Fix**:
+  - That sheet (`CoachDashboard`) is now `dark` with `SHEET_GLASS` (darkUI.jsx): super-transparent dark glass at 38% with a 30px blur, as the owner asked ("glassy see through super transparent"), over a lighter backdrop.
+  - Inside `WorkoutLogCard`, Personal Bests is blue glass (`GLASS_BLUE`) with white text, exercise blocks are see-through (3.5% white with a hairline), and PR sets are white with blue labels. There's no green, one accent only.
+  - Check-in reviews keep their own light sheet.
+- **Tests**: `src/coach/sessionSheetGlass214.test.jsx` checks that `SHEET_GLASS` is under 50% opaque and blurred. It also renders the real `WorkoutLogCard` inside the dark glass sheet and checks the PB box is blue glass (no green) and the blocks are see-through. Both tests fail without the fix.
+- **Browser check**: the coach shell was rendered in Chromium at 1180 px, and "Tap to view" was tapped. Everything was readable, the page showed through, and there were no page errors.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
