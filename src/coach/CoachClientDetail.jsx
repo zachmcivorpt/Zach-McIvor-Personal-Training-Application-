@@ -4328,14 +4328,14 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
           {(insights.personalBests.length > 0 || insights.notProgressed.length > 0) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3">
               {insights.personalBests.length > 0 && (
-                <div className="rounded-xl px-3.5 py-3 border" style={{ backgroundColor: "rgba(47,196,120,0.08)", borderColor: "rgba(47,196,120,0.25)" }}>
+                <div className="rounded-xl px-3.5 py-3" style={GLASS_BLUE} data-testid="session-pbs">
                   <div className="flex items-center gap-1.5 mb-2">
-                    <Trophy size={13} style={{ color: GOAL_GREEN }} />
-                    <p className="text-[10px] font-bold tracking-wide uppercase" style={{ color: GOAL_GREEN }}>Personal Bests</p>
+                    <Trophy size={13} style={{ color: "#7FB8FF" }} />
+                    <p className="text-[10px] font-bold tracking-wide uppercase" style={{ color: "#7FB8FF" }}>Personal Bests</p>
                   </div>
                   <div className="space-y-1.5">
                     {insights.personalBests.map((pb) => (
-                      <p key={pb.exerciseId} className="text-[13px] leading-snug" style={{ color: GOAL_GREEN }}>
+                      <p key={pb.exerciseId} className="text-[13px] leading-snug text-white">
                         <span className="font-semibold">{pb.exerciseName}</span> — {pb.display}
                       </p>
                     ))}
@@ -4373,23 +4373,23 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
             {log.entries.map((e, i) => {
               const exercise = exercisesById[e.exerciseId];
               return (
-                <div key={i} className="rounded-xl px-4 py-3.5 border" style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}>
+                <div key={i} className="rounded-xl px-4 py-3.5 border" style={{ backgroundColor: "rgba(255,255,255,0.035)", borderColor: "rgba(255,255,255,0.08)" }}>
                   <p className="text-white text-sm font-semibold mb-2">{exercise?.name || "Exercise"}</p>
                   <div className="space-y-1.5">
                     {e.sets.map((s, si) => (
                       <div
                         key={si}
                         className="flex items-center gap-3 text-[13px]"
-                        style={{ color: s.isPR ? GOAL_GREEN : "rgba(255,255,255,0.55)", fontWeight: s.isPR ? 600 : undefined }}
+                        style={{ color: s.isPR ? "#FFFFFF" : "rgba(255,255,255,0.7)", fontWeight: s.isPR ? 600 : undefined }}
                       >
-                        <span className="w-12 shrink-0 font-medium" style={{ color: s.isPR ? GOAL_GREEN : "rgba(255,255,255,0.3)" }}>
+                        <span className="w-12 shrink-0 font-medium" style={{ color: s.isPR ? "#7FB8FF" : "rgba(255,255,255,0.45)" }}>
                           Set {si + 1}
                         </span>
                         <span>
                           {s.reps} × {s.weight}kg
                         </span>
                         {s.isPR && (
-                          <span className="inline-flex items-center gap-1 font-bold text-[11px] ml-auto" style={{ color: GOAL_GREEN }}>
+                          <span className="inline-flex items-center gap-1 font-bold text-[11px] ml-auto" style={{ color: "#7FB8FF" }}>
                             <Trophy size={11} /> PR
                           </span>
                         )}
