@@ -269,6 +269,27 @@ function readCachedProfile() {
     return null;
   }
 }
+// "View as Client" survives the page being reloaded (#230): iOS can rebuild
+// the web view when the coach leaves the app, which used to drop them back
+// on the client's overview. Kept on the phone with the coach's uid, cleared
+// when they leave View as Client or sign out.
+export const VIEW_AS_KEY = "apexViewAsClient";
+function readViewAs() {
+  try {
+    const v = JSON.parse(localStorage.getItem(VIEW_AS_KEY) || "null");
+    return v && v.coachUid && v.clientId ? v : null;
+  } catch {
+    return null;
+  }
+}
+function writeViewAs(v) {
+  try {
+    if (v) localStorage.setItem(VIEW_AS_KEY, JSON.stringify(v));
+    else localStorage.removeItem(VIEW_AS_KEY);
+  } catch {
+    // Storage unavailable: View as Client just won't survive a reload.
+  }
+}
 function writeCachedProfile(profile) {
   try {
     if (profile) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
@@ -776,15 +797,21 @@ export function AppProvider({ children }) {
   // the coach's the whole time — role/db above are still driven by
   // `profile`, so every client's data stays loaded — this only swaps which
   // user doc the rest of the app treats as "you".
-  const [viewAsClientId, setViewAsClientId] = useState(null);
+  const [savedViewAs] = useState(readViewAs);
+  const [viewAsClientId, setViewAsClientId] = useState(() => savedViewAs?.clientId || null);
   // Set alongside viewAsClientId when a coach jumps into "View as Client"
   // from a specific calendar date (e.g. tapping an undone "Push Day" on
   // their own calendar to log it for the client) — ClientApp reads this
   // once on entry to open straight into that date's workout instead of
   // landing on Home and making the coach find it again themselves.
   const [pendingCoachDate, setPendingCoachDate] = useState(null);
-  const currentUser =
-    viewAsClientId && profile?.role === "coach" ? (db.users || []).find((u) => u.id === viewAsClientId) || profile : profile;
+  // A restored View as Client (#230) only counts for the coach who started it.
+  const viewAsOwnerOk = !savedViewAs || viewAsClientId !== savedViewAs.clientId || !profile || profile.id === savedViewAs.coachUid;
+  const viewAsClient = viewAsClientId && profile?.role === "coach" && viewAsOwnerOk ? (db.users || []).find((u) => u.id === viewAsClientId) || null : null;
+  // Restored but the client's doc hasn't arrived yet: keep the loading screen
+  // up rather than routing the coach to their console for a frame.
+  const viewAsPending = !!viewAsClientId && profile?.role === "coach" && viewAsOwnerOk && !viewAsClient && !usersReady;
+  const currentUser = viewAsClient || profile;
   const session = authUser ? { userId: authUser.uid } : null;
   const hasCoach = !!raw.appMeta?.hasCoach;
   const authReady = authUser !== undefined;
@@ -796,7 +823,16 @@ export function AppProvider({ children }) {
   // "signed out" — that's exactly what caused a flash of the login
   // screen on every cold app launch (most visible as an installed PWA
   // icon tap), even though the session was never actually lost.
-  const sessionLoading = !authReady || (!!authUser && !profile);
+  const sessionLoading = !authReady || (!!authUser && !profile) || viewAsPending;
+  // A saved View as Client that can't apply (another account, not a coach,
+  // or that client no longer exists) is dropped.
+  useEffect(() => {
+    if (!viewAsClientId || !profile) return;
+    if (profile.role !== "coach" || !viewAsOwnerOk || (usersReady && !viewAsClient)) {
+      setViewAsClientId(null);
+      writeViewAs(null);
+    }
+  }, [viewAsClientId, profile, viewAsOwnerOk, usersReady, viewAsClient]);
 
   const actions = useMemo(
     () => ({
@@ -812,6 +848,7 @@ export function AppProvider({ children }) {
 
       async logout() {
         setViewAsClientId(null);
+        writeViewAs(null);
         await signOut(auth);
       },
 
@@ -2852,10 +2889,12 @@ export function AppProvider({ children }) {
     viewingAsClient: !!viewAsClientId,
     startViewAsClient: (clientId, date) => {
       setViewAsClientId(clientId);
+      writeViewAs(profile?.id ? { coachUid: profile.id, clientId } : null);
       setPendingCoachDate(date || null);
     },
     stopViewAsClient: () => {
       setViewAsClientId(null);
+      writeViewAs(null);
       setPendingCoachDate(null);
     },
     pendingCoachDate,

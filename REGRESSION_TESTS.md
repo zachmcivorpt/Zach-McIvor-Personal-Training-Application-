@@ -3477,6 +3477,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: mark at `right-0` with `overflow-x-clip` on the hero; `overflow-x-hidden` on CoachShell's page scroller. `NEEDS_ATTENTION_MAX_AGE_DAYS = 14` (`src/coach/endingSoon.js`): ended meal guide ≤ 14 days; nutrition-quiet and gone-quiet only 3/5–14 days since they stopped; weight change only if the latest weigh-in is ≤ 14 days old. `apexInsights.js`: check-in answers ≤ 28 days, lift decline only if its last session ≤ 14 days, bodyweight trend only if the latest weigh-in ≤ 14 days.
 - **Tests**: `src/coach/overviewStale229.test.jsx` (5): meal guide ended 29 days ago not flagged / 10 days flagged; bodyweight trend 40 days old not an insight / current one is; the real `CoachDashboard` flags newFood/newQuiet/newWeight and not oldFood/oldQuiet/oldWeight; hero clips and the mark has no negative right; the shell scroller hides sideways overflow. All 4 Overview/insight tests fail on the old code (run with the fix stashed). `overviewAttention228`'s "ended" meal guide moved to one that ended 10 days ago. Chromium at 390×844 (touch): page scrollWidth 390 (was 410); a real CDP touch drag sideways leaves scrollX 0. Full suite and `vite build` pass.
 
+### 230. View as Client: leaving the app no longer drops the coach back on the client overview (owner, 2026-11-13)
+
+- **Problem**: a coach in View as Client (e.g. logging a client's session) who left the app and came back landed on the client's overview in the coach console. iOS can reload / rebuild the web view on return, and View as Client lived only in memory.
+- **Fix**: `AppContext.jsx` keeps it on the phone (`apexViewAsClient`, `{ coachUid, clientId }`), restores it on load for that coach only, and holds the loading screen until the client's doc arrives (no frame of the console). Cleared on leaving View as Client and on sign-out; dropped if another account is signed in or the client no longer exists. The client app's own saved tab and in-progress workout (keyed by client id) then bring the coach back into the session.
+- **Tests**: `src/lib/viewAsClientReload230.test.jsx` (3) render the real `AppProvider`: remembered/forgotten, restored after a reload with loading held until the client arrives, never applied to another account. All fail on the old code. Full suite passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
