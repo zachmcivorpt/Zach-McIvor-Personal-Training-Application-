@@ -1,23 +1,19 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
-import { mealPlanEndDateKey } from "../lib/mealPlanEnd";
 import { Avatar, BottomSheet } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
 import WorkoutEditor from "./WorkoutEditor";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { computeApexInsights } from "../lib/apexInsights";
 import { buildRecentActivity } from "../lib/recentActivity";
-import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED } from "../theme";
+import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED } from "../theme";
 import { DarkPage, DarkPanel, SHEET_GLASS } from "./darkUI";
 import { phaseAlert, mealPlanAlert, recentMissedSession, daysBetweenKeys, NEEDS_ATTENTION_MAX_AGE_DAYS } from "./endingSoon";
 import { BevelGlassMark, GLASS_HEADING_STYLE } from "../components/GlassMark";
 
 import {
-  CalendarPlus,
   CalendarClock,
-  Trophy,
-  MessageCircleOff,
   Send,
   Check,
   Utensils,
@@ -94,10 +90,6 @@ function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, 
   );
 }
 
-function hasActivePhaseToday(phases, todayKey) {
-  return phases.some((p) => p.startDate <= todayKey && (!p.endDate || p.endDate >= todayKey));
-}
-
 function daysUntil(dateKey, todayKey) {
   return Math.round((new Date(dateKey) - new Date(todayKey)) / 86400000);
 }
@@ -111,56 +103,6 @@ function timeAgo(ts) {
   if (hr < 24) return `${hr} hour${hr === 1 ? "" : "s"} ago`;
   const day = Math.floor(hr / 24);
   return `${day} day${day === 1 ? "" : "s"} ago`;
-}
-
-function AvatarStack({ clients, max = 4, dark = false }) {
-  const shown = clients.slice(0, max);
-  const extra = clients.length - shown.length;
-  const ringClass = dark ? "ring-2" : "ring-2 ring-white";
-  const ringStyle = dark ? { "--tw-ring-color": CLIENT_DARK_SURFACE } : undefined;
-  return (
-    <div className="flex items-center -space-x-2">
-      {shown.map((c) => (
-        <div key={c.id} className={`${ringClass} rounded-full`} style={ringStyle}>
-          <Avatar name={c.name} url={c.avatarUrl} size={30} dark={dark} />
-        </div>
-      ))}
-      {extra > 0 && (
-        <div
-          className={`w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-semibold ${ringClass} ${dark ? "bg-white/10 text-white" : "bg-black/8 text-black/50"}`}
-          style={ringStyle}
-        >
-          +{extra}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
-  return (
-    <div className="flex items-center gap-3 py-3 border-b last:border-0" style={{ borderColor: CLIENT_DARK_BORDER }}>
-      <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border"
-        style={clients.length ? { backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" } : { backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
-      >
-        <Icon size={16} style={{ color: clients.length ? MEASURE_BLUE : "rgba(255,255,255,0.25)" }} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium truncate">{label}</p>
-      </div>
-      {clients.length > 0 ? (
-        <div className="flex items-center gap-2.5 shrink-0">
-          <AvatarStack clients={clients} dark />
-          <button onClick={onViewAll} className="text-xs font-semibold shrink-0 hover:opacity-80" style={{ color: MEASURE_BLUE }}>
-            View All
-          </button>
-        </div>
-      ) : (
-        <span className="text-white text-xs shrink-0">All clear</span>
-      )}
-    </div>
-  );
 }
 
 const NEEDS_ATTENTION_ICONS = { phase: CalendarClock, mealPlan: Utensils, apex: Sparkles, nutrition: Utensils, quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
@@ -586,53 +528,10 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
   const [showAllActivity, setShowAllActivity] = useState(false); // the tapped APEX Insight row, for its detail sheet
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
 
-  // ---- smart segments ----
-  const needsNewPhase = active.filter((c) => {
-    const phases = (db.clientPhases || {})[c.id] || [];
-    return !hasActivePhaseToday(phases, todayKey);
-  });
-
-  const phaseEndingSoon = active.filter((c) => {
-    const phases = (db.clientPhases || {})[c.id] || [];
-    const phase = phases.find((p) => p.startDate <= todayKey && (!p.endDate || p.endDate >= todayKey));
-    if (!phase || !phase.endDate) return false;
-    const days = daysUntil(phase.endDate, todayKey);
-    return days >= 0 && days <= 7;
-  });
-
-  // A meal plan's last day = startDate + (weeksCount * 7 - 1) days. Shared
-  // by the "ending soon" segment below (a week's lead time to build a
-  // replacement) and the urgent Needs Attention entry further down (a
-  // tighter 2-day window, since by then it's not just "plan ahead" — it's
-  // "the client runs out very soon").
-  function mealPlanDaysLeft(c) {
-    const end = mealPlanEndDateKey((db.mealPlans[c.id] || [])[0]);
-    if (!end) return null;
-    const days = daysBetweenKeys(todayKey, end);
-    return days >= 0 ? days : null;
-  }
-
-  const mealPlanEndingSoon = active.filter((c) => {
-    const days = mealPlanDaysLeft(c);
-    return days !== null && days <= 7;
-  });
-
-  const sevenDaysAgo = Date.now() - 7 * 86400000;
-  const newPRs = active.filter((c) => {
-    const logs = db.workoutLogs[c.id] || [];
-    return logs.some((log) => log.date >= sevenDaysAgo && log.entries.some((e) => e.sets.some((s) => s.isPR)));
-  });
-
-  const notMessagedLately = active.filter((c) => {
-    const thread = db.messages[c.id] || [];
-    const last = thread[thread.length - 1];
-    return !last || last.date < sevenDaysAgo;
-  });
-
   // "Needs Attention" — clients going quiet, a missed session that hasn't
   // been followed up on, or a notable bodyweight swing worth a check-in.
-  // Computed on the fly from data already loaded, same as the segments
-  // above — nothing persisted, so it's always current.
+  // Computed on the fly from data already loaded — nothing persisted, so
+  // it's always current. (The Segments section was removed, #232.)
   const QUIET_DAYS = 5;
   const NUTRITION_QUIET_DAYS = 3;
   const KIND_PRIORITY = { phase: 0, mealPlan: 0, apex: 1, nutrition: 2, quiet: 3, missed: 4, insight: 5 };
@@ -940,17 +839,6 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
               {showAllActivity ? "Show less" : `Show ${recentActivity.length - 6} more`}
             </button>
           )}
-        </div>
-      </section>
-
-      <section className="relative mx-4 md:mx-0 mb-7">
-        <SectionHead title="Segments" meta="What clients need next" />
-        <div className="border-t pt-1" style={{ borderColor: "rgba(255,255,255,0.22)" }}>
-          <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
-          <SegmentRow icon={Trophy} label="New exercise personal bests" clients={newPRs} onViewAll={() => onNavigate("clients")} />
-          <SegmentRow icon={CalendarClock} label="Phase ending within a week" clients={phaseEndingSoon} onViewAll={() => onNavigate("clients")} />
-          <SegmentRow icon={Utensils} label="Meal guide ending within a week" clients={mealPlanEndingSoon} onViewAll={() => onNavigate("clients")} />
-          <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
         </div>
       </section>
 

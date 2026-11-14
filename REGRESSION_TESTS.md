@@ -3513,6 +3513,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change** (View as Client only; real clients and Train Solo unchanged): the swap opens a full-screen picker (`NutritionPage`, search at the top, no keyboard until tapped, rows under thin dividers), then "How do you want to swap?": **Swap in training phase** (updates the program from this day on) or **This session only**. No "Why the swap?" step for the coach. The phase swap (`src/client/phaseSwap.js` `planPhaseSwap`) replaces the exercise in every day of the current phase with this session's name (sets/reps kept) and in that phase's scheduled days from this session's day to the phase end; earlier days and logged sessions are never touched.
 - **Tests**: `src/client/phaseSwap.test.js` (3) and `src/client/coachSwapSheet231.test.jsx` (4); the 4 UI tests fail on the old code. Opened in Chromium at 390 wide: picker and choice sheet render, no errors, no sideways scroll. Full suite passed; build clean.
 
+### 232. Coach Overview: Segments section removed (owner, 2026-11-14)
+
+- **Change**: the "Segments — What clients need next" section (new phase needed, new PBs, phase / meal guide ending within a week, not messaged in 7+ days) is gone from the coach Overview, with its now-unused code (`SegmentRow`, `AvatarStack`, the segment lists). Needs attention, Recent activity and the tiles are unchanged.
+- **Tests**: `src/coach/overviewNoSegments232.test.jsx` renders the real Overview: no Segments heading or rows, Needs attention still there. Fails on the old code. Full suite passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
