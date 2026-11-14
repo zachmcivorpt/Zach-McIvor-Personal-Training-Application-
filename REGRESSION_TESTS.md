@@ -3507,6 +3507,12 @@ each lights exactly that muscle's outline (screenshots in the session).
   - Save & send saves the note and sends it.
 - **Browser check**: done in the coach shell at 1180 px with no page errors.
 
+### 231. View as Client: clean exercise swap, and "Swap in training phase" (owner, 2026-11-14)
+
+- **Problem**: in View as Client the swap sheet opened with the keyboard up (search `autoFocus`), the short list sat under it and the page behind showed through; and a swap only ever changed that one session.
+- **Change** (View as Client only; real clients and Train Solo unchanged): the swap opens a full-screen picker (`NutritionPage`, search at the top, no keyboard until tapped, rows under thin dividers), then "How do you want to swap?": **Swap in training phase** (updates the program from this day on) or **This session only**. No "Why the swap?" step for the coach. The phase swap (`src/client/phaseSwap.js` `planPhaseSwap`) replaces the exercise in every day of the current phase with this session's name (sets/reps kept) and in that phase's scheduled days from this session's day to the phase end; earlier days and logged sessions are never touched.
+- **Tests**: `src/client/phaseSwap.test.js` (3) and `src/client/coachSwapSheet231.test.jsx` (4); the 4 UI tests fail on the old code. Opened in Chromium at 390 wide: picker and choice sheet render, no errors, no sideways scroll. Full suite passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

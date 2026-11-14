@@ -130,7 +130,7 @@ import {
   SessionIntelligenceCard,
 } from "../components/ui";
 import { MetricTile } from "../components/charts";
-import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, BORDER_STRONG, SURFACE_RAISED, SURFACE, BORDER, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
+import { BG, MEASURE_BLUE, GOAL_GREEN, OVER_RED, BORDER_STRONG, SURFACE_RAISED, SURFACE, BORDER, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
 import {
   computeWeeklyVolume,
   computeWorkoutsSeries,
@@ -165,7 +165,8 @@ const WorkoutEditor = React.lazy(() => import("../coach/WorkoutEditor"));
 const ClientVideoFeedback = React.lazy(() => import("./VideoFeedbackClient"));
 const MuscleMapCard = React.lazy(() => import("../solo/SoloMuscleMap").then((m) => ({ default: m.SoloMuscleMapCard })));
 import { NutritionTargetsCard } from "../coach/NutritionTargetsCard";
-import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
+import { planPhaseSwap } from "./phaseSwap";
+import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet, NutritionPage } from "./NutritionFeatures";
 import { AddFoodPage } from "./AddFoodPage";
 import { buildCorrectedFood } from "../lib/barcodeLookup";
 import { AFCD_FOODS } from "../lib/afcdFoods";
@@ -2520,8 +2521,12 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   );
 }
 
-function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm }) {
+export function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm, onSwapInPhase }) {
   const dark = useClientDark();
+  // #231: the coach in View as Client gets a full-screen picker (search at
+  // the top, nothing for the keyboard to cover or show through) and then the
+  // choice "Swap in training phase" / "This session only" — no reason step.
+  const [phaseChoiceFor, setPhaseChoiceFor] = useState(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [reason, setReason] = useState("");
@@ -2535,6 +2540,7 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
       setReason("");
       setSameMuscle(true);
       setSameEquipment(false);
+      setPhaseChoiceFor(null);
     }
   }, [exMeta]);
 
@@ -2545,6 +2551,110 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
     .filter((e) => !sameMuscle || !primaryMuscle || e.category === primaryMuscle)
     .filter((e) => !sameEquipment || !exercise?.equipment || e.equipment === exercise.equipment)
     .slice(0, 40);
+
+  const filterChip = (on, label, toggle) => (
+    <button
+      type="button"
+      onClick={toggle}
+      className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors shrink-0"
+      style={
+        on
+          ? { backgroundColor: MEASURE_BLUE, borderColor: MEASURE_BLUE, color: "#fff" }
+          : { borderColor: dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)", color: dark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }
+      }
+    >
+      {label}
+    </button>
+  );
+
+  if (onSwapInPhase) {
+    const rowBorder = dark ? "border-white/10" : "border-black/8";
+    return (
+      <>
+        <NutritionPage title={`Swap ${exercise?.name || "exercise"}`} onBack={onClose} dark={dark} z={100}>
+          <div className="px-3 pt-3 pb-2 sticky top-0 z-10" style={{ backgroundColor: dark ? CLIENT_DARK_BG : BG }}>
+            <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5" : "flex items-center gap-2 bg-black/[0.06] rounded-xl px-3 py-2.5"}>
+              <Search size={16} className={dark ? "text-white/40" : "text-black/40"} />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search exercises"
+                enterKeyHint="search"
+                aria-label="Search exercises"
+                className={dark ? "bg-transparent outline-none text-white text-[16px] flex-1 placeholder:text-white/30" : "bg-transparent outline-none text-black text-[16px] flex-1 placeholder:text-black/30"}
+              />
+              {search && (
+                <button type="button" aria-label="Clear search" onClick={() => setSearch("")} className={dark ? "text-white/40" : "text-black/40"}>
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-2.5 overflow-x-auto no-scrollbar">
+              {primaryMuscle && filterChip(sameMuscle, "Same muscle group", () => setSameMuscle((v) => !v))}
+              {exercise?.equipment && filterChip(sameEquipment, "Same equipment", () => setSameEquipment((v) => !v))}
+            </div>
+          </div>
+          <div className="px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            {filtered.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => {
+                  if (typeof document !== "undefined") document.activeElement?.blur?.();
+                  setPhaseChoiceFor(e);
+                }}
+                className={`w-full flex items-center gap-3 py-2.5 border-b text-left active:opacity-70 ${rowBorder}`}
+              >
+                <ExerciseThumb dark={dark} exercise={e} size={48} rounded="rounded-lg" className="shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className={dark ? "text-white text-[15px] font-semibold truncate" : "text-black text-[15px] font-semibold truncate"}>{e.name}</p>
+                  <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>{e.equipment}</p>
+                </div>
+                <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <p className={dark ? "text-white/30 text-sm text-center py-8" : "text-black/30 text-sm text-center py-8"}>No matching exercises.</p>
+            )}
+          </div>
+        </NutritionPage>
+        <BottomSheet dark={dark} open={!!phaseChoiceFor} onClose={() => setPhaseChoiceFor(null)} title="How do you want to swap?">
+          {phaseChoiceFor && (
+            <div style={{ color: dark ? "#fff" : "#000" }}>
+              <p className={dark ? "text-white/50 text-sm mb-2" : "text-black/50 text-sm mb-2"}>
+                {exercise?.name} → <span className="font-semibold">{phaseChoiceFor.name}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const to = phaseChoiceFor;
+                  setPhaseChoiceFor(null);
+                  onSwapInPhase(exMeta.exerciseId, to);
+                  onConfirm(to, "Changed in the program by your coach.");
+                }}
+                className={`w-full text-left py-3.5 border-b ${rowBorder}`}
+              >
+                <p className="text-[16px] font-semibold">Swap in training phase</p>
+                <p className={dark ? "text-white/45 text-xs mt-0.5" : "text-black/45 text-xs mt-0.5"}>Updates the program from this day on</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const to = phaseChoiceFor;
+                  setPhaseChoiceFor(null);
+                  onConfirm(to, "");
+                }}
+                className="w-full text-left py-3.5"
+              >
+                <p className="text-[16px] font-semibold">This session only</p>
+                <p className={dark ? "text-white/45 text-xs mt-0.5" : "text-black/45 text-xs mt-0.5"}>The program stays as it is</p>
+              </button>
+            </div>
+          )}
+        </BottomSheet>
+      </>
+    );
+  }
 
   return (
     <BottomSheet dark={dark} open={!!exMeta} onClose={onClose} title={selected ? "Why the swap?" : `Swap ${exercise?.name || "exercise"}`}>
@@ -2722,6 +2832,7 @@ export function WorkoutSession({
   onOpenMessages,
   thread,
   onSendFormCheck,
+  onSwapInPhase,
 }) {
   const dark = useClientDark();
   const [noteOpenFor, setNoteOpenFor] = useState(null);
@@ -3174,6 +3285,7 @@ export function WorkoutSession({
           allExercises={allExercises}
           onClose={() => setSwapFor(null)}
           onConfirm={confirmSwap}
+          onSwapInPhase={onSwapInPhase}
         />
 
         <AddExerciseSheet
@@ -9039,6 +9151,8 @@ export default function ClientApp() {
     updateLiveSession,
     clearLiveSession,
     dbReady,
+    updateClientPhase,
+    saveScheduledWorkout,
   } = useApp();
   // Light/Dark: the client's own choice (Profile > Appearance), kept on
   // this phone per person like Train Solo's; until they choose, the
@@ -10328,6 +10442,32 @@ export default function ClientApp() {
             onOpenMessages={openMessages}
             thread={thread}
             onSendFormCheck={viewingAsClient ? undefined : (text, attachment) => sendMessage(currentUser.id, "client", text, attachment)}
+            onSwapInPhase={
+              viewingAsClient
+                ? (fromId, toExercise) => {
+                    // #231: the coach swaps it in the program too, from this session's day on.
+                    const s = runningSession || todaySession;
+                    const plan = planPhaseSwap({
+                      phases: (db.clientPhases || {})[currentUser.id] || [],
+                      scheduled: scheduledWorkoutsForClient,
+                      dateKey: s?.date || localDateKey(),
+                      label: s?.label,
+                      fromId,
+                      toId: toExercise.id,
+                    });
+                    if (!plan) {
+                      showToast("Swapped for this session — it isn't in the current phase", true);
+                      return;
+                    }
+                    Promise.all([
+                      plan.weeks ? updateClientPhase(currentUser.id, plan.phaseId, { weeks: plan.weeks }) : null,
+                      ...plan.scheduled.map((w) => saveScheduledWorkout(currentUser.id, { ...w, previousId: w.id })),
+                    ])
+                      .then(() => showToast(`${toExercise.name} is now in the program`))
+                      .catch((err) => showToast(err.message || "Couldn't update the program — check your connection and try again", true));
+                  }
+                : undefined
+            }
           />
         )}
         {summaryOpen && summaryData && (
