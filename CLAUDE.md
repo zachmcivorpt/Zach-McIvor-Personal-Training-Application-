@@ -757,7 +757,7 @@ any Train Solo work from now on:
 ## Login area look (#207)
 
 - **Order**: signed-out visitors see the first page (`/start`): a glowing see-through APEX mark, "Train solo. Train smarter." with a faded echo, page dots and a ring arrow. Then the chooser (`/start?step=choose`, `START_CHOOSER`), then the log-in screens.
-- **Back links**: every log-in screen's Back goes to the chooser, and Coaching's `/login` has one too.
+- **Back links**: every log-in screen's Back goes to the chooser, and Coaching's `/login` has one too — with `mt-4` above it so it clears the iPhone status bar (#233).
 - **Shared parts**: use `LitLogo`, `GlowLogo` and `EchoHeading` from `src/components/LoginHero.jsx`. Never put a CSS drop-shadow on the mark PNG: it draws a box.
 - **Chooser** (#208): `LitLogo crisp` (glow from blurred copies, no reflection) and frosted-glass buttons (`GLASS`/`GLASS_STRONG`). Logo PNGs must have no faint near-transparent pixels (they show as a box).
 - **Clean mark** (#209, #210): no radial halo and no CSS blur on the mark. The login area draws it as a vector, `ApexMarkSvg` (LoginHero.jsx), with a tight SVG glow (owner's pick, mock-up B); never a stretched PNG there. Log-in screens use `LitLogo crisp`. The login background is 103% tall, top-pinned and clipped so an upload's bottom edge never shows.

@@ -3518,6 +3518,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change**: the "Segments — What clients need next" section (new phase needed, new PBs, phase / meal guide ending within a week, not messaged in 7+ days) is gone from the coach Overview, with its now-unused code (`SegmentRow`, `AvatarStack`, the segment lists). Needs attention, Recent activity and the tiles are unchanged.
 - **Tests**: `src/coach/overviewNoSegments232.test.jsx` renders the real Overview: no Segments heading or rows, Needs attention still there. Fails on the old code. Full suite passed; build clean.
 
+### 233. Coaching log-in: Back link lower, clear of the status bar (owner, 2026-11-14)
+
+- **Problem**: on the iPhone the Back link on `/login` sat tight under the clock: `pt-safe` replaces the page's `py-8` top padding there, leaving only the safe-area inset above it.
+- **Fix**: `mt-4` on the Back link (`src/auth/LoginScreen.jsx`). Nothing else on the screen moves relative to it.
+- **Tests**: `src/auth/loginBack233.test.jsx` renders the real screen and checks the spacing; fails on the old code. #207's login tests still pass. Full suite passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -262,8 +262,10 @@ export default function LoginScreen() {
           clear of it now that the webview itself extends up behind it
           (see NativeStatusBarSync in App.jsx). */}
       <div className="relative min-h-dvh w-full flex flex-col px-6 py-8 pt-safe">
-        {/* Back to the Coaching / Train Solo chooser (#207, owner). */}
-        <Link to={START_CHOOSER} className="flex items-center gap-1 text-white/50 text-sm font-medium self-start">
+        {/* Back to the Coaching / Train Solo chooser (#207, owner). mt-4
+            (#233): pt-safe replaces py-8's top padding on the iPhone, which
+            left Back tight under the status bar. */}
+        <Link to={START_CHOOSER} className="mt-4 flex items-center gap-1 text-white/50 text-sm font-medium self-start">
           <ChevronLeft size={16} /> Back
         </Link>
         <div className="flex justify-center pt-6">
