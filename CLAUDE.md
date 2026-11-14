@@ -90,6 +90,7 @@ rather than inventing new colors per screen:
   "Show more", never a box that scrolls inside the page. Then frosted-glass tiles (Challenges,
   Check-ins, Messages) and open sections under thin rules. Every number
   keeps its old destination (#115).
+- **No Segments section on Overview** (#232, owner): removed for good; don't bring it back.
 - The coach console is otherwise still dark-only, glass on near-black (#212).
 
 ### Train Solo (self-guided app, `src/solo/`) design rules
