@@ -21,11 +21,11 @@ const GLASS_DARK = {
 // Light: white glass on a near-white page (#241, owner: "more glassy white,
 // less grey").
 const GLASS_LIGHT = {
-  background: "rgba(255,255,255,0.68)",
-  border: "1px solid rgba(255,255,255,0.95)",
-  backdropFilter: "blur(28px) saturate(180%) brightness(1.04)",
-  WebkitBackdropFilter: "blur(28px) saturate(180%) brightness(1.04)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,1), 0 16px 40px -28px rgba(20,30,60,0.22)",
+  background: "linear-gradient(160deg, rgba(255,255,255,0.62), rgba(255,255,255,0.38))",
+  border: "1px solid rgba(255,255,255,0.9)",
+  backdropFilter: "blur(30px) saturate(190%) brightness(1.06)",
+  WebkitBackdropFilter: "blur(30px) saturate(190%) brightness(1.06)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(255,255,255,0.35), 0 14px 36px -26px rgba(20,30,60,0.28)",
 };
 const BLUE_GLASS = { background: "rgba(47,143,255,0.12)", border: "1px solid rgba(47,143,255,0.5)", backdropFilter: "blur(26px)", WebkitBackdropFilter: "blur(26px)", boxShadow: "0 0 18px rgba(47,143,255,0.18)" };
 
@@ -50,7 +50,7 @@ function useTone(dark) {
 
 function Card({ tone, children, style, testid }) {
   return (
-    <div className="rounded-[22px] p-4" style={{ ...tone.glass, ...style }} data-testid={testid}>
+    <div className="rounded-[20px] px-4 py-3" style={{ ...tone.glass, ...style }} data-testid={testid}>
       {children}
     </div>
   );
@@ -60,12 +60,12 @@ function Label({ tone, children, color }) {
 }
 function Row({ tone, title, sub, value, valueColor, first }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-3" style={first ? undefined : { borderTop: `1px solid ${tone.line}` }}>
+    <div className="flex items-center justify-between gap-3 py-2" style={first ? undefined : { borderTop: `1px solid ${tone.line}` }}>
       <span className="min-w-0">
-        <span className="block text-[13px] font-semibold">{title}</span>
-        {sub && <span className="block text-[11px] mt-0.5 tabular-nums" style={{ color: tone.muted }}>{sub}</span>}
+        <span className="block text-[13px] font-semibold leading-tight">{title}</span>
+        {sub && <span className="block text-[11px] leading-tight mt-0.5 tabular-nums" style={{ color: tone.muted }}>{sub}</span>}
       </span>
-      <span className="text-[16px] font-semibold tabular-nums shrink-0" style={valueColor ? { color: valueColor } : undefined}>
+      <span className="text-[15px] font-semibold tabular-nums shrink-0" style={valueColor ? { color: valueColor } : undefined}>
         {value}
       </span>
     </div>
@@ -96,7 +96,7 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
   return createPortal(
     <div
       className="fixed inset-0 z-[110] flex flex-col overflow-hidden"
-      style={{ backgroundColor: dark ? CLIENT_DARK_BG : "#F6F7F9", color: tone.text, opacity: shown ? 1 : 0, transform: shown ? "none" : "translateY(12px)", transition: "opacity 0.28s ease, transform 0.32s cubic-bezier(.2,.8,.2,1)" }}
+      style={{ backgroundColor: dark ? CLIENT_DARK_BG : "#FFFFFF", color: tone.text, opacity: shown ? 1 : 0, transform: shown ? "none" : "translateY(12px)", transition: "opacity 0.28s ease, transform 0.32s cubic-bezier(.2,.8,.2,1)" }}
       role="dialog"
       aria-label="Weekly review"
       data-testid="weekly-review-page"
@@ -106,7 +106,7 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
         alt=""
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 w-full h-full object-cover"
-        style={{ filter: dark ? "blur(30px) brightness(0.55)" : "blur(44px) brightness(2) grayscale(1)", transform: "scale(1.15)", opacity: dark ? 0.9 : 0.22 }}
+        style={{ filter: dark ? "blur(30px) brightness(0.55)" : "blur(22px) grayscale(1) invert(1) contrast(0.85) brightness(1.08)", transform: "scale(1.15)", opacity: dark ? 0.9 : 0.55 }}
       />
       <div className="relative shrink-0 flex items-center gap-2 px-2 pt-[max(1.25rem,env(safe-area-inset-top))] pb-2">
         <button type="button" onClick={onClose} aria-label="Back" className="w-10 h-10 rounded-full flex items-center justify-center" style={tone.glass}>
@@ -116,17 +116,17 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
         <span className="w-10" />
       </div>
 
-      <div className="relative flex-1 overflow-y-auto overscroll-contain px-2 pb-16 space-y-2 max-w-xl w-full mx-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div className="relative flex-1 overflow-y-auto overscroll-contain px-2 pb-16 space-y-1.5 max-w-xl w-full mx-auto" style={{ WebkitOverflowScrolling: "touch" }}>
         <Card tone={tone} testid="review-hero">
           <Label tone={tone}>{fmtRange(r)}</Label>
-          <h1 className="text-[19px] leading-[1.2] font-semibold tracking-[-0.02em] mt-2">{r.headline}</h1>
-          <p className="text-[34px] leading-none font-semibold tracking-[-0.035em] tabular-nums mt-4" data-testid="review-hero-figure">
+          <h1 className="text-[19px] leading-[1.15] font-semibold tracking-[-0.02em] mt-1">{r.headline}</h1>
+          <p className="text-[34px] leading-none font-semibold tracking-[-0.035em] tabular-nums mt-2.5" data-testid="review-hero-figure">
             {hero}
           </p>
-          <p className="text-[12px] mt-1.5" style={{ color: tone.muted }}>
+          <p className="text-[12px] mt-1" style={{ color: tone.muted }}>
             {s.planned > 0 ? "planned sessions done" : s.total === 1 ? "session done" : "sessions done"}
           </p>
-          <div className="flex gap-1 mt-3">
+          <div className="flex gap-1 mt-2.5">
             {r.days.map((d) => (
               <span
                 key={d.dateKey}
@@ -147,19 +147,19 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
               [r.prs, "PRs", r.prs > 0],
             ].map(([v, label, blue]) => (
               <div key={label} className="min-w-0">
-                <p className="text-[22px] leading-none font-semibold tracking-[-0.03em] tabular-nums whitespace-nowrap" style={blue ? { color: MEASURE_BLUE } : undefined}>
+                <p className="text-[20px] leading-none font-semibold tracking-[-0.03em] tabular-nums whitespace-nowrap" style={blue ? { color: MEASURE_BLUE } : undefined}>
                   {v}
                 </p>
-                <p className="text-[11px] mt-2" style={{ color: tone.muted }}>
+                <p className="text-[11px] mt-1.5" style={{ color: tone.muted }}>
                   {label}
                 </p>
               </div>
             ))}
           </div>
           {r.streak > 0 && (
-            <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: `1px solid ${tone.line}` }} data-testid="review-consistency">
+            <div className="flex items-center justify-between mt-3 pt-2" style={{ borderTop: `1px solid ${tone.line}` }} data-testid="review-consistency">
               <span className="text-[13px] font-semibold">Consistency</span>
-              <span className="text-[16px] font-semibold tabular-nums">
+              <span className="text-[15px] font-semibold tabular-nums">
                 {r.streak} week{r.streak === 1 ? "" : "s"} in a row
               </span>
             </div>
@@ -169,7 +169,7 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
         {n && n.logged > 0 && (
           <Card tone={tone} testid="review-nutrition">
             <Label tone={tone}>Nutrition</Label>
-            <div className="mt-1">
+            <div className="mt-0.5">
               {n.calorieTarget && <Row tone={tone} first title="Calories on target" sub={`Within your ${n.calorieTarget.toLocaleString("en-AU")} kcal goal`} value={`${n.calorieHits} of 7 days`} />}
               {n.proteinTarget && <Row tone={tone} first={!n.calorieTarget} title="Protein hit" sub={`${n.proteinTarget} g a day`} value={`${n.proteinHits} of 7 days`} />}
             </div>
@@ -179,7 +179,7 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
         {bodyRows.length > 0 && (
           <Card tone={tone} testid="review-body">
             <Label tone={tone}>Body</Label>
-            <div className="mt-1">
+            <div className="mt-0.5">
               {bodyRows.map((row, i) => (
                 <Row key={row.title} tone={tone} first={i === 0} {...row} />
               ))}
@@ -190,7 +190,7 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
         {r.stronger.length > 0 && (
           <Card tone={tone} testid="review-stronger">
             <Label tone={tone}>Stronger</Label>
-            <div className="mt-1">
+            <div className="mt-0.5">
               {r.stronger.map((g, i) => (
                 <Row key={g.id} tone={tone} first={i === 0} title={g.name} sub={`Est. max ${g.from} → ${g.to} kg`} value={`+${g.change} kg`} valueColor={MEASURE_BLUE} />
               ))}
@@ -201,9 +201,9 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
         {(r.phase || r.insights.length > 0) && (
           <Card tone={tone}>
             {r.phase && (
-              <div className={r.insights.length ? "pb-3 mb-1" : ""} style={r.insights.length ? { borderBottom: `1px solid ${tone.line}` } : undefined} data-testid="review-phase">
+              <div className={r.insights.length ? "pb-2.5" : ""} style={r.insights.length ? { borderBottom: `1px solid ${tone.line}` } : undefined} data-testid="review-phase">
                 <Label tone={tone}>Your phase</Label>
-                <div className="flex items-baseline justify-between gap-3 mt-2.5">
+                <div className="flex items-baseline justify-between gap-3 mt-1.5">
                   <span className="text-[13px] font-semibold min-w-0 truncate">
                     {r.phase.name}
                     {r.phase.total ? ` · Week ${r.phase.week} of ${r.phase.total}` : ` · Week ${r.phase.week}`}
@@ -211,14 +211,14 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
                   {r.phase.pct !== null && <span className="text-[16px] font-semibold tabular-nums shrink-0">{Math.round(r.phase.pct * 100)}%</span>}
                 </div>
                 {r.phase.pct !== null && (
-                  <span className="block h-1.5 rounded-full mt-3 overflow-hidden" style={{ background: tone.chip }}>
+                  <span className="block h-1.5 rounded-full mt-2 overflow-hidden" style={{ background: tone.chip }}>
                     <span className="block h-full rounded-full" style={{ width: `${Math.round(r.phase.pct * 100)}%`, background: MEASURE_BLUE }} />
                   </span>
                 )}
               </div>
             )}
             {r.insights.map((text) => (
-              <p key={text} className="flex items-start gap-2.5 text-[13px] leading-relaxed mt-2.5" style={{ color: tone.muted }}>
+              <p key={text} className="flex items-start gap-2 text-[12.5px] leading-snug mt-2" style={{ color: tone.muted }}>
                 <TrendingUp size={15} color={MEASURE_BLUE} className="shrink-0 mt-[3px]" />
                 <span>{text}</span>
               </p>
@@ -226,14 +226,14 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
           </Card>
         )}
 
-        <div className="rounded-[22px] p-4" style={BLUE_GLASS} data-testid="review-focus">
+        <div className="rounded-[20px] px-4 py-3" style={BLUE_GLASS} data-testid="review-focus">
           <Label tone={tone} color={MEASURE_BLUE}>
             Next week's focus
           </Label>
-          <p className="text-[16px] leading-snug font-semibold mt-2">{r.focus}</p>
+          <p className="text-[15px] leading-snug font-semibold mt-1.5">{r.focus}</p>
         </div>
 
-        <div className="pt-4 px-2">
+        <div className="pt-3 px-2">
           {!coachView && checkInDue ? (
             <>
               <button
