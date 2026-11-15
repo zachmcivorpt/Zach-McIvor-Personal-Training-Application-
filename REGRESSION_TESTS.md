@@ -3576,6 +3576,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change**: the review's opening card is smaller (headline 19px, figure 34px, label 12px, day pills 24px). Light mode is white glass on a near-white page instead of grey: the page is #F6F7F9, the gym photo sits at 22% and is brighter, and the cards are 68% white with a bright edge. Dark mode is unchanged.
 - **Tests**: styling only. `src/client/weeklyReview240.test.jsx` still passes, and the page was checked in Chromium at 390 px in light and dark.
 
+### 242. Coached weekly review: tighter layout, clearer glass in light mode (owner, 2026-11-15)
+
+- **Change**: everything is tighter. Cards are 12px top/bottom (were 16), rows 8px (were 12), the gaps between cards are 6px, the hero headline sits 4px under the dates, the figure is 10px below, and labels hug their rows. Values are 15px and figures 20px. Light mode is white glass that shows the page through it: a white page with the gym photo inverted (white with soft texture) behind see-through gradient glass with a bright edge. It's no longer the dark photo brightened, which always came out grey. Dark mode is unchanged apart from the spacing.
+- **Tests**: styling only. `src/client/weeklyReview240.test.jsx` still passes, and the page was checked in Chromium at 390 px in light and dark.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
