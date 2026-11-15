@@ -640,5 +640,48 @@ service cloud.firestore {
         request.resource.data.soloUserId == resource.data.soloUserId;
       allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
     }
+
+    // --- Train Solo training partners (#234, functions/soloPartners.js) ---
+    // soloPartnerCodes/{code}: a member's invite code. Anyone may look one
+    // code up (the join page shows the inviter's first name before sign-in);
+    // nobody can list them. Only the owner creates or deletes theirs.
+    match /soloPartnerCodes/{code} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid &&
+        request.resource.data.keys().hasOnly(["uid", "firstName", "createdAt"]) &&
+        code.size() >= 6 && code.size() <= 10;
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+    // soloPartners/{a_b}: one pair, uids sorted. Created by the friend who
+    // joins, only with the other member's real code; either member can end
+    // it. The partner limit is enforced by the server trigger.
+    match /soloPartners/{id} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow create: if isSignedIn() &&
+        request.resource.data.keys().hasOnly(["members", "joinedBy", "code", "createdAt"]) &&
+        request.resource.data.members.size() == 2 &&
+        request.resource.data.members[0] < request.resource.data.members[1] &&
+        id == request.resource.data.members[0] + "_" + request.resource.data.members[1] &&
+        request.resource.data.joinedBy == request.auth.uid &&
+        request.auth.uid in request.resource.data.members &&
+        get(/databases/$(database)/documents/soloPartnerCodes/$(request.resource.data.code)).data.uid in request.resource.data.members &&
+        get(/databases/$(database)/documents/soloPartnerCodes/$(request.resource.data.code)).data.uid != request.auth.uid;
+      allow update: if false;
+      allow delete: if isSignedIn() && request.auth.uid in resource.data.members;
+    }
+    // soloPartnerActivity/{uid}: written only by the server from the member's
+    // own logs (sessions per week, last session's name — no weights, photos
+    // or bodyweight). The member and their partners can read it.
+    match /soloPartnerActivity/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid ||
+        exists(/databases/$(database)/documents/soloPartners/$(request.auth.uid < uid ? request.auth.uid + "_" + uid : uid + "_" + request.auth.uid)));
+      allow write: if false;
+    }
+    // soloPartnerPushes: the server's record of pushes already sent.
+    match /soloPartnerPushes/{id} {
+      allow read, write: if false;
+    }
   }
 }

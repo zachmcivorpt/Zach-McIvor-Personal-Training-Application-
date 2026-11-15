@@ -37,6 +37,7 @@ export const SoloProgressScreen = lazyScreen(() => import("./SoloProgressScreen"
 // signed out (it follows registration).
 export const SoloOnboarding = lazyScreen(() => import("./onboarding/SoloOnboarding"));
 export const SoloConsultationScreen = lazyScreen(() => import("./SoloConsultationScreen"));
+export const SoloJoinScreen = lazyScreen(() => import("./SoloJoinScreen"));
 export const SoloProgramBuilderScreen = lazyScreen(() => import("./SoloProgramBuilderScreen"));
 export const SoloFirstSessionScreen = lazyScreen(() => import("./SoloFirstSessionScreen"));
 export const SoloActiveRecoveryScreen = lazyScreen(() => import("./SoloActiveRecoveryScreen"));
