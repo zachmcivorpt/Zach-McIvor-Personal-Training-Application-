@@ -186,8 +186,10 @@ export default function SoloProgressScreen() {
       <div className="pb-10">
         <SoloPageHeader t={SOLO_THEMES[dark ? "dark" : "light"]} title="Progress" />
 
-        {/* The muscle map leads Progress, then Strength Personal Bests (#202). */}
+        {/* Their main goal leads Progress (#238, owner), then the muscle map
+            and Strength Personal Bests (#202). */}
         <div className="px-3 space-y-4 max-w-md mx-auto mb-4">
+          <SoloGoalCard profile={soloCurrentUser} logs={soloWorkoutLogs} weighIns={soloWeighIns} bodyMetrics={soloBodyMetrics} todayKey={localDateKey()} t={SOLO_THEMES[dark ? "dark" : "light"]} />
           <SoloMuscleMapCard logs={soloWorkoutLogs} exercisesById={exercisesById} dark={dark} />
           {fullStats && (
           <Card dark={dark}>
@@ -206,8 +208,6 @@ export default function SoloProgressScreen() {
             </div>
           </Card>
           )}
-          {/* Their main goal (#237): after the map and Personal Bests (#202). */}
-          <SoloGoalCard profile={soloCurrentUser} logs={soloWorkoutLogs} weighIns={soloWeighIns} bodyMetrics={soloBodyMetrics} todayKey={localDateKey()} t={SOLO_THEMES[dark ? "dark" : "light"]} />
         </div>
 
         {/* The shared timeline paints its own solid band; inside Train Solo it

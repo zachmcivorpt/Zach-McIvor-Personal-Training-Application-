@@ -6,7 +6,7 @@ import { useSoloApp } from "../lib/SoloAppContext";
 import { localDateKey } from "../lib/dateKey";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { SoloButton, SoloTextButton, SOLO_TYPE } from "./SoloUI";
-import { suggestedGoals, goalTitle, startGoal, goalLiftExercises, bestWeight, latestWeight, parseGoal } from "./goals";
+import { suggestedGoals, goalTitle, startGoal, goalLiftExercises, bestWeight, latestWeight, parseGoal, liftMilestone } from "./goals";
 import { saveSoloGoal, markGoalPromptSeen } from "./goalStore";
 
 const NO_ANSWERS = Object.freeze({});
@@ -114,7 +114,7 @@ export default function SoloGoalScreen({ firstTime = false, onDone }) {
   function pickLift(lift) {
     setDrafts((d) => {
       const best = bestWeight(logs, lift.exerciseId);
-      const target = best > 0 ? Math.ceil((best * 1.1) / 5) * 5 : goalOf("lift").target;
+      const target = liftMilestone(lift, best);
       return { ...d, lift: { ...d.lift, exerciseId: lift.exerciseId, liftKey: lift.key, liftLabel: lift.label, target } };
     });
   }

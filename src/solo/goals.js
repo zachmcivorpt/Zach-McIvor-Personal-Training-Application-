@@ -8,15 +8,24 @@ export const GOAL_TYPES = ["consistency", "bodyweight", "lift", "workouts", "ste
 export const MILESTONES = [0.25, 0.5, 0.75, 1];
 
 // The lifts a strength goal can be for, matched by name in the library.
+// `base` / `step`: the round-number milestones a suggestion aims for
+// (#238, owner: "Bench 100 kg", not 95).
 export const GOAL_LIFTS = [
-  { key: "bench", label: "Bench press", match: /^(barbell )?bench press$/i },
-  { key: "squat", label: "Squat", match: /^(barbell )?(back )?squat$/i },
-  { key: "deadlift", label: "Deadlift", match: /^(barbell )?(conventional )?deadlift$/i },
-  { key: "ohp", label: "Overhead press", match: /^(barbell )?(overhead|shoulder|military) press$/i },
+  { key: "bench", label: "Bench press", match: /^(barbell )?bench press$/i, base: 100, step: 20 },
+  { key: "squat", label: "Squat", match: /^(barbell )?(back )?squat$/i, base: 140, step: 20 },
+  { key: "deadlift", label: "Deadlift", match: /^(barbell )?(conventional )?deadlift$/i, base: 180, step: 20 },
+  { key: "ohp", label: "Overhead press", match: /^(barbell )?(overhead|shoulder|military) press$/i, base: 60, step: 10 },
 ];
 
+// The next round-number milestone above their best: the lift's classic
+// target (bench 100 kg) until they've passed it, then the next step up.
+export function liftMilestone(lift, best = 0) {
+  const base = lift?.base || 100;
+  const step = lift?.step || 20;
+  return best < base ? base : Math.floor(best / step) * step + step;
+}
+
 const dateOf = (log) => (typeof log?.date === "string" ? log.date.slice(0, 10) : log?.date != null ? localDateKey(new Date(log.date)) : null);
-const roundUp = (n, step) => Math.ceil(n / step) * step;
 const tidy = (n) => Math.round(n * 10) / 10;
 
 // Heaviest weight lifted for at least one rep on an exercise, from the logs
@@ -79,7 +88,7 @@ export function suggestedGoals({ answers = {}, exercises = [], logs = [] } = {})
   const all = {
     consistency: { type: "consistency", target: 12, perWeek, aim: "build_muscle" },
     bodyweight: { type: "bodyweight", target: 5, direction: "lose" },
-    lift: bench ? { type: "lift", target: liftBest > 0 ? roundUp(liftBest * 1.1, 5) : 100, exerciseId: bench.exerciseId, liftKey: bench.key, liftLabel: bench.label } : null,
+    lift: bench ? { type: "lift", target: liftMilestone(bench, liftBest), exerciseId: bench.exerciseId, liftKey: bench.key, liftLabel: bench.label } : null,
     workouts: { type: "workouts", target: 20 },
     steps: { type: "steps", target: 30, stepTarget: 10000 },
   };

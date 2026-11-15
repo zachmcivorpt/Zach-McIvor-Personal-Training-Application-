@@ -53,15 +53,15 @@ describe("goal screen", () => {
     expect(markGoalPromptSeen).toHaveBeenCalledWith("u1");
     expect(screen.getByText("What are you training for?")).toBeTruthy();
     const rows = screen.getByTestId("goal-options").querySelectorAll("li");
-    expect(rows[0].textContent).toMatch(/^Bench press 80 kgYour best so far: 72.5 kg\.$/);
-    fireEvent.click(screen.getByText("Bench press 80 kg"));
+    expect(rows[0].textContent).toMatch(/^Bench press 100 kgYour best so far: 72.5 kg\.$/);
+    fireEvent.click(screen.getByText("Bench press 100 kg"));
     fireEvent.click(screen.getByRole("button", { name: "More kg" }));
-    expect(screen.getByText("Bench press 82.5 kg")).toBeTruthy();
+    expect(screen.getByText("Bench press 102.5 kg")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Set my goal" }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     const [uid, goal] = saveSoloGoal.mock.calls[0];
     expect(uid).toBe("u1");
-    expect(goal).toMatchObject({ type: "lift", target: 82.5, exerciseId: "bp", start: 72.5 });
+    expect(goal).toMatchObject({ type: "lift", target: 102.5, exerciseId: "bp", start: 72.5 });
     expect(goal.startKey).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 

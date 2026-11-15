@@ -1,6 +1,6 @@
 // #236: main goal progress and training insights, checked by hand.
 import { describe, it, expect } from "vitest";
-import { suggestedGoals, startGoal, goalProgress, goalTitle, encouragement, milestoneCrossed, goalLiftExercises, parseGoal } from "./goals";
+import { suggestedGoals, startGoal, goalProgress, goalTitle, encouragement, milestoneCrossed, goalLiftExercises, parseGoal, liftMilestone, GOAL_LIFTS } from "./goals";
 import { buildInsights, insightForToday, biggestLiftGain, weeksTrainedInARow, strengthGains, workoutHighlight, weeklyFocus, reviewHeadline } from "./insights";
 import { reviewWeek } from "./trainingRecap";
 
@@ -25,10 +25,13 @@ describe("goal suggestions", () => {
     expect(goalTitle(strong[0])).toBe("Bench press 100 kg");
     expect(goalTitle(strong[1])).toBe("Build muscle: train 4× a week for 12 weeks");
   });
-  it("a lift goal starts 10% above their best, to the next 5 kg", () => {
-    const logs = [log("1", "2026-11-02", "bp", [[72.5, 5]])];
-    const lift = suggestedGoals({ answers: { primaryGoal: "get_stronger" }, exercises: lib, logs })[0];
-    expect(lift.target).toBe(80); // 72.5 × 1.1 = 79.75 → 80
+  it("a lift goal aims at the lift's round number: bench 100 kg, then the next 20 (#238)", () => {
+    const at72 = suggestedGoals({ answers: { primaryGoal: "get_stronger" }, exercises: lib, logs: [log("1", "2026-11-02", "bp", [[72.5, 5]])] })[0];
+    expect(at72.target).toBe(100);
+    const at105 = suggestedGoals({ answers: { primaryGoal: "get_stronger" }, exercises: lib, logs: [log("1", "2026-11-02", "bp", [[105, 3]])] })[0];
+    expect(at105.target).toBe(120);
+    expect(liftMilestone(GOAL_LIFTS.find((l) => l.key === "squat"), 0)).toBe(140);
+    expect(liftMilestone(GOAL_LIFTS.find((l) => l.key === "ohp"), 62.5)).toBe(70);
   });
   it("finds the library's big lifts by name, never a variation", () => {
     expect(goalLiftExercises([...lib, { id: "dbp", name: "Dumbbell Bench Press" }, { id: "rdl", name: "Romanian Deadlift" }]).map((l) => l.exerciseId)).toEqual(["bp", "sq", "dl"]);

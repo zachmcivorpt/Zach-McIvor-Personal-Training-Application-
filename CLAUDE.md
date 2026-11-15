@@ -184,8 +184,8 @@ rather than inventing new colors per screen:
   pills, glass detail card from `muscleDetail` (own logs only). Colours by
   recovery (#202, owner — orange approved here): trained < 48 h red
   (`STAGE_RED`), 48–72 h orange (`STAGE_ORANGE`), recovered blue
-  (`recoveryStage`), both themes. Progress opens with this map, then
-  Strength Personal Bests. Light
+  (`recoveryStage`), both themes. Progress opens with the main goal
+  (#238), then this map, then Strength Personal Bests. Light
   mode (#198): `HOLO_LIGHT` panel + `MuscleHologram light` (normal blending) — never the dark panel on a light page.
 - **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
   of Progress, not in My Training.
@@ -249,7 +249,7 @@ rather than inventing new colors per screen:
   weigh-ins and steps, never stored or tracked twice. The goal screen shows
   once after the questionnaire (`GoalFirst` on /solo/first-session — never
   edit the questionnaire for it); existing members get the tile. The goal
-  card lives on PROGRESS (#237, after the map and Personal Bests), not My
+  card lives at the TOP of Progress (#237/#238, above the map), not My
   Training; My Training shows only today's insight (`SoloInsightLine`).
   Suggestions are only suggestions: "Your own goal" is read by `parseGoal`
   into a trackable type and shown as "We'll track this as …" before saving;
