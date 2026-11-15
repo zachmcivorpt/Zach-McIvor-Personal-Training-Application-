@@ -3604,6 +3604,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Program finish date**: the current program's line reads "Week 7 of 8 · 3 sessions/week · finishes 12 Dec" (`programFinish`: the last day of the final week).
 - **Tests**: `src/solo/retention245.test.js` (streak with rest days, the unfinished week, a miss, a spare earned and used, a second miss; recovering hours; finish date; October's story worked by hand including est.-max gains, the quiet month, the photo pair and the 1st–3rd window; time labels). `functions/soloTrainingReminder.test.js` (due only at their hour, on a training day, before they've trained, with a time set; the fallbacks; one push a day however often it runs). `src/solo/restDay245.test.jsx` (the real My Training on a program rest day: recovering, tomorrow, no duplicate mobility, finish date). `clientExperience.test.jsx` now expects weeks on target. All fail without the change. The full suite (1,522) and the build pass. My Training (dark/light), Progress, the time sheet and the month page (dark/light) were checked in Chromium at 390 px.
 - **Needs a real device**: the training reminder arriving at the chosen hour.
+### 246. Weekly QA audit — an edited workout note still said "Sent to the client" (2026-11-15)
+
+- **Problem**: found in the 2026-11-15 weekly audit. After a coach sent a workout note (#215) and then edited it, the card kept saying "· sent to the client" with SEND TO CLIENT greyed out, though the client only had the old wording. A plain true/false "sent now" flag ignored which text was sent.
+- **Fix**: `WorkoutLogCard` (`src/coach/CoachClientDetail.jsx`) remembers the text it sent (`sentNoteText`); "Sent" is for that exact text (or the chat already holding it), so an edited note can be sent again.
+- **Tests**: `src/coach/workoutNoteResend246.test.jsx` (send, edit, Send is available again and sends the new text); fails on the old code. #215's tests still pass. Full suite passed; build clean.
 
 ## What still requires manual testing
 

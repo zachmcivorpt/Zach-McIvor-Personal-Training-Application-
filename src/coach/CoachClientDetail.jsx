@@ -4177,7 +4177,9 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
     sendMessage,
   } = useApp();
   const [open, setOpen] = useState(defaultOpen);
-  const [noteSentNow, setNoteSentNow] = useState(false);
+  // The note text just sent from this card (#246): "Sent" is for that exact
+  // text, so an edited note can be sent again.
+  const [sentNoteText, setSentNoteText] = useState(null);
   const [editingNote, setEditingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -4191,14 +4193,14 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
   const noteMessage = (text) =>
     `About your ${log.dayLabel || "session"} on ${new Date(log.date).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}:\n${text}`;
   const noteAlreadySent =
-    noteSentNow ||
+    (!!workoutNote && sentNoteText === workoutNote.text) ||
     (!!workoutNote &&
       ((db.messages || {})[log.clientId] || []).some((m) => m.from === "coach" && typeof m.text === "string" && m.text.endsWith(`:\n${workoutNote.text}`)));
   function sendNoteToClient(text) {
     const t = (text || "").trim();
     if (!t || !sendMessage) return;
     sendMessage(log.clientId, "coach", noteMessage(t));
-    setNoteSentNow(true);
+    setSentNoteText(t);
   }
   const comments = ((db.workoutComments || {})[log.clientId] || []).filter((c) => c.workoutLogId === log.id);
   const hasFlags = log.entries.some((e) => e.note || e.swapReason) || !!workoutNote || !!log.sessionNote;
