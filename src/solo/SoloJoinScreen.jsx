@@ -52,7 +52,7 @@ export default function SoloJoinScreen() {
           Train Together
         </EchoHeading>
         <p className="text-white/50 text-sm text-center mb-6">
-          {name ? `${name} invited you to train together.` : "You've been invited to train together."} Both hit your sessions each week to keep the streak alive. You only see each other's training days, never weights, body stats or photos.
+          {name ? `${name} invited you to train together.` : "You've been invited to train together."} Both hit your sessions each week to keep the streak alive. You see each other's training days and can train each other's sessions — never weights, body stats or photos.
         </p>
 
         <p className="text-white/50 text-[11px] font-bold tracking-wide uppercase text-center">Invite code</p>
