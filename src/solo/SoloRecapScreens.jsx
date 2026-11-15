@@ -486,12 +486,10 @@ export function SoloWeekRecapScreen() {
         )}
       </div>
 
-      <SoloButton t={t} className="mt-9" onClick={() => navigate("/solo/home", { replace: true, state: { soloTab: "progress" } })}>
-        Log this week's check-in
-      </SoloButton>
-      <SoloTextButton t={t} className="mt-1" onClick={() => navigate("/solo/home", { replace: true })}>
+      {/* No check-in button (#239, owner): Train Solo has no check-ins. */}
+      <SoloButton t={t} className="mt-9" onClick={() => navigate("/solo/home", { replace: true })}>
         Done
-      </SoloTextButton>
+      </SoloButton>
     </Page>
   );
 }

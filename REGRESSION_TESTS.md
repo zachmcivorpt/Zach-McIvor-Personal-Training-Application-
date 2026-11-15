@@ -3558,6 +3558,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change**: "Your Goal" now opens Progress, above the muscle map (#202's map → Personal Bests order is unchanged below it). Lift suggestions aim at the lift's round number, not 10% above the member's best (bench showed 95 kg for a best of 82.5): `liftMilestone` gives bench 100, squat 140, deadlift 180 and overhead press 60 until passed, then the next 20 (OHP 10). Picking a lift chip uses the same rule.
 - **Tests**: `src/solo/goalsInsights236.test.js` (best 72.5 → 100, best 105 → 120, squat 140, OHP 62.5 → 70) and `src/solo/goalScreens236.test.jsx` (the first-time screen offers "Bench press 100 kg"). Both fail on #237's code (95 / 80). All Train Solo tests pass.
 
+### 239. Train Solo only: no "Log this week's check-in" on the weekly review (owner, 2026-11-15)
+
+- **Problem**: the weekly review ended with "Log this week's check-in", but Train Solo has no check-ins. The button only opened Progress, which read as a step that didn't exist.
+- **Fix**: the review ends with a single Done button that goes home. The Sunday push's code comment no longer says it leads on to a check-in.
+- **Tests**: `src/solo/clientExperience.test.jsx` checks there's no check-in button and that Done goes home. It fails on the old screen. All Train Solo tests pass.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
