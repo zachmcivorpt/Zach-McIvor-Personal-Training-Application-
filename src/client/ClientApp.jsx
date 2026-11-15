@@ -163,6 +163,13 @@ const WorkoutEditor = React.lazy(() => import("../coach/WorkoutEditor"));
 // Train Solo's muscle map card, shown as-is on Progress (#216); loaded only there.
 // Coach video feedback (#219): only loaded when Check-ins opens.
 const ClientVideoFeedback = React.lazy(() => import("./VideoFeedbackClient"));
+// Weekly review (#240): its own chunk, never on the launch path.
+const WeeklyReviewsSection = React.lazy(() => import("./WeeklyReview"));
+// Sunday 6pm to the end of Tuesday: when a new review can open by itself.
+function reviewWindowOpen(now = new Date()) {
+  const d = now.getDay();
+  return (d === 0 && now.getHours() >= 18) || d === 1 || d === 2;
+}
 const MuscleMapCard = React.lazy(() => import("../solo/SoloMuscleMap").then((m) => ({ default: m.SoloMuscleMapCard })));
 import { NutritionTargetsCard } from "../coach/NutritionTargetsCard";
 import { planPhaseSwap } from "./phaseSwap";
@@ -6974,7 +6981,7 @@ export function BodyStatsCheckInSheet({ open, onClose, onSave, lastValues, busy 
   );
 }
 
-export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts, autoOpenWeighInKey }) {
+export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts, autoOpenWeighInKey, reviewData = null, checkInDue = false, onOpenCheckIns }) {
   const dark = useClientDark();
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
@@ -7268,6 +7275,13 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
             </div>
           )}
         </Card>
+
+        {/* Weekly reviews (#240): the last thing on Progress. */}
+        {reviewData && (
+          <React.Suspense fallback={null}>
+            <WeeklyReviewsSection uid={userId} data={reviewData} dark={dark} checkInDue={checkInDue} onCheckIn={onOpenCheckIns} />
+          </React.Suspense>
+        )}
       </div>
 
       <MetricDetailSheet metric={openMetric} onClose={() => setOpenMetric(null)} />
@@ -9414,8 +9428,8 @@ export default function ClientApp() {
 
   const thread = db.messages[currentUser.id] || EMPTY_LIST;
   const photos = db.progressPhotos[currentUser.id] || [];
-  const weighIns = (db.weighIns || {})[currentUser.id] || [];
-  const bodyMetricsForClient = (db.bodyMetrics || {})[currentUser.id] || [];
+  const weighIns = (db.weighIns || {})[currentUser.id] || EMPTY_LIST;
+  const bodyMetricsForClient = (db.bodyMetrics || {})[currentUser.id] || EMPTY_LIST;
   const unreadCount = Math.max(0, thread.filter((m) => m.from === "coach").length - seenMessageCount);
   // A real client's `users` listener only ever includes their own doc (see
   // AppContext), so the coach's name/avatar for the chat bubble comes from
@@ -9434,6 +9448,8 @@ export default function ClientApp() {
     setTab("checkins");
   }
   const scheduledWorkoutsForClient = (db.scheduledWorkouts || {})[currentUser.id] || EMPTY_LIST;
+  // The client's own data for the weekly review (#240).
+  const clientPhasesForReview = (db.clientPhases || {})[currentUser.id] || EMPTY_LIST;
   const scheduledWorkoutsByDate = useMemo(
     () => Object.fromEntries(scheduledWorkoutsForClient.map((w) => [w.date, w])),
     [scheduledWorkoutsForClient]
@@ -9535,6 +9551,19 @@ export default function ClientApp() {
   // Add Food page for one-tap re-logging.
   const recentFoods = useMemo(() => buildFrequentFoods(nutritionLogsForClient), [nutritionLogsForClient]);
   const targets = useMemo(() => resolveNutritionTargets(currentUser.nutritionTargets), [currentUser.nutritionTargets]);
+  const weeklyReviewData = useMemo(
+    () => ({
+      workoutLogs: logsForClient,
+      scheduledWorkouts: scheduledWorkoutsForClient,
+      nutritionLogs: nutritionLogsForClient,
+      bodyMetrics: bodyMetricsForClient,
+      weighIns,
+      targets,
+      exercisesById,
+      phases: clientPhasesForReview,
+    }),
+    [logsForClient, scheduledWorkoutsForClient, nutritionLogsForClient, bodyMetricsForClient, weighIns, targets, exercisesById, clientPhasesForReview]
+  );
   // Each client's own personal "My Meals" list — not shared with other
   // clients, so a meal one client builds doesn't show up in anyone else's.
   const savedMeals = (db.savedMeals || {})[currentUser.id] || [];
@@ -10284,6 +10313,14 @@ export default function ClientApp() {
           />
         )}
         {tab === "checkins" && <CheckInsScreen userId={currentUser.id} showToast={showToast} openFeedbackId={openFeedbackId} onFeedbackOpened={clearOpenFeedback} />}
+        {/* The new weekly review opens by itself once, Sunday 6pm to Tuesday
+            (#240): the push's tap only opens the app. Never for a coach in
+            View as Client, and only once their data has loaded. */}
+        {dbReady && !viewingAsClient && reviewWindowOpen() && (
+          <React.Suspense fallback={null}>
+            <WeeklyReviewsSection uid={currentUser.id} data={weeklyReviewData} dark={dark} autoOpen hideList checkInDue={dueCheckInsCount > 0} onCheckIn={() => setTab("checkins")} />
+          </React.Suspense>
+        )}
         {tab === "calendar" && (
           <ClientCalendarScreen
             scheduledWorkoutsListByDate={scheduledWorkoutsListByDate}
@@ -10349,6 +10386,9 @@ export default function ClientApp() {
             onDeleteBodyMetric={(dateKey, field) => deleteBodyMetric(currentUser.id, dateKey, field)}
             scheduledWorkouts={scheduledWorkoutsForClient}
             autoOpenWeighInKey={autoOpenWeighIn}
+            reviewData={weeklyReviewData}
+            checkInDue={dueCheckInsCount > 0}
+            onOpenCheckIns={() => setTab("checkins")}
           />
         )}
         {tab === "profile" && (

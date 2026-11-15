@@ -178,6 +178,32 @@ exports.soloWeeklyCheckInReminder = onSchedule(
   }
 );
 
+// Coached clients' weekly review (#240): Sunday 6pm Sydney, one push to
+// each active client that their review is ready, with the week's real
+// sessions and PRs. The review itself is worked out in the app from their
+// logs (src/lib/weeklyReview.js) and opens by itself on their next open.
+// Switch: notificationPrefs.weeklyReview.
+exports.clientWeeklyReview = onSchedule(
+  { schedule: "0 18 * * 0", timeZone: "Australia/Sydney" },
+  async () => {
+    const { weekStats, reviewPushText } = require("./soloWeeklyReview");
+    const usersSnap = await db.collection("users").where("role", "==", "client").get();
+    for (const userDoc of usersSnap.docs) {
+      const user = userDoc.data() || {};
+      if (user.status !== "active" || user.accessPaused) continue;
+      if (!(user.fcmTokens || []).length) continue;
+      try {
+        const logsSnap = await db.collection("workoutLogs").where("clientId", "==", userDoc.id).get();
+        const stats = weekStats(logsSnap.docs.map((d) => d.data()), user.tz, Date.now());
+        const firstName = String(user.name || "").trim().split(/\s+/)[0] || "";
+        await notifyUser(userDoc.id, reviewPushText({ ...stats, firstName }), "weeklyReview");
+      } catch (err) {
+        console.error("clientWeeklyReview failed for", userDoc.id, err);
+      }
+    }
+  }
+);
+
 // ---------------------------------------------------------------------
 // Inactivity-triggered "Reignition Workout" WOD — a client who's gone a few
 // days without logging a workout gets a notification AND a ready-to-go

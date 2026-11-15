@@ -1,4 +1,4 @@
-// Train Solo Sunday performance review push (#236). The review itself is
+// Sunday weekly review push: Train Solo (#236) and coached clients (#240). The review itself is
 // worked out in the app from the member's own logs (SoloWeekRecapScreen);
 // this only tells them it's ready, with their week's real numbers.
 const { dateKeyInTz, weekKey } = require("./soloPartners");
@@ -12,7 +12,7 @@ function weekStats(logs = [], tz = DEFAULT_TZ, nowMs = Date.now()) {
   let prs = 0;
   for (const log of logs) {
     const at = Number(log.date) || Date.parse(log.date) || 0;
-    if (!at || weekKey(dateKeyInTz(at, tz)) !== wk) continue;
+    if (!at || log.cardio || weekKey(dateKeyInTz(at, tz)) !== wk) continue;
     sessions += 1;
     for (const e of log.entries || []) for (const s of e.sets || []) if (s.isPR) prs += 1;
   }
