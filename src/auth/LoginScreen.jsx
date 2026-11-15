@@ -261,7 +261,14 @@ export default function LoginScreen() {
           the actual status bar/notch height, keeping the logo and form
           clear of it now that the webview itself extends up behind it
           (see NativeStatusBarSync in App.jsx). */}
-      <div className="relative min-h-dvh w-full flex flex-col px-6 py-8 pt-safe">
+      {/* #233 (owner): Back sat right under the clock — pt-safe alone is
+          only the status-bar inset. Same top space as Train Solo's log-in
+          screens (SoloBackgroundFrame): 2rem below the safe area. */}
+      <div
+        className="relative min-h-dvh w-full flex flex-col px-6 py-8"
+        style={{ paddingTop: "calc(2rem + env(safe-area-inset-top, 0px))" }}
+        data-testid="coaching-login-frame"
+      >
         {/* Back to the Coaching / Train Solo chooser (#207, owner). */}
         <Link to={START_CHOOSER} className="flex items-center gap-1 text-white/50 text-sm font-medium self-start">
           <ChevronLeft size={16} /> Back
