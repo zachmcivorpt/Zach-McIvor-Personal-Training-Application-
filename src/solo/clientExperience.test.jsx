@@ -136,13 +136,14 @@ describe("program complete", () => {
   });
 });
 
-describe("Monday recap", () => {
-  it("shows last week's sessions, minutes and PRs, and this week", async () => {
-    const lastMonday = (() => {
-      const d = new Date();
-      d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 7);
-      return d;
-    })();
+describe("weekly review", () => {
+  // Pinned (#210 rule): on a Tuesday the review is last week; on a Sunday
+  // it's the week ending that day (#236).
+  afterEach(() => vi.useRealTimers());
+  it("on a Tuesday shows last week's sessions, minutes and PRs, and this week", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 10, 12, 0, 0)); // Tue 10 Nov 2026
+    const lastMonday = new Date(2026, 10, 2);
     const at = (offset) => new Date(lastMonday.getTime() + offset * 86400000 + 9 * 3600000).getTime();
     ctx = baseCtx({
       soloWorkoutLogs: [
@@ -155,8 +156,36 @@ describe("Monday recap", () => {
     expect(screen.getByTestId("week-headline").textContent).toBe("2");
     expect(screen.getByText("75")).toBeTruthy();
     expect(screen.getByText(/Nothing planned/)).toBeTruthy();
+    expect(screen.getByText("This week")).toBeTruthy();
+    expect(screen.getByTestId("week-focus")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Log this week's check-in" }));
     await screen.findByText("home-page");
+  });
+
+  it("on a Sunday reviews the week ending today, with what got stronger, the goal and next week's focus", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 15, 18, 0, 0)); // Sun 15 Nov 2026
+    const at = (y, m, d) => new Date(y, m, d, 9).getTime();
+    ctx = baseCtx({
+      soloCurrentUser: { ...baseCtx().soloCurrentUser, goal: { type: "workouts", target: 10, startKey: "2026-11-01" } },
+      soloWorkoutLogs: [
+        { id: "a", purchaseId: "u1_custom", weekNumber: "a", dayId: "q", durationMin: 40, date: at(2026, 10, 3), entries: [{ exerciseId: "gs", sets: [{ weight: 20, reps: 10 }] }] },
+        { id: "b", purchaseId: "u1_custom", weekNumber: "b", dayId: "q", durationMin: 40, date: at(2026, 10, 5), entries: [{ exerciseId: "gs", sets: [{ weight: 22.5, reps: 10 }] }] },
+        { id: "c", purchaseId: "u1_custom", weekNumber: "c", dayId: "q", durationMin: 45, date: at(2026, 10, 14), entries: [{ exerciseId: "gs", sets: [{ weight: 30, reps: 8, isPR: true }] }] },
+      ],
+    });
+    const { SoloWeekRecapScreen } = await import("./SoloRecapScreens");
+    await renderAt("/solo/week", <SoloWeekRecapScreen />, "/solo/week");
+    expect(screen.getByText(/Weekly review · 9 Nov – 15 Nov/)).toBeTruthy();
+    expect(screen.getByTestId("week-headline").textContent).toBe("1");
+    expect(screen.getByTestId("week-title").textContent).toBe("A new personal record this week.");
+    // 30×8 → est. max 38 vs the best before this week, 22.5×10 → 30.
+    expect(screen.getByTestId("week-stronger").textContent).toMatch(/Est\. max 30 → 38 kg\+8 kg/);
+    expect(screen.getByTestId("week-consistency").textContent).toMatch(/2 weeks in a row/);
+    expect(screen.getByTestId("week-goal").textContent).toMatch(/Complete 10 workouts30%/);
+    expect(screen.getByText("Next week")).toBeTruthy();
+    expect(screen.getByTestId("week-focus").textContent).toMatch(/every one moves your goal/);
+    expect(screen.getByTestId("week-goal").textContent).toMatch(/7 workouts to go/);
   });
 });
 

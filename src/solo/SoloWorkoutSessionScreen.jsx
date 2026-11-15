@@ -277,7 +277,7 @@ export default function SoloWorkoutSessionScreen() {
       isProgramSession && programFinished(soloWorkoutLogs, purchaseId, soloContentById?.[programId]?.phases || [], { weekNumber, dayId })
         ? { purchaseId, programId }
         : null;
-    navigate("/solo/workout-summary", { state: { daySession: day, activeLog, durationMin, savedOffline, programComplete }, replace: true });
+    navigate("/solo/workout-summary", { state: { daySession: day, activeLog, durationMin, savedOffline, programComplete, logId: `${purchaseId}_${dayId}_w${weekNumber}` }, replace: true });
   }
 
   return (

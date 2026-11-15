@@ -138,30 +138,32 @@ exports.checkInReminders = onSchedule(
 );
 
 // ---------------------------------------------------------------------
-// Train Solo: Monday check-in reminder. Every Monday 8am Sydney, each Solo
-// customer with a registered device (soloUsers/{uid}.fcmTokens — saved by
-// src/lib/push.js / nativeBridge.js) gets one push to log their body stats
-// and take progress photos, matching the Monday "Body Stats Check-in" and
-// "Progress Photos" entries on their Solo calendar (src/solo/soloCalendar.js).
-// Opting out (Profile → Monday check-in reminders) sets
-// notificationPrefs.weeklyCheckIn = false. Solo tokens never live on
-// Coaching's users/ docs, so this can't reach a Coaching client.
+// Train Solo: the Sunday performance review (#236, was the Monday check-in
+// reminder). Every Sunday 6pm Sydney, each Solo customer with a registered
+// device (soloUsers/{uid}.fcmTokens — saved by src/lib/push.js /
+// nativeBridge.js) gets ONE push: their week's real sessions and PRs and
+// that the review is ready. The review (/solo/week) is worked out in the app
+// from their logs and leads on to the Monday body-stats check-in. Opting out
+// (Profile → Sunday review) sets notificationPrefs.weeklyCheckIn = false.
+// Solo tokens never live on Coaching's users/ docs, so this can't reach a
+// Coaching client.
 exports.soloWeeklyCheckInReminder = onSchedule(
-  { schedule: "0 8 * * 1", timeZone: "Australia/Sydney" },
+  { schedule: "0 18 * * 0", timeZone: "Australia/Sydney" },
   async () => {
+    const { weekStats, reviewPushText } = require("./soloWeeklyReview");
     const usersSnap = await db.collection("soloUsers").get();
     for (const userDoc of usersSnap.docs) {
       const data = userDoc.data() || {};
       const tokens = data.fcmTokens || [];
       if (tokens.length === 0 || data.notificationPrefs?.weeklyCheckIn === false) continue;
       try {
+        const logsSnap = await db.collection("soloWorkoutLogs").where("soloUserId", "==", userDoc.id).get();
+        const stats = weekStats(logsSnap.docs.map((d) => d.data()), data.tz, Date.now());
+        const firstName = String(data.name || "").trim().split(/\s+/)[0] || "";
         const res = await messaging.sendEachForMulticast({
           tokens,
-          notification: {
-            title: "Your week in review",
-            body: "See last week's sessions and PRs, then log this week's body stats and photos.",
-          },
-          // Opens the Monday recap (#141), which leads on to the check-in.
+          notification: reviewPushText({ ...stats, firstName }),
+          // Opens the weekly review (#141/#236), which leads on to the check-in.
           webpush: { fcmOptions: { link: "/solo/week" } },
         });
         const deadTokens = tokens.filter((_, i) => !res.responses[i].success);

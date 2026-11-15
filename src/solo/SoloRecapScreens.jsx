@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { ChevronRight, Share2 } from "lucide-react";
+import { ChevronRight, Share2, TrendingUp } from "lucide-react";
 import { BottomSheet } from "../components/ui";
 import { bodyweightChange, shareCardContent, drawShareCard, loadImage, progressPhotoPair, photoLabel } from "./shareCard";
 import { MEASURE_BLUE } from "../theme";
@@ -12,15 +12,18 @@ const SHARE_BACKGROUND = "/brand/gym-dark.jpg";
 import { SoloButton, SoloTextButton, SOLO_TYPE } from "./SoloUI";
 import { SoloArtwork } from "./SoloArtwork";
 import { recommendForAnswers } from "./recommendations";
-import { programStats, weekRecap } from "./trainingRecap";
-import { buildSoloCalendar, addDays, mondayOf, sessionDayLabel } from "./soloCalendar";
+import { programStats, weekRecap, reviewWeek } from "./trainingRecap";
+import { goalTitle, goalProgress, encouragement } from "./goals";
+import { buildInsights, strengthGains, weeksTrainedInARow, reviewHeadline, weeklyFocus } from "./insights";
+import { buildSoloCalendar, addDays, sessionDayLabel } from "./soloCalendar";
 import { localDateKey } from "../lib/dateKey";
 
 // Two full-screen moments (#141), solid page colour with large numbers:
 //  - SoloProgramCompleteScreen: after the last session of a program — what
 //    they did, how much stronger they got, and the next program.
-//  - SoloWeekRecapScreen: the Monday recap — last week against the plan,
-//    and what's on this week.
+//  - SoloWeekRecapScreen: the weekly review (Sunday push, #236) — the week
+//    against the plan, stronger lifts, consistency, goal, insights, next
+//    week's focus and what's on.
 
 function Page({ children, t }) {
   return (
@@ -325,12 +328,12 @@ function ShareSheet({ open, onClose, card, photos, programName, dark, t }) {
 
 export function SoloWeekRecapScreen() {
   const navigate = useNavigate();
-  const { soloWorkoutLogs, soloTrainingPrograms, soloProgramsById, soloContentById, soloCurrentUser, soloCustomSessions } = useSoloApp();
+  const { soloWorkoutLogs, soloTrainingPrograms, soloProgramsById, soloContentById, soloCurrentUser, soloCustomSessions, soloExercises, soloWeighIns, soloBodyMetrics } = useSoloApp();
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const todayKey = localDateKey();
   const recap = useMemo(() => {
-    const thisMonday = mondayOf(todayKey);
+    const { reviewMonday, nextMonday } = reviewWeek(todayKey);
     const byDate = buildSoloCalendar({
       purchases: soloTrainingPrograms || [],
       programsById: soloProgramsById || {},
@@ -340,21 +343,44 @@ export function SoloWeekRecapScreen() {
       sessionPlan: soloCurrentUser?.sessionPlan,
       plannedSessions: soloCurrentUser?.plannedSessions,
       customSessions: soloCustomSessions || [],
-      fromKey: addDays(thisMonday, -7),
-      toKey: addDays(thisMonday, 6),
+      fromKey: reviewMonday,
+      toKey: addDays(nextMonday, 6),
     });
     return weekRecap({ logs: soloWorkoutLogs || [], byDate, todayKey });
   }, [soloWorkoutLogs, soloTrainingPrograms, soloProgramsById, soloContentById, soloCurrentUser, soloCustomSessions, todayKey]);
 
+  // The rest of the review (#236): what got stronger, how consistent, the
+  // goal, the best insights and one focus for next week — all from their logs.
+  const review = useMemo(() => {
+    const logs = soloWorkoutLogs || [];
+    const exercisesById = Object.fromEntries((soloExercises || []).map((e) => [e.id, e]));
+    const weekEnd = addDays(recap.lastMonday, 7);
+    const goal = soloCurrentUser?.goal || null;
+    const progress = goalProgress(goal, { logs, weighIns: soloWeighIns || [], bodyMetrics: soloBodyMetrics || [], todayKey });
+    const shown = new Set(["prs"]); // already a figure above
+    return {
+      gains: strengthGains(logs, exercisesById, recap.lastMonday, weekEnd).slice(0, 3),
+      streak: weeksTrainedInARow(logs, addDays(recap.lastMonday, 6)),
+      goal,
+      progress,
+      insights: buildInsights({ logs, exercisesById, goal, progress, todayKey }).filter((i) => !shown.has(i.id)).slice(0, 2),
+      focus: weeklyFocus({ recap, goal, progress, nextPlanned: recap.thisWeek.length }),
+    };
+  }, [recap, soloWorkoutLogs, soloExercises, soloCurrentUser?.goal, soloWeighIns, soloBodyMetrics, todayKey]);
+
   const range = `${new Date(`${recap.lastMonday}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} – ${new Date(`${addDays(recap.lastMonday, 6)}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`;
   const headline = recap.planned > 0 ? `${recap.plannedDone} of ${recap.planned}` : String(recap.sessionsDone);
+  const nextLabel = recap.thisMonday > todayKey ? "Next week" : "This week";
 
   return (
     <Page t={t}>
       <p className={SOLO_TYPE.eyebrow} style={{ color: t.textMuted }}>
-        Your week · {range}
+        Weekly review · {range}
       </p>
-      <p className={`mt-4 ${SOLO_TYPE.hero}`} data-testid="week-headline">
+      <h1 className={`mt-3 ${SOLO_TYPE.title}`} data-testid="week-title">
+        {reviewHeadline(recap)}
+      </h1>
+      <p className={`mt-6 ${SOLO_TYPE.hero}`} data-testid="week-headline">
         {headline}
       </p>
       <p className={`mt-2 ${SOLO_TYPE.body}`} style={{ color: t.textMuted }}>
@@ -366,10 +392,81 @@ export function SoloWeekRecapScreen() {
         <Figure small value={kg(recap.volume)} label={recap.volumeChangePct == null ? "Kg lifted" : `Kg lifted · ${recap.volumeChangePct >= 0 ? "+" : ""}${recap.volumeChangePct}%`} t={t} />
         <Figure small value={recap.prs} label="PRs" t={t} accent={recap.prs > 0} />
       </div>
+      {review.streak > 0 && (
+        <div className="flex items-center justify-between py-3 border-y" style={{ borderColor: t.panelBorder }} data-testid="week-consistency">
+          <span className={SOLO_TYPE.row}>Consistency</span>
+          <span className="text-[16px] font-semibold tabular-nums">
+            {review.streak} week{review.streak === 1 ? "" : "s"} in a row
+          </span>
+        </div>
+      )}
+
+      {review.gains.length > 0 && (
+        <div className="mt-7" data-testid="week-stronger">
+          <p className={`${SOLO_TYPE.eyebrow} mb-1`} style={{ color: t.textFaint }}>
+            Stronger
+          </p>
+          <ul className="border-t" style={{ borderColor: t.panelBorder }}>
+            {review.gains.map((g) => (
+              <li key={g.exerciseId} className="flex items-center justify-between py-3 border-b" style={{ borderColor: t.panelBorder }}>
+                <span className="min-w-0">
+                  <span className={`block ${SOLO_TYPE.row} truncate`}>{g.name}</span>
+                  <span className={`block ${SOLO_TYPE.meta} mt-0.5 tabular-nums`} style={{ color: t.textMuted }}>
+                    Est. max {g.from} → {g.to} kg
+                  </span>
+                </span>
+                <span className="text-[16px] font-semibold tabular-nums" style={{ color: MEASURE_BLUE }}>
+                  +{g.gain} kg
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {review.goal && review.progress && (
+        <div className="mt-7" data-testid="week-goal">
+          <p className={`${SOLO_TYPE.eyebrow} mb-3`} style={{ color: t.textFaint }}>
+            Your goal
+          </p>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className={`${SOLO_TYPE.row} min-w-0 truncate`}>{goalTitle(review.goal)}</span>
+            <span className="text-[16px] font-semibold tabular-nums shrink-0" style={review.progress.done ? { color: MEASURE_BLUE } : undefined}>
+              {review.progress.needsWeight ? "–" : `${Math.round(review.progress.pct * 100)}%`}
+            </span>
+          </div>
+          <span className="block h-1.5 rounded-full mt-3 overflow-hidden" style={{ backgroundColor: t.chipBg }}>
+            <span className="block h-full rounded-full" style={{ width: `${Math.round(review.progress.pct * 100)}%`, backgroundColor: MEASURE_BLUE }} />
+          </span>
+          <p className={`${SOLO_TYPE.meta} mt-2`} style={{ color: t.textMuted }}>
+            {encouragement(review.progress)}
+          </p>
+        </div>
+      )}
+
+      {review.insights.length > 0 && (
+        <ul className="mt-7 space-y-2.5" data-testid="week-insights">
+          {review.insights.map((i) => (
+            <li key={i.id} className={`flex items-start gap-2.5 ${SOLO_TYPE.body}`} style={{ color: t.textMuted }}>
+              <TrendingUp size={15} color={MEASURE_BLUE} className="shrink-0 mt-[3px]" />
+              <span>{i.text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {review.focus && (
+        <div className="mt-8 pt-5 border-t" style={{ borderColor: t.panelBorder }} data-testid="week-focus">
+          <p className={SOLO_TYPE.eyebrow} style={{ color: MEASURE_BLUE }}>
+            Next week's focus
+          </p>
+          <p className="mt-2 text-[16px] leading-snug font-semibold">{review.focus}</p>
+        </div>
+      )}
 
       <div className="mt-7">
         <p className={`${SOLO_TYPE.eyebrow} mb-1`} style={{ color: t.textFaint }}>
-          This week
+          {nextLabel}
         </p>
         {recap.thisWeek.length ? (
           <ul className="border-t" style={{ borderColor: t.panelBorder }}>

@@ -243,6 +243,18 @@ rather than inventing new colors per screen:
   with a blue line icon, rows in one `SoloGlassBox`); `/solo/join/CODE` is
   built like `SoloLoginScreen` (full-bleed frame, LitLogo, EchoHeading,
   AuthButton). New Train Solo sections copy a sibling's build, not a new style.
+- **Main goal, Sunday review, insights** (#236, `goals.js`, `insights.js`,
+  `SoloGoalScreen`, `SoloGoalCard`, `goalStore.js`): ONE goal on the profile
+  (`soloUsers.goal`), its progress always worked out from existing logs,
+  weigh-ins and steps, never stored or tracked twice. The goal screen shows
+  once after the questionnaire (`GoalFirst` on /solo/first-session — never
+  edit the questionnaire for it); existing members get the tile. The Sunday
+  review IS the week recap (`/solo/week`, `reviewWeek`): no second review
+  screen, and the one weekly push (Sunday 6pm, `notificationPrefs.weeklyCheckIn`)
+  — add no other scheduled Solo pushes. Insights only from data with their
+  thresholds; they tie into the goal but never repeat what's on screen next
+  to them (goal card, review figures, focus). Next week's focus is one action.
+  The after-workout highlight says nothing when there's nothing worth saying.
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
 - The muscle map card is also on the coached client's Progress and the coach's client Progress tab (#216), lazy-loaded, unchanged.

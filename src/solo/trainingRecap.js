@@ -66,11 +66,19 @@ export function programStats(logs = [], purchaseId) {
   };
 }
 
-// Last week (Mon–Sun before this one) and this week, from the logs and the
-// calendar (`byDate` from buildSoloCalendar covering both weeks).
+// The week a review covers (#236): on Sunday it's the week ending today;
+// Monday to Saturday it's the week just gone. `next` is the week after it.
+export function reviewWeek(todayKey = localDateKey()) {
+  const monday = mondayOf(todayKey);
+  const sunday = new Date(`${todayKey}T00:00:00`).getDay() === 0;
+  return sunday ? { reviewMonday: monday, nextMonday: addDays(monday, 7), sunday } : { reviewMonday: addDays(monday, -7), nextMonday: monday, sunday };
+}
+
+// The reviewed week (`lastMonday`, see reviewWeek) and the week after it
+// (`thisMonday`), from the logs and the calendar (`byDate` from
+// buildSoloCalendar covering both weeks).
 export function weekRecap({ logs = [], byDate = {}, todayKey = localDateKey() }) {
-  const thisMonday = mondayOf(todayKey);
-  const lastMonday = addDays(thisMonday, -7);
+  const { reviewMonday: lastMonday, nextMonday: thisMonday } = reviewWeek(todayKey);
   const priorMonday = addDays(thisMonday, -14);
   const inRange = (from, to) => logs.filter((l) => {
     const d = dateOf(l);
