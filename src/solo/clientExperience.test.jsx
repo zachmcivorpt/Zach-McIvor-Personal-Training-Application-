@@ -158,7 +158,9 @@ describe("weekly review", () => {
     expect(screen.getByText(/Nothing planned/)).toBeTruthy();
     expect(screen.getByText("This week")).toBeTruthy();
     expect(screen.getByTestId("week-focus")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Log this week's check-in" }));
+    // No check-in on Train Solo (#239): Done goes home.
+    expect(screen.queryByRole("button", { name: /check-in/i })).toBe(null);
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     await screen.findByText("home-page");
   });
 

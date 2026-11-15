@@ -143,7 +143,7 @@ exports.checkInReminders = onSchedule(
 // device (soloUsers/{uid}.fcmTokens — saved by src/lib/push.js /
 // nativeBridge.js) gets ONE push: their week's real sessions and PRs and
 // that the review is ready. The review (/solo/week) is worked out in the app
-// from their logs and leads on to the Monday body-stats check-in. Opting out
+// from their logs. Opting out
 // (Profile → Sunday review) sets notificationPrefs.weeklyCheckIn = false.
 // Solo tokens never live on Coaching's users/ docs, so this can't reach a
 // Coaching client.
@@ -163,7 +163,7 @@ exports.soloWeeklyCheckInReminder = onSchedule(
         const res = await messaging.sendEachForMulticast({
           tokens,
           notification: reviewPushText({ ...stats, firstName }),
-          // Opens the weekly review (#141/#236), which leads on to the check-in.
+          // Opens the weekly review (#141/#236).
           webpush: { fcmOptions: { link: "/solo/week" } },
         });
         const deadTokens = tokens.filter((_, i) => !res.responses[i].success);

@@ -255,7 +255,7 @@ rather than inventing new colors per screen:
   into a trackable type and shown as "We'll track this as …" before saving;
   what can't be measured gets examples, never a guess. The Sunday
   review IS the week recap (`/solo/week`, `reviewWeek`): no second review
-  screen, and the one weekly push (Sunday 6pm, `notificationPrefs.weeklyCheckIn`)
+  screen, no check-in button (Train Solo has no check-ins, #239), and the one weekly push (Sunday 6pm, `notificationPrefs.weeklyCheckIn`)
   — add no other scheduled Solo pushes. Insights only from data with their
   thresholds; they tie into the goal but never repeat what's on screen next
   to them (goal card, review figures, focus). Next week's focus is one action.
