@@ -3518,6 +3518,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change**: the "Segments — What clients need next" section (new phase needed, new PBs, phase / meal guide ending within a week, not messaged in 7+ days) is gone from the coach Overview, with its now-unused code (`SegmentRow`, `AvatarStack`, the segment lists). Needs attention, Recent activity and the tiles are unchanged.
 - **Tests**: `src/coach/overviewNoSegments232.test.jsx` renders the real Overview: no Segments heading or rows, Needs attention still there. Fails on the old code. Full suite passed; build clean.
 
+### 233. Coaching log-in: Back sat right under the iPhone clock (owner, 2026-11-15)
+
+- **Problem**: on the App Store build's edge-to-edge log-in frame, Coaching's `/login` Back (#207) sat flush under the status bar. The owner had asked for it lower.
+- **Cause**: the frame's top padding was `pt-safe`, which is only the status-bar inset. Train Solo's log-in screens add 2rem on top of that (`SoloBackgroundFrame`).
+- **Fix**: `LoginScreen`'s frame uses `paddingTop: calc(2rem + env(safe-area-inset-top))`, the same as Train Solo's, so Back, the logo and the form all move down together.
+- **Tests**: `src/auth/loginBackLower233.test.jsx` checks the frame's top padding and that Back is its first child. It fails without the fix. The routing and #207 log-in tests still pass.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
