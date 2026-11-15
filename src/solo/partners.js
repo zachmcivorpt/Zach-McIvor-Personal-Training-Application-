@@ -84,3 +84,28 @@ export function normalisePartnerCode(input) {
 export function inviteLink(code, origin = typeof window !== "undefined" ? window.location.origin : "") {
   return `${origin}/solo/join/${code}`;
 }
+
+// "Train their session" (#243): a partner's shared session (their latest
+// own session: exercises, sets, reps — never weights) as a one-off quick
+// session for this member. It's started, not saved, so it never uses one
+// of a Free member's saved sessions. Exercises missing from the library
+// are left out; null when nothing's left.
+export function partnerSessionToSolo(shared, exercisesById = {}, partnerName = "") {
+  if (!shared?.exercises?.length) return null;
+  const exercises = shared.exercises
+    .filter((e) => e?.exerciseId && exercisesById[e.exerciseId])
+    .map((e) => ({
+      exerciseId: e.exerciseId,
+      targetSets: Math.min(10, Math.max(1, Number(e.sets) || 3)),
+      targetReps: Math.min(100, Math.max(1, Number(e.reps) || 10)),
+      targetType: "reps",
+      targetRIR: 2,
+      restSeconds: 90,
+      section: "main",
+    }));
+  if (!exercises.length) return null;
+  const title = String(shared.title || "session").trim();
+  // Already someone's ("Jo's Push Day")? Keep it as it is.
+  const owned = /^[^\s']+'s /.test(title);
+  return { name: partnerName && !owned ? `${partnerName}'s ${title}`.slice(0, 60) : title, exercises };
+}

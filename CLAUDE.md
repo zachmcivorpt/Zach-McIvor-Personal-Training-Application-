@@ -231,9 +231,12 @@ rather than inventing new colors per screen:
   `partnerStore.js`, `functions/soloPartners.js`): up to 4 partners
   (`MAX_PARTNERS`, also enforced by the server). A Team week = both hit
   their own weekly target; the streak counts only weeks since pairing and
-  this week only once met. Partners see ONLY training days, session names
-  and weekly counts (`soloPartnerActivity`, server-written from logs) —
-  never weights, body stats or photos; don't add more to that doc. Pushes
+  this week only once met. Partners see ONLY training days, session names,
+  weekly counts and their latest OWN session's exercises/sets/reps
+  (`soloPartnerActivity`, server-written from logs; #243 "Train their session")
+  — never weights, body stats, photos or a program's (paid) sessions; don't
+  add more to that doc. Training a partner's session is a one-off quick
+  session, never saved (it must not use a Free member's 3 saved sessions). Pushes
   come only from the server trigger on `soloWorkoutLogs`, claimed once
   each in `soloPartnerPushes`; switch `notificationPrefs.partners`. Keep
   the week/streak maths in `partners.js` and `soloPartners.js` in step

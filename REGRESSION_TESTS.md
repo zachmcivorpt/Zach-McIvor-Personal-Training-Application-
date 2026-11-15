@@ -3581,6 +3581,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change**: everything is tighter. Cards are 12px top/bottom (were 16), rows 8px (were 12), the gaps between cards are 6px, the hero headline sits 4px under the dates, the figure is 10px below, and labels hug their rows. Values are 15px and figures 20px. Light mode is white glass that shows the page through it: a white page with the gym photo inverted (white with soft texture) behind see-through gradient glass with a bright edge. It's no longer the dark photo brightened, which always came out grey. Dark mode is unchanged apart from the spacing.
 - **Tests**: styling only. `src/client/weeklyReview240.test.jsx` still passes, and the page was checked in Chromium at 390 px in light and dark.
 
+### 243. Train Solo only: Team Week — train your partner's session (owner, 2026-11-15)
+
+- **Change**: a partner's latest session they built or logged themselves in the last 14 days is shared with their Team Week partners as exercises with sets and reps. Weights are never shared, and program sessions never are either, because programs are paid content (`sharedSessionOf` in functions/soloPartners.js, on the server-written activity doc). The Team Week row says "Train their Upper Body". The partner sheet shows the session ("Blair's Upper Body · 5 exercises · Bench Press, …") with a Train it button that starts it as a one-off quick session (`partnerSessionToSolo` → `customSessionState`). It's logged like any quick session and never saved, so it doesn't use one of a Free member's 3 saved sessions. The invite and join copy now say partners can train each other's sessions.
+- **Tests**: `functions/soloPartners.test.js` (latest own session only, median reps, set counts, no weight fields, nothing older than 14 days, never a program log), `src/solo/partners234.test.js` (one-off session with their sets/reps, named "Sam's Upper", a name already someone's kept, unknown exercises dropped, nothing when none are left), `src/solo/teamWeek234.test.jsx` (the sheet shows it and Train it starts it). All fail without the feature. All Train Solo and functions tests pass. The row and the sheet were checked in Chromium at 390 px.
+- **Note**: a partner's session appears after their next logged session (activity docs are rebuilt from logs).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

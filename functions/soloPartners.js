@@ -7,8 +7,10 @@
 //   soloPartners/{a_b}           one pair, uids sorted, created by the friend who joins
 //   soloPartnerActivity/{uid}    written ONLY here, from the member's own logs:
 //                                first name, sessions done / target per week,
-//                                the last session's name. Never weights, photos
-//                                or bodyweight. Readable by the member's partners.
+//                                the last session's name, and their latest OWN
+//                                session's exercises/sets/reps (#243, never a
+//                                program's). Never weights, photos or
+//                                bodyweight. Readable by the member's partners.
 //   soloPartnerPushes/{id}       one doc per push already sent, so a repeated
 //                                trigger never sends twice.
 
@@ -74,6 +76,28 @@ function teamStreak(weeksA, weeksB, currentWeek, sinceWeek) {
   return n;
 }
 
+// "Train their session" (#243): the member's latest session they built or
+// logged as they went (a "_custom" log, never a program's — programs are
+// paid content) from the last 14 days, as exercises with sets and reps.
+// Never weights. Their partners can train it as a one-off.
+const SHARED_SESSION_DAYS = 14;
+const MAX_SHARED_EXERCISES = 12;
+function sharedSessionOf(logs, tz, nowMs) {
+  const own = (logs || [])
+    .filter((l) => typeof l.purchaseId === "string" && l.purchaseId.endsWith("_custom") && (Number(l.date) || 0) > nowMs - SHARED_SESSION_DAYS * 86400000)
+    .filter((l) => (l.entries || []).some((e) => e.exerciseId && (e.sets || []).length))
+    .sort((a, b) => (Number(b.date) || 0) - (Number(a.date) || 0))[0];
+  if (!own) return null;
+  const exercises = (own.entries || [])
+    .filter((e) => e.exerciseId && (e.sets || []).length)
+    .slice(0, MAX_SHARED_EXERCISES)
+    .map((e) => {
+      const reps = (e.sets || []).map((x) => Number(x.reps) || 0).filter((r) => r > 0).sort((a, b) => a - b);
+      return { exerciseId: e.exerciseId, sets: Math.min(10, e.sets.length), reps: reps.length ? reps[Math.floor(reps.length / 2)] : 10 };
+    });
+  return { title: String(own.dayLabel || "Their session").slice(0, 60), at: Number(own.date), dateKey: dateKeyInTz(Number(own.date), tz), exercises };
+}
+
 // The activity doc for one member, from their own logs. Past weeks keep
 // the target they had then (changing your answer never rewrites history).
 function buildActivity({ logs, profile, previous, nowMs }) {
@@ -101,7 +125,7 @@ function buildActivity({ logs, profile, previous, nowMs }) {
     if (counts[k] || k === currentWeek || prevTarget) weeks[k] = { done: counts[k] || 0, target: t };
   }
   const firstName = String(profile?.name || "").trim().split(/\s+/)[0] || "Your partner";
-  return { firstName, tz, target, weeks, daysThisWeek: daysThisWeek.sort(), lastSession: last, updatedAt: nowMs };
+  return { firstName, tz, target, weeks, daysThisWeek: daysThisWeek.sort(), lastSession: last, sharedSession: sharedSessionOf(logs, tz, nowMs), updatedAt: nowMs };
 }
 
 // What a partner is told when a member finishes a session.

@@ -95,3 +95,22 @@ describe("Team week", () => {
     expect(localStorage.getItem(PENDING_PARTNER_CODE_KEY)).toBeNull();
   });
 });
+
+describe("train their session (#243)", () => {
+  it("opens from the partner sheet and starts their session as a one-off", () => {
+    partners = {
+      ready: true,
+      pairs: [{ id: "a_b", members: ["a", "b"], createdAt: new Date(2026, 10, 1).getTime() }],
+      activity: {
+        a: { target: 3, weeks: {} },
+        b: { firstName: "Blair", target: 3, weeks: {}, sharedSession: { title: "Upper", exercises: [{ exerciseId: "bp", sets: 3, reps: 6 }] } },
+      },
+    };
+    const onTrainSession = vi.fn();
+    render(<SoloTeamWeek profile={me} todayKey={TODAY} dark t={t} exercises={[{ id: "bp", name: "Bench Press" }]} onTrainSession={onTrainSession} />);
+    fireEvent.click(screen.getByText("You + Blair"));
+    expect(screen.getByTestId("partner-session").textContent).toMatch(/Blair's Upper1 exercise · Bench Press/);
+    fireEvent.click(screen.getByRole("button", { name: "Train it" }));
+    expect(onTrainSession).toHaveBeenCalledWith({ name: "Blair's Upper", exercises: [expect.objectContaining({ exerciseId: "bp", targetSets: 3, targetReps: 6 })] });
+  });
+});

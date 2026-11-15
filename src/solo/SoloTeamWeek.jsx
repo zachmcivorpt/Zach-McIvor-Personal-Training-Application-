@@ -5,7 +5,7 @@ import { MEASURE_BLUE } from "../theme";
 import { SoloButton, SoloTextButton, SOLO_TYPE } from "./SoloUI";
 import SoloGlassBox from "./SoloGlassBox";
 import { soloGlass, soloClearSheetGlass, CLEAR_SHEET_BACKDROP } from "./SoloThemeContext";
-import { MAX_PARTNERS, PENDING_PARTNER_CODE_KEY, inviteLink, normalisePartnerCode, teamWeekView } from "./partners";
+import { MAX_PARTNERS, PENDING_PARTNER_CODE_KEY, inviteLink, normalisePartnerCode, teamWeekView, partnerSessionToSolo } from "./partners";
 import { ensurePartnerCode, joinPartner, endPartnership, usePartners } from "./partnerStore";
 import { sessionDayLabel } from "./soloCalendar";
 
@@ -13,7 +13,7 @@ import { sessionDayLabel } from "./soloCalendar";
 // your own sessions, the streak grows; when one trains, the other is told
 // (functions/soloPartners.js). Partners see only training days and session
 // names, never weights, body stats or photos.
-export default function SoloTeamWeek({ profile, todayKey, dark, t }) {
+export default function SoloTeamWeek({ profile, todayKey, dark, t, exercises = [], onTrainSession }) {
   const uid = profile?.id;
   const { pairs, ready, activity } = usePartners(uid);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -54,6 +54,7 @@ export default function SoloTeamWeek({ profile, todayKey, dark, t }) {
           partnerUid,
           name: theirs?.firstName || "Your partner",
           lastSession: theirs?.lastSession || null,
+          sharedSession: theirs?.sharedSession || null,
           ...teamWeekView({ mine: activity[uid], theirs, todayKey, pairedAt: pair.createdAt }),
         };
       }),
@@ -117,6 +118,12 @@ export default function SoloTeamWeek({ profile, todayKey, dark, t }) {
                 <span className="block text-xs mt-1" style={{ color: r.metThisWeek ? MEASURE_BLUE : t.textMuted }}>
                   {statusLine(r)}
                 </span>
+                {r.sharedSession?.title && onTrainSession && (
+                  // #243: their latest own session can be trained too.
+                  <span className="block text-xs mt-0.5 truncate font-semibold" style={{ color: MEASURE_BLUE }}>
+                    Train their {r.sharedSession.title}
+                  </span>
+                )}
               </span>
               <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
             </button>
@@ -137,7 +144,18 @@ export default function SoloTeamWeek({ profile, todayKey, dark, t }) {
       )}
 
       <InviteSheet open={inviteOpen} onClose={() => setInviteOpen(false)} profile={profile} pairs={pairs} onJoined={(msg) => setNotice(msg)} dark={dark} t={t} />
-      <PartnerSheet row={openPair} onClose={() => setOpenPair(null)} todayKey={todayKey} dark={dark} t={t} />
+      <PartnerSheet
+        row={openPair}
+        onClose={() => setOpenPair(null)}
+        todayKey={todayKey}
+        exercises={exercises}
+        onTrainSession={(session) => {
+          setOpenPair(null);
+          onTrainSession?.(session);
+        }}
+        dark={dark}
+        t={t}
+      />
     </div>
   );
 }
@@ -231,7 +249,7 @@ function InviteSheet({ open, onClose, profile, pairs, onJoined, dark, t }) {
         <ul className={`${SOLO_TYPE.body} space-y-2`} style={{ color: t.textMuted }}>
           <li>Each week you both hit your own sessions, your Team week streak grows.</li>
           <li>When one of you trains, the other gets a nudge.</li>
-          <li>They only see the days you trained and the session name — never your weights, body stats or photos.</li>
+          <li>They see the days you trained and your own sessions' exercises, so they can train them too — never your weights, body stats or photos.</li>
         </ul>
         {full ? (
           <p className={`${SOLO_TYPE.body} mt-6`} style={{ color: t.textMuted }}>
@@ -288,7 +306,7 @@ function InviteSheet({ open, onClose, profile, pairs, onJoined, dark, t }) {
   );
 }
 
-function PartnerSheet({ row, onClose, todayKey, dark, t }) {
+function PartnerSheet({ row, onClose, todayKey, exercises = [], onTrainSession, dark, t }) {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -310,6 +328,9 @@ function PartnerSheet({ row, onClose, todayKey, dark, t }) {
   }
 
   const last = row?.lastSession;
+  const exercisesById = useMemo(() => Object.fromEntries((exercises || []).map((e) => [e.id, e])), [exercises]);
+  // Their latest own session, ready to train as a one-off (#243).
+  const theirSession = useMemo(() => (row ? partnerSessionToSolo(row.sharedSession, exercisesById, row.name) : null), [row, exercisesById]);
   return (
     <BottomSheet open={!!row} onClose={onClose} title={row ? `You + ${row.name}` : ""} dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
       {row && (
@@ -343,7 +364,29 @@ function PartnerSheet({ row, onClose, todayKey, dark, t }) {
               {row.name} last trained {lastLabel(last.dateKey, todayKey)}: {last.title}.
             </p>
           )}
-          <p className={`${SOLO_TYPE.body} mt-3`} style={{ color: t.textMuted }}>
+          {theirSession && onTrainSession && (
+            <div className="mt-5 rounded-2xl px-4 py-3.5" style={soloGlass(t)} data-testid="partner-session">
+              <p className={SOLO_TYPE.eyebrow} style={{ color: MEASURE_BLUE }}>
+                Train their session
+              </p>
+              <p className={`${SOLO_TYPE.row} mt-1.5`}>{theirSession.name}</p>
+              <p className={`${SOLO_TYPE.meta} mt-0.5`} style={{ color: t.textMuted }}>
+                {theirSession.exercises.length} exercise{theirSession.exercises.length === 1 ? "" : "s"} ·{" "}
+                {theirSession.exercises
+                  .slice(0, 3)
+                  .map((e) => exercisesById[e.exerciseId]?.name)
+                  .join(", ")}
+                {theirSession.exercises.length > 3 ? ` +${theirSession.exercises.length - 3}` : ""}
+              </p>
+              <SoloButton t={t} className="mt-3 !h-11" onClick={() => onTrainSession(theirSession)}>
+                Train it
+              </SoloButton>
+              <p className={`${SOLO_TYPE.meta} mt-2 text-center`} style={{ color: t.textMuted }}>
+                Your own weights. Doesn't use one of your saved sessions.
+              </p>
+            </div>
+          )}
+          <p className={`${SOLO_TYPE.body} mt-4`} style={{ color: t.textMuted }}>
             A week counts when you both hit your own sessions. Miss one and the streak starts again.
           </p>
           <SoloTextButton t={t} className="mt-6" onClick={end}>

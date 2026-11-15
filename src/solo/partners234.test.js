@@ -1,6 +1,6 @@
 // #234: Team week streak maths and invite codes.
 import { describe, it, expect } from "vitest";
-import { weekKey, shiftWeek, teamStreak, teamWeekView, normalisePartnerCode, makePartnerCode, pairIdFor, weekFor } from "./partners";
+import { weekKey, shiftWeek, teamStreak, teamWeekView, normalisePartnerCode, makePartnerCode, pairIdFor, weekFor, partnerSessionToSolo } from "./partners";
 
 const met = { done: 3, target: 3 };
 const short = { done: 1, target: 3 };
@@ -76,5 +76,23 @@ describe("invite codes", () => {
   it("pair ids are the same whoever joins", () => {
     expect(pairIdFor("b", "a")).toBe("a_b");
     expect(pairIdFor("a", "b")).toBe("a_b");
+  });
+});
+
+describe("train their session (#243)", () => {
+  const lib = { bp: { id: "bp", name: "Bench Press" }, row: { id: "row", name: "Seated Row" } };
+  it("becomes a one-off session with their sets and reps, named for them", () => {
+    const s = partnerSessionToSolo({ title: "Upper", exercises: [{ exerciseId: "bp", sets: 3, reps: 6 }, { exerciseId: "gone", sets: 3, reps: 8 }, { exerciseId: "row", sets: 1, reps: 12 }] }, lib, "Sam");
+    expect(s.name).toBe("Sam's Upper");
+    expect(s.exercises.map((e) => [e.exerciseId, e.targetSets, e.targetReps])).toEqual([
+      ["bp", 3, 6],
+      ["row", 1, 12],
+    ]);
+    expect(JSON.stringify(s)).not.toMatch(/weight/);
+  });
+  it("keeps a name that's already someone's, and gives nothing when no exercise is known", () => {
+    expect(partnerSessionToSolo({ title: "Jo's Upper", exercises: [{ exerciseId: "bp", sets: 3, reps: 6 }] }, lib, "Sam").name).toBe("Jo's Upper");
+    expect(partnerSessionToSolo({ title: "X", exercises: [{ exerciseId: "gone", sets: 3, reps: 6 }] }, lib, "Sam")).toBe(null);
+    expect(partnerSessionToSolo(null, lib, "Sam")).toBe(null);
   });
 });

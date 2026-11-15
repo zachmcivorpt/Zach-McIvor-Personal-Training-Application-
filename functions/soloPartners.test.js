@@ -104,8 +104,23 @@ describe("buildActivity", () => {
     expect(act.weeks["2026-11-09"].target).toBe(5);
   });
   it("never carries weights, bodyweight or photos", () => {
-    const act = sp.buildActivity({ logs: [log("u", NOW)], profile: profile("Sam"), previous: null, nowMs: NOW });
-    expect(JSON.stringify(act)).not.toMatch(/weight|reps|entries|photo/i);
+    const own = { ...log("u", NOW - 3600_000, "Push"), purchaseId: "u_custom" };
+    const act = sp.buildActivity({ logs: [log("u", NOW), own], profile: profile("Sam"), previous: null, nowMs: NOW });
+    expect(JSON.stringify(act)).not.toMatch(/weight|entries|photo/i);
+  });
+  it("shares their latest OWN session's exercises, sets and reps — never a program's (#243)", () => {
+    const own = (at, label, sets) => ({ soloUserId: "u", purchaseId: "u_custom", date: at, dayLabel: label, entries: [{ exerciseId: "bp", sets }, { exerciseId: "row", sets: [{ weight: 60, reps: 12 }] }] });
+    const programLog = { ...log("u", NOW - 60_000, "Paid Program Day 3"), purchaseId: "u_prog1" };
+    const act = sp.buildActivity({
+      logs: [own(NOW - 3 * DAY, "Old Push", [{ weight: 50, reps: 8 }]), own(NOW - DAY, "Upper", [{ weight: 80, reps: 5 }, { weight: 80, reps: 6 }, { weight: 75, reps: 8 }]), programLog],
+      profile: profile("Sam"),
+      previous: null,
+      nowMs: NOW,
+    });
+    expect(act.sharedSession).toMatchObject({ title: "Upper", exercises: [{ exerciseId: "bp", sets: 3, reps: 6 }, { exerciseId: "row", sets: 1, reps: 12 }] });
+    expect(act.sharedSession.exercises.every((e) => Object.keys(e).join() === "exerciseId,sets,reps")).toBe(true); // no weights
+    // Only from the last 14 days, and never from a program.
+    expect(sp.buildActivity({ logs: [own(NOW - 15 * DAY, "Upper", [{ weight: 1, reps: 1 }]), programLog], profile: profile("Sam"), previous: null, nowMs: NOW }).sharedSession).toBe(null);
   });
   it("target falls back to training days, then 3", () => {
     expect(sp.weeklyTarget({ onboarding: { answers: { trainingDays: [1, 3] } } })).toBe(2);

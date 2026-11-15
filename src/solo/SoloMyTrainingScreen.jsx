@@ -684,7 +684,7 @@ export default function SoloMyTrainingScreen() {
         <SoloInsightLine profile={soloCurrentUser} logs={soloWorkoutLogs} weighIns={soloWeighIns} bodyMetrics={soloBodyMetrics} exercises={soloExercises} todayKey={todayKey} t={t} />
 
         {/* Team week (#234): training partners and the shared streak. */}
-        <SoloTeamWeek profile={soloCurrentUser} todayKey={todayKey} dark={dark} t={t} />
+        <SoloTeamWeek profile={soloCurrentUser} todayKey={todayKey} dark={dark} t={t} exercises={soloExercises} onTrainSession={startCustomSession} />
 
         <WaterCard
           dateKey={selectedKey}
