@@ -35,6 +35,7 @@ import { fileToCompressedDataUrl } from "../lib/image";
 import { MetricTile } from "../components/charts";
 import { MEASURE_BLUE } from "../theme";
 import { SoloPageHeader } from "./SoloUI";
+import SoloGoalCard from "./SoloGoalCard";
 import {
   ClientThemeContext,
   LogWeightSheet,
@@ -185,8 +186,10 @@ export default function SoloProgressScreen() {
       <div className="pb-10">
         <SoloPageHeader t={SOLO_THEMES[dark ? "dark" : "light"]} title="Progress" />
 
-        {/* The muscle map leads Progress, then Strength Personal Bests (#202). */}
+        {/* Their main goal leads Progress (#238, owner), then the muscle map
+            and Strength Personal Bests (#202). */}
         <div className="px-3 space-y-4 max-w-md mx-auto mb-4">
+          <SoloGoalCard profile={soloCurrentUser} logs={soloWorkoutLogs} weighIns={soloWeighIns} bodyMetrics={soloBodyMetrics} todayKey={localDateKey()} t={SOLO_THEMES[dark ? "dark" : "light"]} />
           <SoloMuscleMapCard logs={soloWorkoutLogs} exercisesById={exercisesById} dark={dark} />
           {fullStats && (
           <Card dark={dark}>

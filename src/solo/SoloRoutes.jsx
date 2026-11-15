@@ -21,7 +21,9 @@ import {
   SoloProgramCompleteScreen,
   SoloWeekRecapScreen,
   SoloJoinScreen,
+  SoloGoalScreen,
 } from "./soloScreens";
+import { goalPromptSeen } from "./goalStore";
 
 // Was a plain black screen whatever the member's light/dark choice — the
 // black flash on every launch (#165).
@@ -115,6 +117,17 @@ export function RequireOnboardingComplete({ children }) {
   return children;
 }
 
+// Main goal (#236): straight after the questionnaire, on the way to the
+// first session, the goal screen shows once (never again once seen, set or
+// skipped). The questionnaire itself is unchanged.
+function GoalFirst({ children }) {
+  const { soloCurrentUser } = useSoloApp();
+  const [show] = useState(() => !goalPromptSeen(soloCurrentUser));
+  const [done, setDone] = useState(false);
+  if (show && !done) return <SoloGoalScreen firstTime onDone={() => setDone(true)} />;
+  return children;
+}
+
 // Mounted only for the /solo/* subtree (see App.jsx) — SoloAppProvider,
 // and therefore its onAuthStateChanged(soloAuth, ...) listener, never runs
 // at all for anyone on a Coaching route. "home" is the three-tab shell
@@ -174,7 +187,19 @@ export default function SoloRoutes() {
             element={
               <RequireSoloAuth>
                 <RequireOnboardingComplete>
-                  <SoloFirstSessionScreen />
+                  <GoalFirst>
+                    <SoloFirstSessionScreen />
+                  </GoalFirst>
+                </RequireOnboardingComplete>
+              </RequireSoloAuth>
+            }
+          />
+          <Route
+            path="goal"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloGoalScreen />
                 </RequireOnboardingComplete>
               </RequireSoloAuth>
             }

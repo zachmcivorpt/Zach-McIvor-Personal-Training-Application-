@@ -184,8 +184,8 @@ rather than inventing new colors per screen:
   pills, glass detail card from `muscleDetail` (own logs only). Colours by
   recovery (#202, owner — orange approved here): trained < 48 h red
   (`STAGE_RED`), 48–72 h orange (`STAGE_ORANGE`), recovered blue
-  (`recoveryStage`), both themes. Progress opens with this map, then
-  Strength Personal Bests. Light
+  (`recoveryStage`), both themes. Progress opens with the main goal
+  (#238), then this map, then Strength Personal Bests. Light
   mode (#198): `HOLO_LIGHT` panel + `MuscleHologram light` (normal blending) — never the dark panel on a light page.
 - **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
   of Progress, not in My Training.
@@ -243,6 +243,23 @@ rather than inventing new colors per screen:
   with a blue line icon, rows in one `SoloGlassBox`); `/solo/join/CODE` is
   built like `SoloLoginScreen` (full-bleed frame, LitLogo, EchoHeading,
   AuthButton). New Train Solo sections copy a sibling's build, not a new style.
+- **Main goal, Sunday review, insights** (#236, `goals.js`, `insights.js`,
+  `SoloGoalScreen`, `SoloGoalCard`, `goalStore.js`): ONE goal on the profile
+  (`soloUsers.goal`), its progress always worked out from existing logs,
+  weigh-ins and steps, never stored or tracked twice. The goal screen shows
+  once after the questionnaire (`GoalFirst` on /solo/first-session — never
+  edit the questionnaire for it); existing members get the tile. The goal
+  card lives at the TOP of Progress (#237/#238, above the map), not My
+  Training; My Training shows only today's insight (`SoloInsightLine`).
+  Suggestions are only suggestions: "Your own goal" is read by `parseGoal`
+  into a trackable type and shown as "We'll track this as …" before saving;
+  what can't be measured gets examples, never a guess. The Sunday
+  review IS the week recap (`/solo/week`, `reviewWeek`): no second review
+  screen, and the one weekly push (Sunday 6pm, `notificationPrefs.weeklyCheckIn`)
+  — add no other scheduled Solo pushes. Insights only from data with their
+  thresholds; they tie into the goal but never repeat what's on screen next
+  to them (goal card, review figures, focus). Next week's focus is one action.
+  The after-workout highlight says nothing when there's nothing worth saying.
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
 - The muscle map card is also on the coached client's Progress and the coach's client Progress tab (#216), lazy-loaded, unchanged.

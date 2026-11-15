@@ -1,6 +1,11 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Check } from "lucide-react";
+import { Check, TrendingUp } from "lucide-react";
+import { MEASURE_BLUE } from "../theme";
+import { useSoloApp } from "../lib/SoloAppContext";
+import { localDateKey } from "../lib/dateKey";
+import { milestoneCrossed } from "./goals";
+import { workoutHighlight } from "./insights";
 import { Logo } from "../components/ui";
 import { estimateCalories } from "../client/ClientApp";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
@@ -15,7 +20,17 @@ export default function SoloWorkoutSummaryScreen() {
   const location = useLocation();
   const navigate = useNavigate();
   const { dark } = useSoloTheme();
-  const { daySession, activeLog, durationMin = 0, savedOffline = false, programComplete = null } = location.state || {};
+  const { daySession, activeLog, durationMin = 0, savedOffline = false, programComplete = null, logId = null } = location.state || {};
+  const { soloCurrentUser, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloExercises } = useSoloApp();
+  // One achievement worth saying, only when there is one (#236): a goal
+  // milestone this workout passed, a lift's best yet, a round number.
+  const highlight = useMemo(() => {
+    if (!logId) return null;
+    const logs = soloWorkoutLogs || [];
+    const exercisesById = Object.fromEntries((soloExercises || []).map((e) => [e.id, e]));
+    const milestone = milestoneCrossed(soloCurrentUser?.goal, { logs, weighIns: soloWeighIns || [], bodyMetrics: soloBodyMetrics || [], todayKey: localDateKey() }, logId);
+    return workoutHighlight({ logs, exercisesById, logId, milestone });
+  }, [logId, soloWorkoutLogs, soloExercises, soloCurrentUser?.goal, soloWeighIns, soloBodyMetrics]);
 
   // <Navigate> rather than navigate() during render (a side effect React
   // Router warns about) — e.g. reopening this page with no workout state.
@@ -43,6 +58,13 @@ export default function SoloWorkoutSummaryScreen() {
         <p className={`text-xs mt-2 max-w-xs ${dark ? "text-white/50" : "text-black/50"}`}>No signal — saved on your phone. It will send when you're back online.</p>
       )}
       <p className={`text-4xl font-bold tabular-nums mt-6 ${dark ? "text-white" : "text-black"}`}>{durationMin} min</p>
+
+      {highlight && (
+        <p className="flex items-start gap-2.5 w-full max-w-sm mt-5 rounded-2xl px-4 py-3 text-left text-sm font-semibold" style={{ ...soloGlass(SOLO_THEMES[dark ? "dark" : "light"]), color: dark ? "#fff" : "#000" }} data-testid="workout-highlight">
+          <TrendingUp size={16} color={MEASURE_BLUE} className="shrink-0 mt-0.5" />
+          <span>{highlight}</span>
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-3 w-full max-w-sm mt-6">
         <div className="rounded-2xl p-4" style={soloGlass(SOLO_THEMES[dark ? "dark" : "light"])}>

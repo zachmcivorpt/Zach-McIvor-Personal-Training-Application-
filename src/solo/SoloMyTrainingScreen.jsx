@@ -24,6 +24,7 @@ import { weekInProgram } from "./currentProgram";
 import { loadWorkoutDraft } from "./workoutDraft";
 import SoloGettingStarted from "./SoloGettingStarted";
 import SoloTeamWeek from "./SoloTeamWeek";
+import { SoloInsightLine } from "./SoloGoalCard";
 import { shouldAutoShowGettingStarted, markSeenOnPhone } from "./gettingStarted";
 
 // A purchased program's own overview — which week the customer is in, that
@@ -603,13 +604,13 @@ export default function SoloMyTrainingScreen() {
           </button>
         )}
 
-        {[1, 2].includes(new Date(`${todayKey}T00:00:00`).getDay()) && soloWorkoutLogs.length > 0 && (
-          // Monday and Tuesday: last week's recap (#141).
+        {[0, 1, 2].includes(new Date(`${todayKey}T00:00:00`).getDay()) && soloWorkoutLogs.length > 0 && (
+          // Sunday to Tuesday: the weekly review (#141, Sunday from #236).
           <button type="button" onClick={() => navigate("/solo/week")} className="w-full flex items-center justify-between gap-3 py-3 mb-4 border-y text-left" style={{ borderColor: t.panelBorder }}>
             <span>
-              <span className="block text-[13px] font-semibold">Your week in review</span>
+              <span className="block text-[13px] font-semibold">Your weekly review</span>
               <span className="block text-[11px] mt-0.5" style={{ color: t.textMuted }}>
-                Last week's sessions, PRs and what's on this week
+                Your week, your progress and next week's focus
               </span>
             </span>
             <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
@@ -678,6 +679,9 @@ export default function SoloMyTrainingScreen() {
             </SoloGlassBox>
           </div>
         )}
+
+        {/* Today's insight (#236); the goal itself is on Progress (#237). */}
+        <SoloInsightLine profile={soloCurrentUser} logs={soloWorkoutLogs} weighIns={soloWeighIns} bodyMetrics={soloBodyMetrics} exercises={soloExercises} todayKey={todayKey} t={t} />
 
         {/* Team week (#234): training partners and the shared streak. */}
         <SoloTeamWeek profile={soloCurrentUser} todayKey={todayKey} dark={dark} t={t} />

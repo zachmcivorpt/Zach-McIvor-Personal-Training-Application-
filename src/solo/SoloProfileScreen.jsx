@@ -27,7 +27,7 @@ import { setPartnerAlerts } from "./partnerStore";
 // tracking in Train Solo's scope. "My Programs" replaces all of that with
 // what's actually relevant here: what this customer owns.
 //
-// My Calendar opens SoloCalendarScreen. Monday check-in reminders are
+// My Calendar opens SoloCalendarScreen. The Sunday review push (#236, was Monday check-in reminders) is
 // Train Solo's one notification: a weekly push to log body stats and take
 // progress photos (soloWeeklyCheckInReminder in functions/index.js).
 export default function SoloProfileScreen() {
@@ -298,9 +298,9 @@ export default function SoloProfileScreen() {
         >
           <Bell size={17} color={t.textMuted} className="shrink-0" />
           <span className="flex-1 min-w-0">
-            <span className="block text-sm font-semibold">Monday check-in reminders</span>
+            <span className="block text-sm font-semibold">Sunday review</span>
             <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
-              Body stats and progress photos, every Monday.
+              Your week and next week's focus, every Sunday evening.
             </span>
           </span>
           <span
