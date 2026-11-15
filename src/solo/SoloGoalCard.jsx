@@ -9,21 +9,19 @@ import { buildInsights, insightForToday } from "./insights";
 
 const tidy = (n) => (n == null ? "–" : (Math.round(n * 10) / 10).toLocaleString("en-AU"));
 
-// My Training's goal and today's insight (#236). Built like the page's
-// other sections ("Your Sessions", "Team Week"): bold heading, one glass
-// box, a blue line icon. Every figure from their own logs.
-export default function SoloGoalCard({ profile, logs, weighIns, bodyMetrics, exercises, todayKey, t }) {
+// The goal on Progress (#237, was My Training in #236), after Strength
+// Personal Bests, headed like Progress's own sections. Every figure from
+// their own logs. Today's insight stays on My Training (SoloInsightLine).
+export default function SoloGoalCard({ profile, logs, weighIns, bodyMetrics, todayKey, t }) {
   const navigate = useNavigate();
   const goal = profile?.goal || null;
   const progress = useMemo(() => goalProgress(goal, { logs, weighIns, bodyMetrics, todayKey }), [goal, logs, weighIns, bodyMetrics, todayKey]);
-  const exercisesById = useMemo(() => Object.fromEntries((exercises || []).map((e) => [e.id, e])), [exercises]);
-  const insight = useMemo(() => insightForToday(buildInsights({ logs, exercisesById, goal, progress, todayKey }), todayKey), [logs, exercisesById, goal, progress, todayKey]);
-  const open = () => navigate("/solo/goal", { state: { back: "/solo/home" } });
+  const open = () => navigate("/solo/goal", { state: { back: "/solo/home", backState: { soloTab: "progress" } } });
 
   return (
-    <div className="mt-8">
+    <div>
       <div className="flex items-center justify-between gap-3 mb-3">
-        <h2 className="text-lg font-bold">Your Goal</h2>
+        <h2 className="font-semibold" style={{ color: t.text }}>Your Goal</h2>
         {progress && !progress.needsWeight && (
           <span className="text-[11px] font-bold tracking-wide uppercase" style={{ color: progress.done ? MEASURE_BLUE : t.textFaint }}>
             {progress.done ? "Reached" : `${Math.round(progress.pct * 100)}%`}
@@ -65,12 +63,25 @@ export default function SoloGoalCard({ profile, logs, weighIns, bodyMetrics, exe
           <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
         </button>
       )}
-      {insight && (
-        <p className="flex items-start gap-2 mt-3 px-1 text-xs leading-relaxed" style={{ color: t.textMuted }} data-testid="solo-insight">
-          <TrendingUp size={14} color={MEASURE_BLUE} className="shrink-0 mt-0.5" />
-          <span>{insight.text}</span>
-        </p>
-      )}
     </div>
+  );
+}
+
+// Today's one insight on My Training (#236): an open row under the day's
+// plan, tied into the goal without repeating it; nothing when the logs
+// don't support one.
+export function SoloInsightLine({ profile, logs, weighIns, bodyMetrics, exercises, todayKey, t }) {
+  const goal = profile?.goal || null;
+  const insight = useMemo(() => {
+    const progress = goalProgress(goal, { logs, weighIns, bodyMetrics, todayKey });
+    const exercisesById = Object.fromEntries((exercises || []).map((e) => [e.id, e]));
+    return insightForToday(buildInsights({ logs, exercisesById, goal, progress, todayKey }), todayKey);
+  }, [goal, logs, weighIns, bodyMetrics, exercises, todayKey]);
+  if (!insight) return null;
+  return (
+    <p className="flex items-start gap-2.5 mt-6 py-3 border-y text-[13px] leading-snug" style={{ borderColor: t.panelBorder, color: t.text }} data-testid="solo-insight">
+      <TrendingUp size={15} color={MEASURE_BLUE} className="shrink-0 mt-0.5" />
+      <span>{insight.text}</span>
+    </p>
   );
 }

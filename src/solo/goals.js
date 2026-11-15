@@ -55,7 +55,7 @@ export function goalTitle(goal) {
   const n = Number(goal.target);
   switch (goal.type) {
     case "consistency":
-      return `Build muscle: train ${goal.perWeek}× a week for ${n} weeks`;
+      return `${goal.aim === "build_muscle" ? "Build muscle: train" : "Train"} ${goal.perWeek}× a week for ${n} weeks`;
     case "bodyweight":
       return `${goal.direction === "gain" ? "Gain" : "Lose"} ${tidy(n)} kg`;
     case "lift":
@@ -77,7 +77,7 @@ export function suggestedGoals({ answers = {}, exercises = [], logs = [] } = {})
   const bench = lifts.find((l) => l.key === "bench") || lifts[0];
   const liftBest = bench ? bestWeight(logs, bench.exerciseId) : 0;
   const all = {
-    consistency: { type: "consistency", target: 12, perWeek },
+    consistency: { type: "consistency", target: 12, perWeek, aim: "build_muscle" },
     bodyweight: { type: "bodyweight", target: 5, direction: "lose" },
     lift: bench ? { type: "lift", target: liftBest > 0 ? roundUp(liftBest * 1.1, 5) : 100, exerciseId: bench.exerciseId, liftKey: bench.key, liftLabel: bench.label } : null,
     workouts: { type: "workouts", target: 20 },
@@ -186,4 +186,95 @@ export function milestoneCrossed(goal, data, latestLogId) {
   if (!after || !before) return null;
   const a = milestoneOf(after.pct);
   return a > milestoneOf(before.pct) ? a : null;
+}
+
+// ---- Their own goal, in their own words (#237) ----
+// Reads a goal typed in plain English into one of the goal types above, so
+// it's tracked automatically. Returns null when it can't be measured from
+// what the app logs (the screen then shows examples that can be).
+
+const LIFT_ALIASES = [
+  { re: /\bbench\b/, key: "bench" },
+  { re: /\bsquat/, key: "squat" },
+  { re: /\bdead\s?lift/, key: "deadlift" },
+  { re: /\b(ohp|overhead|shoulder press|military press)\b/, key: "ohp" },
+];
+const GENERIC_WORDS = new Set(["barbell", "the", "a", "an", "and", "of", "to", "with", "my"]);
+const num = (s) => Number(String(s).replace(/,/g, ""));
+const stepsNum = (s) => (/k$/i.test(s) ? num(s.slice(0, -1)) * 1000 : num(s));
+
+// The library exercise a goal's words name: one of the big lifts by its
+// nickname, else the longest library name whose words are all there.
+function exerciseIn(text, exercises, logs) {
+  const words = (s) => String(s).toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w && !GENERIC_WORDS.has(w));
+  const said = new Set(words(text));
+  let best = null;
+  for (const x of exercises) {
+    const w = words(x.name);
+    if (w.length && w.every((part) => said.has(part) || said.has(`${part}s`) || said.has(part.replace(/s$/, ""))) && (!best || w.length > best.n)) best = { x, n: w.length };
+  }
+  if (best && best.n > 1) return best.x;
+  for (const alias of LIFT_ALIASES) {
+    if (!alias.re.test(text)) continue;
+    const lift = goalLiftExercises(exercises, logs).find((l) => l.key === alias.key);
+    if (lift) return { id: lift.exerciseId, name: lift.name };
+  }
+  return best ? best.x : null;
+}
+
+export function parseGoal(input, { exercises = [], logs = [], weighIns = [] } = {}) {
+  const text = String(input || "").toLowerCase().replace(/kilos?|kgs/g, "kg").trim();
+  if (text.length < 3) return null;
+  const weeksIn = (fallback) => {
+    const w = text.match(/(\d+)\s*weeks?/);
+    const m = text.match(/(\d+)\s*months?/);
+    return w ? num(w[1]) : m ? Math.round(num(m[1]) * 4.33) : /\bmonth\b/.test(text) ? 4 : fallback;
+  };
+
+  // Steps: "12k steps a day for 60 days"
+  const steps = text.match(/(\d[\d,.]*k?)\s*steps/);
+  if (steps || /\bsteps\b/.test(text)) {
+    const d = text.match(/(\d+)\s*days?/);
+    const days = d ? num(d[1]) : weeksIn(null) ? weeksIn(null) * 7 : 30;
+    return { type: "steps", stepTarget: steps ? stepsNum(steps[1]) : 10000, target: days };
+  }
+
+  // Training frequency: "train 4 times a week for 10 weeks"
+  const freq = text.match(/(\d+)\s*(?:x|×|times|sessions?|workouts?|days?)\s*(?:a|per|each|every)\s*week/);
+  if (freq) return { type: "consistency", perWeek: Math.min(7, num(freq[1])), target: weeksIn(12) };
+
+  // Bodyweight: "lose 8 kg", "gain 3kg", "get down to 75 kg"
+  const lose = text.match(/\b(?:lose|drop|cut|shed|burn)\b[^\d]*(\d+(?:\.\d+)?)\s*(kg)?/);
+  if (lose && !exerciseIn(text, exercises, logs)) return { type: "bodyweight", direction: "lose", target: num(lose[1]) };
+  const gain = text.match(/\b(?:gain|put on|bulk|add)\b[^\d]*(\d+(?:\.\d+)?)\s*kg/);
+  if (gain && !exerciseIn(text, exercises, logs)) return { type: "bodyweight", direction: "gain", target: num(gain[1]) };
+  const reach = text.match(/\b(?:weigh|get (?:down |up )?to|reach|hit|be)\b[^\d]*(\d+(?:\.\d+)?)\s*kg/);
+  if (reach && /\b(weigh|bodyweight|body weight|get down|get to|be)\b/.test(text) && !exerciseIn(text, exercises, logs)) {
+    const now = latestWeight(weighIns);
+    const want = num(reach[1]);
+    if (!now || Math.abs(now - want) < 0.5) return null;
+    return { type: "bodyweight", direction: want < now ? "lose" : "gain", target: Math.round(Math.abs(now - want) * 10) / 10 };
+  }
+
+  // A lift: "bench 120 kg", "140kg squat", "deadlift 2x bodyweight" isn't measurable
+  const lift = exerciseIn(text, exercises, logs);
+  // Without "kg" the number has to come after the lift ("squat 140"):
+  // "10 pull ups" is reps, which the app doesn't set goals on.
+  const afterLift = lift && text.match(new RegExp(`${String(lift.name).toLowerCase().split(/[^a-z]+/).filter(Boolean).pop()?.replace(/s$/, "")}\\w*\\D{0,12}(\\d{2,3}(?:\\.\\d+)?)(?!\\s*(?:reps?|times|x\\b))`));
+  const kgs = text.match(/(\d+(?:\.\d+)?)\s*kg/) || afterLift || (lift && LIFT_ALIASES.some((a) => a.re.test(text)) && text.match(/(?:bench|squat|lift|press)\D{0,12}(\d{2,3}(?:\.\d+)?)/));
+  if (lift && kgs) {
+    const alias = GOAL_LIFTS.find((l) => l.match.test(String(lift.name).trim()));
+    return { type: "lift", exerciseId: lift.id, liftKey: alias?.key, liftLabel: lift.name, target: num(kgs[1]) };
+  }
+
+  // Count of workouts: "20 workouts", "50 sessions"
+  const count = text.match(/(\d+)\s*(?:workouts?|sessions?|trainings?)/);
+  if (count) return { type: "workouts", target: num(count[1]) };
+
+  // No numbers: the usual aims, with sensible ones they can change.
+  if (/\b(lose|losing|drop)\b.*\b(weight|fat|kg)\b|\b(get lean|lean out|slim)/.test(text)) return { type: "bodyweight", direction: "lose", target: 5 };
+  if (/\b(gain|put on)\b.*\b(weight|size|mass)\b|\bbulk/.test(text)) return { type: "bodyweight", direction: "gain", target: 3 };
+  if (/\b(build|gain|grow)\b.*\bmuscle|\b(get bigger|tone|toned)\b/.test(text)) return { type: "consistency", perWeek: 3, target: weeksIn(12), aim: "build_muscle" };
+  if (/\b(consistent|consistency|get fit|fitter|habit|routine)\b/.test(text)) return { type: "consistency", perWeek: 3, target: weeksIn(12) };
+  return null;
 }

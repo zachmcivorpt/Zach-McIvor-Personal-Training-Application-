@@ -1,6 +1,6 @@
 // #236: main goal progress and training insights, checked by hand.
 import { describe, it, expect } from "vitest";
-import { suggestedGoals, startGoal, goalProgress, goalTitle, encouragement, milestoneCrossed, goalLiftExercises } from "./goals";
+import { suggestedGoals, startGoal, goalProgress, goalTitle, encouragement, milestoneCrossed, goalLiftExercises, parseGoal } from "./goals";
 import { buildInsights, insightForToday, biggestLiftGain, weeksTrainedInARow, strengthGains, workoutHighlight, weeklyFocus, reviewHeadline } from "./insights";
 import { reviewWeek } from "./trainingRecap";
 
@@ -158,5 +158,41 @@ describe("weekly review", () => {
     expect(reviewHeadline({ planned: 0, plannedDone: 0, prs: 4, sessionsDone: 3 })).toBe("Four new personal records this week.");
     expect(weeklyFocus({ recap: { sessionsDone: 2, planned: 3, plannedDone: 2 }, nextPlanned: 3 })).toBe("Hit all 3 planned sessions. Missed one? Move it, don't skip it.");
     expect(weeklyFocus({ recap: { sessionsDone: 0 }, nextPlanned: 0 })).toBe("Plan two sessions for next week and do the first one early.");
+  });
+});
+
+describe("their own goal, in their words (#237)", () => {
+  const ex = [...lib, { id: "rdl", name: "Romanian Deadlift" }, { id: "pu", name: "Pull-Up" }, { id: "hip", name: "Barbell Hip Thrust" }];
+  const read = (text) => {
+    const g = parseGoal(text, { exercises: ex, weighIns: [{ weight: 82, date: 1 }] });
+    return g ? goalTitle(g) : null;
+  };
+  it("understands lifts, any library exercise, with or without kg", () => {
+    expect(read("Bench 120kg")).toBe("Bench Press 120 kg");
+    expect(read("squat 140")).toBe("Back Squat 140 kg");
+    expect(read("I want to deadlift 200 kilos")).toBe("Deadlift 200 kg");
+    expect(read("Romanian deadlift 120kg")).toBe("Romanian Deadlift 120 kg");
+    expect(read("hip thrust 150kg")).toBe("Barbell Hip Thrust 150 kg");
+    expect(read("100kg bench by June")).toBe("Bench Press 100 kg");
+  });
+  it("understands bodyweight, from their latest weigh-in when they give a target weight", () => {
+    expect(read("lose 8 kg by christmas")).toBe("Lose 8 kg");
+    expect(read("gain 3kg")).toBe("Gain 3 kg");
+    expect(read("get down to 75kg")).toBe("Lose 7 kg"); // 82 → 75
+    expect(read("get to 90kg bodyweight")).toBe("Gain 8 kg");
+    expect(read("lose weight")).toBe("Lose 5 kg");
+  });
+  it("understands how often, how many and steps", () => {
+    expect(read("train 4 times a week for 3 months")).toBe("Train 4× a week for 13 weeks");
+    expect(read("do 50 workouts this year")).toBe("Complete 50 workouts");
+    expect(read("12k steps a day for 60 days")).toBe("12,000 steps a day for 60 days");
+    expect(read("build muscle")).toBe("Build muscle: train 3× a week for 12 weeks");
+    expect(read("be more consistent")).toBe("Train 3× a week for 12 weeks");
+  });
+  it("says so when it can't be measured, never guesses", () => {
+    expect(read("run a marathon")).toBe(null);
+    expect(read("10 pull ups")).toBe(null); // reps, not kg
+    expect(read("squat 3 plates")).toBe(null);
+    expect(read("ok")).toBe(null);
   });
 });

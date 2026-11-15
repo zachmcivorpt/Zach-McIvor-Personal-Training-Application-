@@ -248,7 +248,12 @@ rather than inventing new colors per screen:
   (`soloUsers.goal`), its progress always worked out from existing logs,
   weigh-ins and steps, never stored or tracked twice. The goal screen shows
   once after the questionnaire (`GoalFirst` on /solo/first-session — never
-  edit the questionnaire for it); existing members get the tile. The Sunday
+  edit the questionnaire for it); existing members get the tile. The goal
+  card lives on PROGRESS (#237, after the map and Personal Bests), not My
+  Training; My Training shows only today's insight (`SoloInsightLine`).
+  Suggestions are only suggestions: "Your own goal" is read by `parseGoal`
+  into a trackable type and shown as "We'll track this as …" before saving;
+  what can't be measured gets examples, never a guess. The Sunday
   review IS the week recap (`/solo/week`, `reviewWeek`): no second review
   screen, and the one weekly push (Sunday 6pm, `notificationPrefs.weeklyCheckIn`)
   — add no other scheduled Solo pushes. Insights only from data with their

@@ -18,7 +18,7 @@ vi.mock("./goalStore", () => ({ saveSoloGoal: (...a) => saveSoloGoal(...a), mark
 vi.mock("../client/ClientApp", () => ({ estimateCalories: () => 100 }));
 
 const { default: SoloGoalScreen } = await import("./SoloGoalScreen");
-const { default: SoloGoalCard } = await import("./SoloGoalCard");
+const { default: SoloGoalCard, SoloInsightLine } = await import("./SoloGoalCard");
 const { default: SoloWorkoutSummaryScreen } = await import("./SoloWorkoutSummaryScreen");
 
 const lib = [
@@ -96,14 +96,39 @@ describe("goal screen", () => {
   });
 });
 
-describe("My Training goal card", () => {
+describe("their own goal (#237)", () => {
+  it("reads what they write into a goal it can track, and saves their words with it", async () => {
+    const onDone = vi.fn();
+    render(
+      <MemoryRouter>
+        <SoloGoalScreen firstTime onDone={onDone} />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByText("Your own goal"));
+    const input = screen.getByLabelText("Your own goal");
+    fireEvent.change(input, { target: { value: "run a marathon" } });
+    expect(screen.getByTestId("goal-own-hint")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Set my goal" }).disabled).toBe(true);
+    fireEvent.change(input, { target: { value: "squat 140" } });
+    expect(screen.getByTestId("goal-own-reading").textContent).toMatch(/We'll track this asBack Squat 140 kg/);
+    // Still adjustable, and the field keeps focus-free typing working.
+    fireEvent.click(screen.getByRole("button", { name: "More kg" }));
+    expect(screen.getByTestId("goal-own-reading").textContent).toMatch(/Back Squat 142.5 kg/);
+    fireEvent.click(screen.getByRole("button", { name: "Set my goal" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalled());
+    expect(saveSoloGoal.mock.calls[0][1]).toMatchObject({ type: "lift", exerciseId: "sq", target: 142.5, ownText: "squat 140" });
+  });
+});
+
+describe("goal card (Progress) and insight (My Training)", () => {
   const t = SOLO_THEMES.dark;
-  it("shows the goal's progress from their logs and one insight", () => {
+  it("shows the goal's progress from their logs; the insight is its own line", () => {
     const goal = { type: "workouts", target: 4, startKey: "2026-11-01" };
     const logs = [log("1", "2026-11-02", "sq", 100, 5, true), log("2", "2026-11-04", "sq", 105, 5, true), log("3", "2026-11-10", "bp", 70, 5)];
     render(
       <MemoryRouter>
-        <SoloGoalCard profile={{ id: "u1", goal }} logs={logs} weighIns={[]} bodyMetrics={[]} exercises={lib} todayKey="2026-11-12" t={t} />
+        <SoloGoalCard profile={{ id: "u1", goal }} logs={logs} weighIns={[]} bodyMetrics={[]} todayKey="2026-11-12" t={t} />
+        <SoloInsightLine profile={{ id: "u1", goal }} logs={logs} weighIns={[]} bodyMetrics={[]} exercises={lib} todayKey="2026-11-12" t={t} />
       </MemoryRouter>
     );
     expect(screen.getByRole("heading", { level: 2, name: "Your Goal" })).toBeTruthy();
@@ -116,7 +141,8 @@ describe("My Training goal card", () => {
   it("no goal: offers to set one; no data: no insight", () => {
     render(
       <MemoryRouter>
-        <SoloGoalCard profile={{ id: "u1" }} logs={[]} weighIns={[]} bodyMetrics={[]} exercises={lib} todayKey="2026-11-12" t={t} />
+        <SoloGoalCard profile={{ id: "u1" }} logs={[]} weighIns={[]} bodyMetrics={[]} todayKey="2026-11-12" t={t} />
+        <SoloInsightLine profile={{ id: "u1" }} logs={[]} weighIns={[]} bodyMetrics={[]} exercises={lib} todayKey="2026-11-12" t={t} />
       </MemoryRouter>
     );
     expect(screen.getByText("Set your main goal")).toBeTruthy();

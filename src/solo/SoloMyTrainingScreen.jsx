@@ -24,7 +24,7 @@ import { weekInProgram } from "./currentProgram";
 import { loadWorkoutDraft } from "./workoutDraft";
 import SoloGettingStarted from "./SoloGettingStarted";
 import SoloTeamWeek from "./SoloTeamWeek";
-import SoloGoalCard from "./SoloGoalCard";
+import { SoloInsightLine } from "./SoloGoalCard";
 import { shouldAutoShowGettingStarted, markSeenOnPhone } from "./gettingStarted";
 
 // A purchased program's own overview — which week the customer is in, that
@@ -680,8 +680,8 @@ export default function SoloMyTrainingScreen() {
           </div>
         )}
 
-        {/* Main goal and today's insight (#236). */}
-        <SoloGoalCard profile={soloCurrentUser} logs={soloWorkoutLogs} weighIns={soloWeighIns} bodyMetrics={soloBodyMetrics} exercises={soloExercises} todayKey={todayKey} t={t} />
+        {/* Today's insight (#236); the goal itself is on Progress (#237). */}
+        <SoloInsightLine profile={soloCurrentUser} logs={soloWorkoutLogs} weighIns={soloWeighIns} bodyMetrics={soloBodyMetrics} exercises={soloExercises} todayKey={todayKey} t={t} />
 
         {/* Team week (#234): training partners and the shared streak. */}
         <SoloTeamWeek profile={soloCurrentUser} todayKey={todayKey} dark={dark} t={t} />

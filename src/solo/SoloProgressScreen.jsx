@@ -35,6 +35,7 @@ import { fileToCompressedDataUrl } from "../lib/image";
 import { MetricTile } from "../components/charts";
 import { MEASURE_BLUE } from "../theme";
 import { SoloPageHeader } from "./SoloUI";
+import SoloGoalCard from "./SoloGoalCard";
 import {
   ClientThemeContext,
   LogWeightSheet,
@@ -205,6 +206,8 @@ export default function SoloProgressScreen() {
             </div>
           </Card>
           )}
+          {/* Their main goal (#237): after the map and Personal Bests (#202). */}
+          <SoloGoalCard profile={soloCurrentUser} logs={soloWorkoutLogs} weighIns={soloWeighIns} bodyMetrics={soloBodyMetrics} todayKey={localDateKey()} t={SOLO_THEMES[dark ? "dark" : "light"]} />
         </div>
 
         {/* The shared timeline paints its own solid band; inside Train Solo it
