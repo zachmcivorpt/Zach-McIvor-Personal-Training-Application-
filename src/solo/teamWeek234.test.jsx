@@ -46,6 +46,8 @@ describe("Team week", () => {
   it("with no partner, offers the invite", async () => {
     partners = { pairs: [], ready: true, activity: {} };
     renderIt();
+    // Built like My Training's other sections ("Your Sessions"): a bold h2.
+    expect(screen.getByRole("heading", { level: 2, name: "Team Week" }).className).toContain("text-lg font-bold");
     fireEvent.click(screen.getByText("Train with a friend"));
     await waitFor(() => expect(screen.getByTestId("partner-code").textContent).toBe("ABC234"));
     expect(screen.getByText(/never your weights, body stats or photos/)).toBeTruthy();

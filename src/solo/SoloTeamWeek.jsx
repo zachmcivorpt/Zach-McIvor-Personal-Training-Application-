@@ -4,7 +4,7 @@ import { BottomSheet } from "../components/ui";
 import { MEASURE_BLUE } from "../theme";
 import { SoloButton, SoloTextButton, SOLO_TYPE } from "./SoloUI";
 import SoloGlassBox from "./SoloGlassBox";
-import { soloClearSheetGlass, CLEAR_SHEET_BACKDROP } from "./SoloThemeContext";
+import { soloGlass, soloClearSheetGlass, CLEAR_SHEET_BACKDROP } from "./SoloThemeContext";
 import { MAX_PARTNERS, PENDING_PARTNER_CODE_KEY, inviteLink, normalisePartnerCode, teamWeekView } from "./partners";
 import { ensurePartnerCode, joinPartner, endPartnership, usePartners } from "./partnerStore";
 import { sessionDayLabel } from "./soloCalendar";
@@ -62,28 +62,33 @@ export default function SoloTeamWeek({ profile, todayKey, dark, t }) {
 
   if (!uid || !ready) return null;
 
+  // Same build as My Training's other sections ("Your Sessions"): a bold
+  // heading, glass tiles with a blue line icon, rows inside one glass box.
   return (
-    <section className="mt-6">
-      <p className="text-[11px] font-bold tracking-wide uppercase mb-2" style={{ color: t.textFaint }}>
-        Team week
-      </p>
+    <div className="mt-8">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className="text-lg font-bold">Team Week</h2>
+        {rows.length > 0 && (
+          <span className="text-[11px] font-bold tracking-wide uppercase" style={{ color: t.textFaint }}>
+            {rows.length} of {MAX_PARTNERS} partners
+          </span>
+        )}
+      </div>
       {notice && (
-        <p className="text-[12px] mb-2" style={{ color: t.textMuted }} role="status">
+        <p className="text-xs mb-2.5" style={{ color: t.textMuted }} role="status">
           {notice}
         </p>
       )}
       {rows.length === 0 ? (
-        <button type="button" onClick={() => setInviteOpen(true)} className="w-full flex items-center gap-3 py-3.5 border-y text-left" style={{ borderColor: t.panelBorder }}>
-          <Users size={18} strokeWidth={1.75} color={MEASURE_BLUE} className="shrink-0" />
-          <span className="flex-1 min-w-0">
-            <span className="block text-[13px] font-semibold">Train with a friend</span>
+        <button type="button" onClick={() => setInviteOpen(true)} className="w-full flex items-center gap-2.5 rounded-2xl px-3.5 py-3.5 text-left" style={soloGlass(t)}>
+          <Users size={17} color={MEASURE_BLUE} className="shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">Train with a friend</span>
             <span className="block text-[11px] mt-0.5" style={{ color: t.textMuted }}>
-              Both hit your sessions, keep the streak alive.
+              Both hit your sessions, keep the streak alive
             </span>
           </span>
-          <span className="text-[12px] font-bold uppercase shrink-0" style={{ color: MEASURE_BLUE }}>
-            Invite
-          </span>
+          <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
         </button>
       ) : (
         <SoloGlassBox t={t} className="rounded-2xl">
@@ -92,24 +97,24 @@ export default function SoloTeamWeek({ profile, todayKey, dark, t }) {
               key={r.pair.id}
               type="button"
               onClick={() => setOpenPair(r)}
-              className="w-full flex items-center gap-4 px-4 py-3.5 text-left"
+              className="w-full flex items-center gap-3 pl-4 pr-3 py-3 text-left"
               style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}
             >
-              <span className="w-12 shrink-0 text-center">
-                <span className={`block ${SOLO_TYPE.figure}`} style={r.streak > 0 ? { color: MEASURE_BLUE } : undefined}>
-                  {r.streak}
-                </span>
-                <span className="block text-[9px] font-bold uppercase tracking-[0.12em] mt-1" style={{ color: t.textFaint }}>
+              <span className="w-10 shrink-0 text-center leading-none">
+                <span className="block text-[10px] font-bold uppercase tracking-wide" style={{ color: r.streak > 0 ? MEASURE_BLUE : t.textFaint }}>
                   {r.streak === 1 ? "Week" : "Weeks"}
                 </span>
+                <span className="block text-xl font-extrabold tabular-nums mt-1" style={{ color: r.streak > 0 ? MEASURE_BLUE : t.text }}>
+                  {r.streak}
+                </span>
               </span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-[13px] font-semibold truncate">You + {r.name}</span>
-                <span className="flex items-center gap-3 mt-1.5">
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold truncate">You + {r.name}</span>
+                <span className="flex items-center gap-3 mt-1">
                   <Progress label="You" week={r.me} t={t} />
                   <Progress label={r.name} week={r.them} t={t} />
                 </span>
-                <span className="block text-[11px] mt-1.5" style={{ color: r.metThisWeek ? MEASURE_BLUE : t.textMuted }}>
+                <span className="block text-xs mt-1" style={{ color: r.metThisWeek ? MEASURE_BLUE : t.textMuted }}>
                   {statusLine(r)}
                 </span>
               </span>
@@ -120,10 +125,12 @@ export default function SoloTeamWeek({ profile, todayKey, dark, t }) {
             <button
               type="button"
               onClick={() => setInviteOpen(true)}
-              className="w-full flex items-center gap-2 px-4 py-3 text-left text-[12px] font-bold uppercase"
-              style={{ borderTop: `1px solid ${t.panelBorder}`, color: MEASURE_BLUE }}
+              className="w-full flex items-center gap-2.5 px-4 py-3 text-left"
+              style={{ borderTop: `1px solid ${t.panelBorder}` }}
             >
-              <Plus size={14} /> Add a partner
+              <Plus size={17} color={MEASURE_BLUE} className="shrink-0" />
+              <span className="text-sm font-semibold flex-1">Add a partner</span>
+              <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
             </button>
           )}
         </SoloGlassBox>
@@ -131,7 +138,7 @@ export default function SoloTeamWeek({ profile, todayKey, dark, t }) {
 
       <InviteSheet open={inviteOpen} onClose={() => setInviteOpen(false)} profile={profile} pairs={pairs} onJoined={(msg) => setNotice(msg)} dark={dark} t={t} />
       <PartnerSheet row={openPair} onClose={() => setOpenPair(null)} todayKey={todayKey} dark={dark} t={t} />
-    </section>
+    </div>
   );
 }
 
@@ -146,7 +153,7 @@ function Progress({ label, week, t }) {
   const dots = Math.min(7, week.target);
   return (
     <span className="flex items-center gap-1.5 min-w-0" aria-label={`${label}: ${week.done} of ${week.target} this week`}>
-      <span className="text-[10px] font-semibold uppercase tracking-[0.08em] truncate max-w-[72px]" style={{ color: t.textMuted }}>
+      <span className="text-[10px] font-bold uppercase tracking-wide truncate max-w-[72px]" style={{ color: t.textMuted }}>
         {label}
       </span>
       <span className="flex gap-[3px]" aria-hidden="true">
@@ -268,7 +275,7 @@ function InviteSheet({ open, onClose, profile, pairs, onJoined, dark, t }) {
               type="button"
               onClick={join}
               disabled={joining || !typed.trim() || full}
-              className="px-4 rounded-xl text-[12px] font-bold uppercase disabled:opacity-30"
+              className="text-xs font-bold px-4 rounded-full shrink-0 disabled:opacity-30"
               style={{ backgroundColor: t.text, color: t.bg }}
             >
               {joining ? "Joining…" : "Join"}
