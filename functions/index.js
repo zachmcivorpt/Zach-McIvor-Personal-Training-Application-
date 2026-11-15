@@ -1490,6 +1490,37 @@ exports.soloFreeSessionLimit = onDocumentCreated("soloCustomSessions/{id}", asyn
   }
 });
 
+// Train Solo training partners (#234, functions/soloPartners.js): the Team
+// week activity docs and "your move" pushes. Best-effort, never retried.
+const { onDocumentWritten, onDocumentDeleted } = require("firebase-functions/v2/firestore");
+const soloPartners = require("./soloPartners");
+exports.soloPartnerLogWritten = onDocumentWritten("soloWorkoutLogs/{id}", async (event) => {
+  try {
+    await soloPartners.onSoloLogWritten(db, messaging, {
+      before: event.data?.before?.exists ? event.data.before.data() : null,
+      after: event.data?.after?.exists ? event.data.after.data() : null,
+      logId: event.params.id,
+    });
+  } catch (err) {
+    console.error("soloPartnerLogWritten failed", event.params?.id, err.message);
+  }
+});
+exports.soloPartnerPairCreated = onDocumentCreated("soloPartners/{id}", async (event) => {
+  if (!event.data) return;
+  try {
+    await soloPartners.onPairCreated(db, messaging, event.data);
+  } catch (err) {
+    console.error("soloPartnerPairCreated failed", event.params?.id, err.message);
+  }
+});
+exports.soloPartnerUserDeleted = onDocumentDeleted("soloUsers/{uid}", async (event) => {
+  try {
+    await soloPartners.onSoloUserDeleted(db, event.params.uid);
+  } catch (err) {
+    console.error("soloPartnerUserDeleted failed", event.params?.uid, err.message);
+  }
+});
+
 // Coach push notifications for coached clients' activity (#215,
 // functions/coachActivityNotify.js). Each has its own switch in the coach
 // console; best-effort, never retried.

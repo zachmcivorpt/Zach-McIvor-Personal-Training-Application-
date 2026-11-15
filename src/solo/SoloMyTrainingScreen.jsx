@@ -23,6 +23,7 @@ import SoloSwipeRow from "./SoloSwipeRow";
 import { weekInProgram } from "./currentProgram";
 import { loadWorkoutDraft } from "./workoutDraft";
 import SoloGettingStarted from "./SoloGettingStarted";
+import SoloTeamWeek from "./SoloTeamWeek";
 import { shouldAutoShowGettingStarted, markSeenOnPhone } from "./gettingStarted";
 
 // A purchased program's own overview — which week the customer is in, that
@@ -678,6 +679,8 @@ export default function SoloMyTrainingScreen() {
           </div>
         )}
 
+        {/* Team week (#234): training partners and the shared streak. */}
+        <SoloTeamWeek profile={soloCurrentUser} todayKey={todayKey} dark={dark} t={t} />
 
         <WaterCard
           dateKey={selectedKey}

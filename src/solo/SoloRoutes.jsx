@@ -20,6 +20,7 @@ import {
   SoloActiveRecoveryScreen,
   SoloProgramCompleteScreen,
   SoloWeekRecapScreen,
+  SoloJoinScreen,
 } from "./soloScreens";
 
 // Was a plain black screen whatever the member's light/dark choice — the
@@ -138,6 +139,8 @@ export default function SoloRoutes() {
         <Routes>
           <Route path="register" element={<SoloRegisterScreen />} />
           <Route path="login" element={<SoloLoginScreen />} />
+          {/* A friend's Team week invite (#234). */}
+          <Route path="join/:code" element={<SoloJoinScreen />} />
           <Route
             path="onboarding"
             element={

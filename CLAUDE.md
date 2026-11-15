@@ -227,6 +227,22 @@ rather than inventing new colors per screen:
 - **Workout set rows** (#170): Reps left of Kg; rest/set timers are
   `MEASURE_BLUE` (as in the client app), never the coach's branding accent.
 - **Estimated Max chart** removed from Progress (#202, owner).
+- **Team week / training partners** (#234, `SoloTeamWeek.jsx`, `partners.js`,
+  `partnerStore.js`, `functions/soloPartners.js`): up to 4 partners
+  (`MAX_PARTNERS`, also enforced by the server). A Team week = both hit
+  their own weekly target; the streak counts only weeks since pairing and
+  this week only once met. Partners see ONLY training days, session names
+  and weekly counts (`soloPartnerActivity`, server-written from logs) —
+  never weights, body stats or photos; don't add more to that doc. Pushes
+  come only from the server trigger on `soloWorkoutLogs`, claimed once
+  each in `soloPartnerPushes`; switch `notificationPrefs.partners`. Keep
+  the week/streak maths in `partners.js` and `soloPartners.js` in step
+  (their test checks). Free for every tier — it's the growth loop.
+  Design is Train Solo's own, nothing new (#235): on My Training it is
+  built exactly like "Your Sessions" (bold `text-lg` h2, `soloGlass` tiles
+  with a blue line icon, rows in one `SoloGlassBox`); `/solo/join/CODE` is
+  built like `SoloLoginScreen` (full-bleed frame, LitLogo, EchoHeading,
+  AuthButton). New Train Solo sections copy a sibling's build, not a new style.
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
 - The muscle map card is also on the coached client's Progress and the coach's client Progress tab (#216), lazy-loaded, unchanged.

@@ -797,4 +797,65 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
       await assertFails(getDoc(doc(coachDb, "soloUsers", SOLO_A)));
     });
   });
+
+  // #234: Train Solo training partners.
+  describe("training partners (#234)", () => {
+    const A = "solo-pa";
+    const B = "solo-pb";
+    const C = "solo-pc";
+    const PAIR = [A, B].sort().join("_");
+    async function seedCode(code = "ABC234", uid = A) {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloPartnerCodes", code), { uid, firstName: "Alex", createdAt: 1 });
+      });
+    }
+    const pairDoc = (joinedBy, code = "ABC234") => ({ members: [A, B].sort(), joinedBy, code, createdAt: 1 });
+
+    it("a member makes their own code; nobody makes one in someone else's name or lists them", async () => {
+      await assertSucceeds(setDoc(doc(dbAs(A), "soloPartnerCodes", "ABC234"), { uid: A, firstName: "Alex", createdAt: 1 }));
+      await assertFails(setDoc(doc(dbAs(C), "soloPartnerCodes", "ZZZ999"), { uid: A, firstName: "Alex", createdAt: 1 }));
+      await assertSucceeds(getDoc(doc(dbAs(null), "soloPartnerCodes", "ABC234")));
+      await assertFails(getDocs(collection(dbAs(C), "soloPartnerCodes")));
+    });
+
+    it("the friend joins with the inviter's real code", async () => {
+      await seedCode();
+      await assertSucceeds(setDoc(doc(dbAs(B), "soloPartners", PAIR), pairDoc(B)));
+      await assertSucceeds(getDoc(doc(dbAs(A), "soloPartners", PAIR)));
+      await assertFails(getDoc(doc(dbAs(C), "soloPartners", PAIR)));
+    });
+
+    it("no pair without the other member's code, and never with your own code", async () => {
+      await seedCode("ABC234", C);
+      await assertFails(setDoc(doc(dbAs(B), "soloPartners", PAIR), pairDoc(B)));
+      await seedCode("OWN234", B);
+      await assertFails(setDoc(doc(dbAs(B), "soloPartners", PAIR), pairDoc(B, "OWN234")));
+    });
+
+    it("nobody can pair two other people", async () => {
+      await seedCode();
+      await assertFails(setDoc(doc(dbAs(C), "soloPartners", PAIR), pairDoc(B)));
+      await assertFails(setDoc(doc(dbAs(C), "soloPartners", PAIR), { ...pairDoc(C) }));
+    });
+
+    it("activity is readable by the member and their partners only, and written only by the server", async () => {
+      await seedCode();
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloPartnerActivity", A), { firstName: "Alex", weeks: {} });
+        await setDoc(doc(ctx.firestore(), "soloPartners", PAIR), pairDoc(B));
+      });
+      await assertSucceeds(getDoc(doc(dbAs(A), "soloPartnerActivity", A)));
+      await assertSucceeds(getDoc(doc(dbAs(B), "soloPartnerActivity", A)));
+      await assertFails(getDoc(doc(dbAs(C), "soloPartnerActivity", A)));
+      await assertFails(setDoc(doc(dbAs(A), "soloPartnerActivity", A), { weeks: { x: { done: 99 } } }));
+    });
+
+    it("either member can end it; nobody else can", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloPartners", PAIR), pairDoc(B));
+      });
+      await assertFails(deleteDoc(doc(dbAs(C), "soloPartners", PAIR)));
+      await assertSucceeds(deleteDoc(doc(dbAs(A), "soloPartners", PAIR)));
+    });
+  });
 });

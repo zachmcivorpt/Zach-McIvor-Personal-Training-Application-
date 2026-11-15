@@ -58,7 +58,8 @@ export function SoloThemeProvider({ children }) {
   // SoloBackgroundFrame. A build without edge-to-edge support still gets a
   // dark strip there rather than a white one.
   const { pathname } = useLocation();
-  const fullBleed = FULL_BLEED_PATHS.includes(pathname) || !!soloProfileMissing;
+  // A friend's invite link (#234) is a log-in-style screen too.
+  const fullBleed = FULL_BLEED_PATHS.includes(pathname) || pathname.startsWith("/solo/join/") || !!soloProfileMissing;
   // Declared first so it captures index.html's value before the effect
   // below overwrites it, and puts it back when leaving Train Solo.
   useEffect(() => {

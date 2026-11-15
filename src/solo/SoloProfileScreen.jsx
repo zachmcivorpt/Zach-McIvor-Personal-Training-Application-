@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity, Compass } from "lucide-react";
+import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity, Compass, Users } from "lucide-react";
 import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth } from "../lib/appleHealth";
 import { enableSoloPush, hasSoloPushToken } from "../lib/push";
 import { canUse, TIER_LABELS, activeStore, planRenewal, renewalText } from "./soloAccess";
@@ -15,6 +15,7 @@ import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { DeleteAccountSheet } from "../components/ui";
 import { inAppPurchasesAvailable } from "../lib/purchases";
 import SoloPurchaseLog from "./SoloPurchaseLog";
+import { setPartnerAlerts } from "./partnerStore";
 
 // Adapted from ClientApp.jsx's ProfileScreen: same avatar/name card, sign
 // out, legal links and delete-account pattern, but with every coach-
@@ -81,6 +82,34 @@ export default function SoloProfileScreen() {
       setHealthError(err?.message || "Couldn't connect Apple Health — please try again.");
     } finally {
       setHealthBusy(false);
+    }
+  }
+
+  // Team week pushes (#234): a partner trained, Team week done.
+  const partnerAlertsOn = !!deviceRegistered && soloCurrentUser?.notificationPrefs?.partners !== false;
+  const [partnerBusy, setPartnerBusy] = useState(false);
+  const [partnerError, setPartnerError] = useState("");
+  async function togglePartnerAlerts() {
+    if (!uid || partnerBusy) return;
+    setPartnerError("");
+    setPartnerBusy(true);
+    try {
+      if (partnerAlertsOn) {
+        await setPartnerAlerts(uid, false);
+      } else {
+        if (!deviceRegistered) {
+          if (iosApp) {
+            setPartnerError("Allow notifications for APEX in your iPhone Settings, then reopen the app to turn these on.");
+            return;
+          }
+          await enableSoloPush(uid);
+        }
+        await setPartnerAlerts(uid, true);
+      }
+    } catch (err) {
+      setPartnerError(err?.message || "Couldn't update alerts — please try again.");
+    } finally {
+      setPartnerBusy(false);
     }
   }
 
@@ -266,7 +295,6 @@ export default function SoloProfileScreen() {
           onClick={toggleReminders}
           disabled={reminderBusy}
           className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
-          style={healthAvailable ? { borderBottom: `1px solid ${t.panelBorder}` } : undefined}
         >
           <Bell size={17} color={t.textMuted} className="shrink-0" />
           <span className="flex-1 min-w-0">
@@ -285,6 +313,31 @@ export default function SoloProfileScreen() {
           </span>
         </button>
         {reminderError && <p className="text-xs text-red-500 px-4 pb-3 -mt-1">{reminderError}</p>}
+        <button
+          type="button"
+          onClick={togglePartnerAlerts}
+          disabled={partnerBusy}
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+          style={{ borderTop: `1px solid ${t.panelBorder}`, ...(healthAvailable ? { borderBottom: `1px solid ${t.panelBorder}` } : {}) }}
+        >
+          <Users size={17} color={t.textMuted} className="shrink-0" />
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-semibold">Training partner alerts</span>
+            <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
+              When a partner trains, and when your Team week is done.
+            </span>
+          </span>
+          <span
+            role="switch"
+            aria-checked={partnerAlertsOn}
+            aria-label="Training partner alerts"
+            className="w-11 h-6 rounded-full p-0.5 shrink-0 transition-colors"
+            style={{ backgroundColor: partnerAlertsOn ? accent : t.chipBg, border: `1px solid ${t.panelBorder}`, opacity: partnerBusy ? 0.6 : 1 }}
+          >
+            <span className="block w-5 h-5 rounded-full bg-white shadow transition-transform" style={{ transform: partnerAlertsOn ? "translateX(18px)" : "none" }} />
+          </span>
+        </button>
+        {partnerError && <p className="text-xs text-red-500 px-4 pb-3 -mt-1">{partnerError}</p>}
         {healthAvailable && (
           <button type="button" onClick={toggleHealth} disabled={healthBusy} className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
             <Activity size={17} color={t.textMuted} className="shrink-0" />
