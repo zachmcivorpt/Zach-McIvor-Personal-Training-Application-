@@ -112,6 +112,8 @@ import { needsYouItems, filterSessionLogs } from "./needsYou";
 
 // Train Solo's muscle map card, shown as-is on the client's Progress tab (#216); loaded only there.
 const MuscleMapCard = React.lazy(() => import("../solo/SoloMuscleMap").then((m) => ({ default: m.SoloMuscleMapCard })));
+// The client's weekly reviews (#240), the same pages they see, read-only.
+const WeeklyReviewsSection = React.lazy(() => import("../client/WeeklyReview"));
 
 // The first exercise in the day that has a YouTube video gives us a real
 // thumbnail to fall back to (vimeo/file videos have no static thumbnail
@@ -4884,6 +4886,22 @@ export function ProgressPanel({ client, showToast }) {
   const bodyMetrics = (db.bodyMetrics || {})[client.id] || [];
   const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
   const exercisesById = Object.fromEntries(db.exercises.map((e) => [e.id, e]));
+  const nutritionLogs = (db.nutritionLogs || {})[client.id];
+  const phases = (db.clientPhases || {})[client.id];
+  const reviewData = useMemo(
+    () => ({
+      workoutLogs: logs,
+      scheduledWorkouts,
+      nutritionLogs: nutritionLogs || [],
+      bodyMetrics,
+      weighIns,
+      targets: resolveNutritionTargets(client.nutritionTargets),
+      exercisesById,
+      phases: phases || [],
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [db.workoutLogs, db.scheduledWorkouts, nutritionLogs, db.bodyMetrics, db.weighIns, client.nutritionTargets, db.exercises, phases, client.id]
+  );
 
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
   const [logMetricConfig, setLogMetricConfig] = useState(null);
@@ -5039,6 +5057,10 @@ export function ProgressPanel({ client, showToast }) {
           setLogMetricConfig(null);
         }}
       />
+
+      <React.Suspense fallback={null}>
+        <WeeklyReviewsSection uid={client.id} data={reviewData} dark coachView clientName={(client.name || "").trim().split(/\s+/)[0]} />
+      </React.Suspense>
     </div>
   );
 }

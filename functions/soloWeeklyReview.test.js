@@ -18,6 +18,9 @@ describe("weekStats", () => {
     ];
     expect(weekStats(logs, "Australia/Sydney", NOW)).toEqual({ sessions: 2, prs: 3 });
   });
+  it("a coached client's cardio isn't a session (#240)", () => {
+    expect(weekStats([log("2026-11-10T00:00:00Z"), { ...log("2026-11-11T00:00:00Z"), cardio: { activityLabel: "Run" } }], "Australia/Sydney", NOW)).toEqual({ sessions: 1, prs: 0 });
+  });
 });
 
 describe("reviewPushText", () => {

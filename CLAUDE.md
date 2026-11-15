@@ -847,6 +847,12 @@ any Train Solo work from now on:
   "–"); the Nutrition tab shows kcal, P, C, F per day green (hit) / red
   (missed). Carbs and fat hit within 15% (`MACRO_TOLERANCE`).
 
+## Coached client weekly review (#240)
+
+- Sunday 6pm Sydney push `clientWeeklyReview` (switch `notificationPrefs.weeklyReview`); one a week. A push tap only opens the app, so the new review opens by itself once (Sunday 6pm–Tuesday, seen on the phone), never in View as Client.
+- Numbers come from `coachedWeekReview` (`src/lib/weeklyReview.js`) on top of `weekScorecard` (#220): keep one source so the review and the coach's video-feedback panel agree. Nothing is stored; past weeks are worked out from the logs.
+- `src/client/WeeklyReview.jsx` (lazy) is the page: frosted glass over the blurred gym photo in the client's own light/dark (light = white glass on near-white, never grey; small hero type, #241), ending with "Log this week's check-in" / "Skip for now" only when a check-in is due. "Weekly reviews" is the last section of the client's Progress and of the coach's client Progress tab (read-only, `coachView`).
+
 ## Coach activity notifications (#215)
 
 - Workout / progress photo / weigh-in pushes to the coach come from server triggers (`functions/coachActivityNotify.js`), never from client-app code; switches are `notificationPrefs.workouts` / `progressPhotos` / `weighIns`. No RPE in them.
