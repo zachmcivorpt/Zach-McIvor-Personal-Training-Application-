@@ -3571,6 +3571,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/lib/weeklyReview240.test.js` (a week worked by hand: sessions vs plan with cardio excluded, minutes, PRs, nutrition hits, weight/steps/sleep averages, stronger lifts, phase week, streak, focus order, list line, empty weeks, when a review exists and when it's new). `src/client/weeklyReview240.test.jsx` covers the real client ProgressScreen (list, New, page, check-in vs Skip vs Done), opening by itself once, and the real coach ProgressPanel with db grouped by client (read-only, no check-in, never another client's data). `functions/soloWeeklyReview.test.js` checks cardio isn't counted. All fail without the feature. Full suite and build pass. The client page (light and dark), the Progress list and the coach's client Progress tab were checked in Chromium at 390 px with real-shaped data.
 - **Needs a real device**: the Sunday push arriving, and the review opening on the next app open.
 
+### 241. Coached weekly review: smaller hero text, whiter light mode (owner, 2026-11-15)
+
+- **Change**: the review's opening card is smaller (headline 19px, figure 34px, label 12px, day pills 24px). Light mode is white glass on a near-white page instead of grey: the page is #F6F7F9, the gym photo sits at 22% and is brighter, and the cards are 68% white with a bright edge. Dark mode is unchanged.
+- **Tests**: styling only. `src/client/weeklyReview240.test.jsx` still passes, and the page was checked in Chromium at 390 px in light and dark.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

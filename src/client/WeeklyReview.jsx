@@ -18,12 +18,14 @@ const GLASS_DARK = {
   WebkitBackdropFilter: "blur(26px) saturate(140%)",
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 20px 60px -30px rgba(0,0,0,0.8)",
 };
+// Light: white glass on a near-white page (#241, owner: "more glassy white,
+// less grey").
 const GLASS_LIGHT = {
-  background: "rgba(255,255,255,0.55)",
-  border: "1px solid rgba(255,255,255,0.85)",
-  backdropFilter: "blur(26px) saturate(160%)",
-  WebkitBackdropFilter: "blur(26px) saturate(160%)",
-  boxShadow: "0 20px 50px -30px rgba(0,0,0,0.35)",
+  background: "rgba(255,255,255,0.68)",
+  border: "1px solid rgba(255,255,255,0.95)",
+  backdropFilter: "blur(28px) saturate(180%) brightness(1.04)",
+  WebkitBackdropFilter: "blur(28px) saturate(180%) brightness(1.04)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,1), 0 16px 40px -28px rgba(20,30,60,0.22)",
 };
 const BLUE_GLASS = { background: "rgba(47,143,255,0.12)", border: "1px solid rgba(47,143,255,0.5)", backdropFilter: "blur(26px)", WebkitBackdropFilter: "blur(26px)", boxShadow: "0 0 18px rgba(47,143,255,0.18)" };
 
@@ -42,7 +44,7 @@ function useTone(dark) {
     muted: dark ? "rgba(255,255,255,0.55)" : "rgba(10,10,11,0.5)",
     faint: dark ? "rgba(255,255,255,0.38)" : "rgba(10,10,11,0.38)",
     line: dark ? "rgba(255,255,255,0.1)" : "rgba(10,10,11,0.08)",
-    chip: dark ? "rgba(255,255,255,0.08)" : "rgba(10,10,11,0.06)",
+    chip: dark ? "rgba(255,255,255,0.08)" : "rgba(10,10,11,0.045)",
   };
 }
 
@@ -94,7 +96,7 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
   return createPortal(
     <div
       className="fixed inset-0 z-[110] flex flex-col overflow-hidden"
-      style={{ backgroundColor: dark ? CLIENT_DARK_BG : "#EEF0F4", color: tone.text, opacity: shown ? 1 : 0, transform: shown ? "none" : "translateY(12px)", transition: "opacity 0.28s ease, transform 0.32s cubic-bezier(.2,.8,.2,1)" }}
+      style={{ backgroundColor: dark ? CLIENT_DARK_BG : "#F6F7F9", color: tone.text, opacity: shown ? 1 : 0, transform: shown ? "none" : "translateY(12px)", transition: "opacity 0.28s ease, transform 0.32s cubic-bezier(.2,.8,.2,1)" }}
       role="dialog"
       aria-label="Weekly review"
       data-testid="weekly-review-page"
@@ -104,7 +106,7 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
         alt=""
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 w-full h-full object-cover"
-        style={{ filter: dark ? "blur(30px) brightness(0.55)" : "blur(40px) brightness(1.6) grayscale(1)", transform: "scale(1.15)", opacity: dark ? 0.9 : 0.55 }}
+        style={{ filter: dark ? "blur(30px) brightness(0.55)" : "blur(44px) brightness(2) grayscale(1)", transform: "scale(1.15)", opacity: dark ? 0.9 : 0.22 }}
       />
       <div className="relative shrink-0 flex items-center gap-2 px-2 pt-[max(1.25rem,env(safe-area-inset-top))] pb-2">
         <button type="button" onClick={onClose} aria-label="Back" className="w-10 h-10 rounded-full flex items-center justify-center" style={tone.glass}>
@@ -117,18 +119,18 @@ export function WeeklyReviewPage({ review: r, dark, onClose, checkInDue = false,
       <div className="relative flex-1 overflow-y-auto overscroll-contain px-2 pb-16 space-y-2 max-w-xl w-full mx-auto" style={{ WebkitOverflowScrolling: "touch" }}>
         <Card tone={tone} testid="review-hero">
           <Label tone={tone}>{fmtRange(r)}</Label>
-          <h1 className="text-[24px] leading-[1.15] font-semibold tracking-[-0.025em] mt-2.5">{r.headline}</h1>
-          <p className="text-[44px] leading-none font-semibold tracking-[-0.04em] tabular-nums mt-5" data-testid="review-hero-figure">
+          <h1 className="text-[19px] leading-[1.2] font-semibold tracking-[-0.02em] mt-2">{r.headline}</h1>
+          <p className="text-[34px] leading-none font-semibold tracking-[-0.035em] tabular-nums mt-4" data-testid="review-hero-figure">
             {hero}
           </p>
-          <p className="text-[13px] mt-2" style={{ color: tone.muted }}>
+          <p className="text-[12px] mt-1.5" style={{ color: tone.muted }}>
             {s.planned > 0 ? "planned sessions done" : s.total === 1 ? "session done" : "sessions done"}
           </p>
           <div className="flex gap-1 mt-3">
             {r.days.map((d) => (
               <span
                 key={d.dateKey}
-                className="flex-1 h-7 rounded-lg flex items-end justify-center pb-1 text-[9px] font-semibold"
+                className="flex-1 h-6 rounded-lg flex items-end justify-center pb-[3px] text-[9px] font-semibold"
                 style={d.trained ? { background: "rgba(47,143,255,0.85)", color: "#fff", boxShadow: "0 0 12px rgba(47,143,255,0.35)" } : { background: tone.chip, color: tone.muted, border: d.planned ? `1px solid ${MEASURE_BLUE}` : "1px solid transparent" }}
               >
                 {new Date(`${d.dateKey}T12:00:00`).toLocaleDateString("en-AU", { weekday: "narrow" })}
