@@ -1552,19 +1552,19 @@ function ClientWeekStrip({ dayOffset, onSelect, heading, dotFor, dark }) {
   const showToday = dayOffset !== 0;
   return (
     <div className="px-2.5" style={{ color: t.text }} data-testid="client-week-strip">
-      <div className="flex items-center justify-between mb-2.5">
-        <p className="text-sm font-semibold" data-testid="home-day-heading">{heading}</p>
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-[13px] font-semibold leading-tight" data-testid="home-day-heading">{heading}</p>
+        <div className="flex items-center gap-1">
           {showToday && (
-            <button type="button" onClick={() => onSelect(0)} className="text-xs font-semibold px-3 h-7 rounded-full" style={{ ...glass, color: MEASURE_BLUE }}>
+            <button type="button" onClick={() => onSelect(0)} className="text-[11px] font-semibold px-2.5 h-6 rounded-full" style={{ ...glass, color: MEASURE_BLUE }}>
               Today
             </button>
           )}
-          <button type="button" aria-label="Previous week" onClick={() => onSelect(dayOffset - 7)} className="w-7 h-7 rounded-full flex items-center justify-center" style={glass}>
-            <ChevronLeft size={14} />
+          <button type="button" aria-label="Previous week" onClick={() => onSelect(dayOffset - 7)} className="w-6 h-6 rounded-full flex items-center justify-center" style={glass}>
+            <ChevronLeft size={12} />
           </button>
-          <button type="button" aria-label="Next week" onClick={() => onSelect(dayOffset + 7)} className="w-7 h-7 rounded-full flex items-center justify-center" style={glass}>
-            <ChevronRight size={14} />
+          <button type="button" aria-label="Next week" onClick={() => onSelect(dayOffset + 7)} className="w-6 h-6 rounded-full flex items-center justify-center" style={glass}>
+            <ChevronRight size={12} />
           </button>
         </div>
       </div>

@@ -40,7 +40,7 @@ describe("Train Solo header spacing (#176)", () => {
     const mt = src("./SoloMyTrainingScreen.jsx");
     expect(mt).toMatch(/max-w-md mx-auto px-3 pb-10">/);
     // #203: the day ("Today, 8th November") sits where the month was, same font.
-    expect(mt).toMatch(/<p className="text-sm font-semibold">\{dayHeading\(selectedKey, todayKey\)\}<\/p>/);
+    expect(mt).toMatch(/<p className="text-\[13px\] font-semibold leading-tight">\{dayHeading\(selectedKey, todayKey\)\}<\/p>/);
     expect(mt).not.toMatch(/\{heading\}<\/h2>/);
   });
 });

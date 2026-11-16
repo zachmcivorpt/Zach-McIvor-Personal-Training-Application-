@@ -3739,6 +3739,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `!mb-2`, a plain 8px gap below the logo, with no negative margin.
 - **Checks**: rendered at 390px in Chromium; the line now sits clear below the logo. The #252/#257 tests check for `!mb-2` and no negative margin.
 
+### 259. Day heading row above the week strip too loose (owner, 2026-11-16)
+
+- **Problem**: "Today, 16th November" and its week arrows took more room than the rest of the header: 14px text, 28px buttons, 10px gap to the strip.
+- **Fix** (Train Solo's `WeekStrip` and its copy `ClientWeekStrip`, kept in step): heading 13px `leading-tight`, arrows and Today 24px (`h-6`, 12px chevrons, 4px apart), 6px (`mb-1.5`) to the strip.
+- **Tests**: `src/client/dayHeadingTight259.test.js` checks both copies; it fails without the change (2 failed). The #176/#203 test in `pageHeader174.test.js` is updated for the new heading class.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

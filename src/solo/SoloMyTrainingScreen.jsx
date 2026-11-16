@@ -1125,19 +1125,19 @@ function WeekStrip({ weekKeys, selectedKey, todayKey, byDate, onSelect, onShiftW
   const showToday = !weekKeys.includes(todayKey) || selectedKey !== todayKey;
   return (
     <div>
-      <div className="flex items-center justify-between mb-2.5">
-        <p className="text-sm font-semibold">{dayHeading(selectedKey, todayKey)}</p>
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-[13px] font-semibold leading-tight">{dayHeading(selectedKey, todayKey)}</p>
+        <div className="flex items-center gap-1">
           {showToday && (
-            <button type="button" onClick={onToday} className="text-xs font-semibold px-3 h-7 rounded-full" style={{ ...soloGlass(t), color: MEASURE_BLUE }}>
+            <button type="button" onClick={onToday} className="text-[11px] font-semibold px-2.5 h-6 rounded-full" style={{ ...soloGlass(t), color: MEASURE_BLUE }}>
               Today
             </button>
           )}
-          <button type="button" aria-label="Previous week" onClick={() => onShiftWeek(-1)} className="w-7 h-7 rounded-full flex items-center justify-center" style={soloGlass(t)}>
-            <ChevronLeft size={14} />
+          <button type="button" aria-label="Previous week" onClick={() => onShiftWeek(-1)} className="w-6 h-6 rounded-full flex items-center justify-center" style={soloGlass(t)}>
+            <ChevronLeft size={12} />
           </button>
-          <button type="button" aria-label="Next week" onClick={() => onShiftWeek(1)} className="w-7 h-7 rounded-full flex items-center justify-center" style={soloGlass(t)}>
-            <ChevronRight size={14} />
+          <button type="button" aria-label="Next week" onClick={() => onShiftWeek(1)} className="w-6 h-6 rounded-full flex items-center justify-center" style={soloGlass(t)}>
+            <ChevronRight size={12} />
           </button>
         </div>
       </div>
