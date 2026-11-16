@@ -178,6 +178,13 @@ exports.soloWeeklyCheckInReminder = onSchedule(
   }
 );
 
+// Train Solo comeback (#244, functions/soloComeback.js): daily at 5pm
+// Sydney, one push per quiet gap (4–30 days) offering a short session.
+exports.soloComebackNudge = onSchedule({ schedule: "0 17 * * *", timeZone: "Australia/Sydney" }, async () => {
+  const { sendComebackPushes } = require("./soloComeback");
+  await sendComebackPushes(db, messaging);
+});
+
 // Coached clients' weekly review (#240): Sunday 6pm Sydney, one push to
 // each active client that their review is ready, with the week's real
 // sessions and PRs. The review itself is worked out in the app from their

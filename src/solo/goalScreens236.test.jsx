@@ -16,6 +16,7 @@ const saveSoloGoal = vi.fn(() => Promise.resolve());
 const markGoalPromptSeen = vi.fn();
 vi.mock("./goalStore", () => ({ saveSoloGoal: (...a) => saveSoloGoal(...a), markGoalPromptSeen: (...a) => markGoalPromptSeen(...a), goalPromptSeen: () => false }));
 vi.mock("../client/ClientApp", () => ({ estimateCalories: () => 100 }));
+vi.mock("./partnerStore", () => ({ usePartners: () => ({ pairs: [], ready: true, activity: {} }) }));
 
 const { default: SoloGoalScreen } = await import("./SoloGoalScreen");
 const { default: SoloGoalCard, SoloInsightLine } = await import("./SoloGoalCard");
@@ -166,11 +167,12 @@ describe("after a workout", () => {
     ctx.soloCurrentUser.goal = { type: "workouts", target: 2, startKey: key };
     ctx.soloWorkoutLogs = [log("a", key, "bp", 50, 5), log("b", key, "bp", 50, 5)];
     renderSummary("b");
-    expect(screen.getByTestId("workout-highlight").textContent).toBe("Goal reached. That's what consistency does.");
+    // #244: the goal milestone is a line under the week's progress.
+    expect(screen.getByTestId("summary-progress").textContent).toMatch(/Goal reached\./);
   });
-  it("says nothing when there's nothing worth saying", () => {
+  it("says nothing about the goal when no milestone was passed", () => {
     ctx.soloWorkoutLogs = [log("a", "2026-11-02", "bp", 72.5, 5), log("b", "2026-11-09", "bp", 60, 5)];
     renderSummary("b");
-    expect(screen.queryByTestId("workout-highlight")).toBe(null);
+    expect(screen.getByTestId("summary-progress").textContent).not.toMatch(/Goal/);
   });
 });

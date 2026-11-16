@@ -73,7 +73,13 @@ export async function endPartnership(pairId) {
 }
 
 export async function setPartnerAlerts(uid, enabled) {
-  await savedOrQueued(updateDoc(doc(soloDb, "soloUsers", uid), { "notificationPrefs.partners": !!enabled }));
+  await setSoloAlert(uid, "partners", enabled);
+}
+
+// One alert switch on the profile (notificationPrefs.<key>): partners,
+// comeback (#244).
+export async function setSoloAlert(uid, key, enabled) {
+  await savedOrQueued(updateDoc(doc(soloDb, "soloUsers", uid), { [`notificationPrefs.${key}`]: !!enabled }));
 }
 
 // The member's pairs and everyone's activity docs (their own included),

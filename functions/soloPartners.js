@@ -129,7 +129,11 @@ function buildActivity({ logs, profile, previous, nowMs }) {
 }
 
 // What a partner is told when a member finishes a session.
-function sessionPushText({ fromName, title, recipient, streakBefore, teamWeekJustMet, streakNow }) {
+function sessionPushText({ fromName, title, recipient, streakBefore, teamWeekJustMet, streakNow, comebackDays = 0 }) {
+  if (comebackDays >= 4 && !teamWeekJustMet) {
+    // #244: back after a break — partners hear it, which can bring a pair back too.
+    return { title: `${fromName}'s back`, body: `First session in ${comebackDays} days: ${title}. Your move.` };
+  }
   if (teamWeekJustMet) {
     return {
       title: "Team week done",
@@ -220,6 +224,8 @@ async function onSoloLogWritten(db, messaging, { before, after, logId, nowMs = D
       const streakBefore = teamStreak(prevActivity?.weeks, pAct.weeks, wk, since);
       const teamWeekJustMet = !(weekMet(prevActivity?.weeks?.[wk]) && weekMet(pAct.weeks?.[wk])) && weekMet(activity.weeks[wk]) && weekMet(pAct.weeks?.[wk]);
       const streakNow = teamStreak(activity.weeks, pAct.weeks, wk, since);
+      const prevAt = Number(prevActivity?.lastSession?.at) || 0;
+      const comebackDays = prevAt ? Math.round((Number(after.date) - prevAt) / 86400000) : 0;
       const text = sessionPushText({
         fromName: activity.firstName,
         title: activity.lastSession?.title || "a session",
@@ -227,6 +233,7 @@ async function onSoloLogWritten(db, messaging, { before, after, logId, nowMs = D
         streakBefore,
         teamWeekJustMet,
         streakNow,
+        comebackDays,
       });
       if (await claimPush(db, `${logId}_${partner}`)) await pushTo(db, messaging, partner, text);
       // The member who finished it hears about the Team week too.

@@ -25,6 +25,7 @@ import { loadWorkoutDraft } from "./workoutDraft";
 import SoloGettingStarted from "./SoloGettingStarted";
 import SoloTeamWeek from "./SoloTeamWeek";
 import { SoloInsightLine } from "./SoloGoalCard";
+import { daysSinceLastSession, comebackSession, COMEBACK_DAYS } from "./workoutSummary";
 import { shouldAutoShowGettingStarted, markSeenOnPhone } from "./gettingStarted";
 
 // A purchased program's own overview — which week the customer is in, that
@@ -554,6 +555,31 @@ export default function SoloMyTrainingScreen() {
     if (target) navigate(target.path, target.state ? { state: target.state } : undefined);
   }
 
+  // Comeback (#244): back after 4+ quiet days, a short version of their
+  // last session, one tap to start. "Not today" hides it until tomorrow.
+  const comebackKey = soloCurrentUser?.id ? `apexSoloComebackHidden:${soloCurrentUser.id}` : null;
+  const [comebackHidden, setComebackHidden] = useState(() => {
+    try {
+      return !!comebackKey && localStorage.getItem(comebackKey) === localDateKey();
+    } catch {
+      return false;
+    }
+  });
+  const comeback = useMemo(() => {
+    const gap = daysSinceLastSession(soloWorkoutLogs, todayKey);
+    if (gap === null || gap < COMEBACK_DAYS) return null;
+    const session = comebackSession(soloWorkoutLogs, exercisesById);
+    return session ? { gap, session } : null;
+  }, [soloWorkoutLogs, todayKey, exercisesById]);
+  function hideComeback() {
+    setComebackHidden(true);
+    try {
+      if (comebackKey) localStorage.setItem(comebackKey, todayKey);
+    } catch {
+      /* hidden for this visit only */
+    }
+  }
+
   return (
     <div className="relative w-full">
       <SoloPageHeader t={t} title={firstName ? `Welcome, ${firstName}` : "Welcome"} className="max-w-md mx-auto" />
@@ -602,6 +628,31 @@ export default function SoloMyTrainingScreen() {
               Resume <ChevronRight size={14} />
             </span>
           </button>
+        )}
+
+        {comeback && !comebackHidden && !workoutDraft && (
+          <div className="rounded-2xl px-4 py-3.5 mb-4" style={{ ...glass, borderColor: "rgba(47,143,255,0.45)" }} data-testid="comeback">
+            <p className="text-[10px] font-bold tracking-[0.12em] uppercase" style={{ color: MEASURE_BLUE }}>
+              Welcome back
+            </p>
+            <p className="text-sm font-semibold mt-1">Pick up where you left off</p>
+            <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+              {comeback.gap} days since your last session. A 20-minute {comeback.session.name.replace(/^Comeback: /, "")}: {comeback.session.exercises.length} exercise{comeback.session.exercises.length === 1 ? "" : "s"}, 2 sets each.
+            </p>
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                type="button"
+                onClick={() => startCustomSession(comeback.session)}
+                className="flex items-center gap-1 text-xs font-bold px-3.5 py-2 rounded-full"
+                style={{ backgroundColor: t.text, color: t.bg }}
+              >
+                <Play size={11} fill="currentColor" /> Start
+              </button>
+              <button type="button" onClick={hideComeback} className="text-xs font-semibold px-2 py-2" style={{ color: t.textMuted }}>
+                Not today
+              </button>
+            </div>
+          </div>
         )}
 
         {[0, 1, 2].includes(new Date(`${todayKey}T00:00:00`).getDay()) && soloWorkoutLogs.length > 0 && (

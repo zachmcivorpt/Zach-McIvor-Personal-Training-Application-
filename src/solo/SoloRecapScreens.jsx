@@ -15,6 +15,7 @@ import { recommendForAnswers } from "./recommendations";
 import { programStats, weekRecap, reviewWeek } from "./trainingRecap";
 import { goalTitle, goalProgress, encouragement } from "./goals";
 import { buildInsights, strengthGains, weeksTrainedInARow, reviewHeadline, weeklyFocus } from "./insights";
+import { comebacksIn } from "./workoutSummary";
 import { buildSoloCalendar, addDays, sessionDayLabel } from "./soloCalendar";
 import { localDateKey } from "../lib/dateKey";
 
@@ -252,7 +253,7 @@ function PhotoPickerSheet({ open, onClose, title, photos, selectedId, labelOf, o
 // with their numbers and their week 1 / final week progress photos —
 // shown in a glass sheet, then the phone's share sheet. Progress photos are
 // already on their account; nothing new is uploaded.
-function ShareSheet({ open, onClose, card, photos, programName, dark, t }) {
+export function ShareSheet({ open, onClose, card, photos, programName, fileName = "apex-program-complete.jpg", shareTitle, dark, t }) {
   const canvasRef = useRef(null);
   const [preview, setPreview] = useState(null);
   const [hint, setHint] = useState("");
@@ -292,9 +293,9 @@ function ShareSheet({ open, onClose, card, photos, programName, dark, t }) {
     setBusy(true);
     try {
       const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.92));
-      const file = blob ? new File([blob], "apex-program-complete.jpg", { type: "image/jpeg" }) : null;
+      const file = blob ? new File([blob], fileName, { type: "image/jpeg" }) : null;
       if (file && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: programName ? `${programName} — complete` : "Program complete" });
+        await navigator.share({ files: [file], title: shareTitle || (programName ? `${programName} — complete` : "Program complete") });
       } else {
         setHint("Press and hold the image to save or share it.");
       }
@@ -361,6 +362,7 @@ export function SoloWeekRecapScreen() {
     return {
       gains: strengthGains(logs, exercisesById, recap.lastMonday, weekEnd).slice(0, 3),
       streak: weeksTrainedInARow(logs, addDays(recap.lastMonday, 6)),
+      comebacks: comebacksIn(logs, recap.lastMonday, weekEnd),
       goal,
       progress,
       insights: buildInsights({ logs, exercisesById, goal, progress, todayKey }).filter((i) => !shown.has(i.id)).slice(0, 2),
@@ -400,6 +402,16 @@ export function SoloWeekRecapScreen() {
           </span>
         </div>
       )}
+
+      {review.comebacks.map((c) => (
+        // #244: coming back after a break is worth saying out loud.
+        <div key={c.dateKey} className="flex items-center justify-between py-3 border-b" style={{ borderColor: t.panelBorder }} data-testid="week-comeback">
+          <span className={SOLO_TYPE.row}>Comeback</span>
+          <span className="text-[13px] tabular-nums" style={{ color: t.textMuted }}>
+            {new Date(`${c.dateKey}T12:00:00`).toLocaleDateString("en-AU", { weekday: "long" })}, after {c.gap} days off
+          </span>
+        </div>
+      ))}
 
       {review.gains.length > 0 && (
         <div className="mt-7" data-testid="week-stronger">

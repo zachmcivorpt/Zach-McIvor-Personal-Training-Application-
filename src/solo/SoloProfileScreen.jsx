@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity, Compass, Users } from "lucide-react";
+import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity, Compass, Users, RotateCcw } from "lucide-react";
 import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth } from "../lib/appleHealth";
 import { enableSoloPush, hasSoloPushToken } from "../lib/push";
 import { canUse, TIER_LABELS, activeStore, planRenewal, renewalText } from "./soloAccess";
@@ -15,7 +15,7 @@ import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { DeleteAccountSheet } from "../components/ui";
 import { inAppPurchasesAvailable } from "../lib/purchases";
 import SoloPurchaseLog from "./SoloPurchaseLog";
-import { setPartnerAlerts } from "./partnerStore";
+import { setPartnerAlerts, setSoloAlert } from "./partnerStore";
 
 // Adapted from ClientApp.jsx's ProfileScreen: same avatar/name card, sign
 // out, legal links and delete-account pattern, but with every coach-
@@ -89,6 +89,29 @@ export default function SoloProfileScreen() {
   const partnerAlertsOn = !!deviceRegistered && soloCurrentUser?.notificationPrefs?.partners !== false;
   const [partnerBusy, setPartnerBusy] = useState(false);
   const [partnerError, setPartnerError] = useState("");
+  // Comeback reminder (#244): one push after 4+ quiet days.
+  const comebackOn = !!deviceRegistered && soloCurrentUser?.notificationPrefs?.comeback !== false;
+  const [comebackBusy, setComebackBusy] = useState(false);
+  async function toggleComeback() {
+    if (!uid || comebackBusy) return;
+    setPartnerError("");
+    setComebackBusy(true);
+    try {
+      if (!comebackOn && !deviceRegistered) {
+        if (iosApp) {
+          setPartnerError("Allow notifications for APEX in your iPhone Settings, then reopen the app to turn these on.");
+          return;
+        }
+        await enableSoloPush(uid);
+      }
+      await setSoloAlert(uid, "comeback", !comebackOn);
+    } catch (err) {
+      setPartnerError(err?.message || "Couldn't update alerts — please try again.");
+    } finally {
+      setComebackBusy(false);
+    }
+  }
+
   async function togglePartnerAlerts() {
     if (!uid || partnerBusy) return;
     setPartnerError("");
@@ -318,7 +341,7 @@ export default function SoloProfileScreen() {
           onClick={togglePartnerAlerts}
           disabled={partnerBusy}
           className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
-          style={{ borderTop: `1px solid ${t.panelBorder}`, ...(healthAvailable ? { borderBottom: `1px solid ${t.panelBorder}` } : {}) }}
+          style={{ borderTop: `1px solid ${t.panelBorder}` }}
         >
           <Users size={17} color={t.textMuted} className="shrink-0" />
           <span className="flex-1 min-w-0">
@@ -335,6 +358,30 @@ export default function SoloProfileScreen() {
             style={{ backgroundColor: partnerAlertsOn ? accent : t.chipBg, border: `1px solid ${t.panelBorder}`, opacity: partnerBusy ? 0.6 : 1 }}
           >
             <span className="block w-5 h-5 rounded-full bg-white shadow transition-transform" style={{ transform: partnerAlertsOn ? "translateX(18px)" : "none" }} />
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={toggleComeback}
+          disabled={comebackBusy}
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+          style={{ borderTop: `1px solid ${t.panelBorder}`, ...(healthAvailable ? { borderBottom: `1px solid ${t.panelBorder}` } : {}) }}
+        >
+          <RotateCcw size={17} color={t.textMuted} className="shrink-0" />
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-semibold">Comeback reminder</span>
+            <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
+              One reminder after 4 days without a session.
+            </span>
+          </span>
+          <span
+            role="switch"
+            aria-checked={comebackOn}
+            aria-label="Comeback reminder"
+            className="w-11 h-6 rounded-full p-0.5 shrink-0 transition-colors"
+            style={{ backgroundColor: comebackOn ? accent : t.chipBg, border: `1px solid ${t.panelBorder}`, opacity: comebackBusy ? 0.6 : 1 }}
+          >
+            <span className="block w-5 h-5 rounded-full bg-white shadow transition-transform" style={{ transform: comebackOn ? "translateX(18px)" : "none" }} />
           </span>
         </button>
         {partnerError && <p className="text-xs text-red-500 px-4 pb-3 -mt-1">{partnerError}</p>}
