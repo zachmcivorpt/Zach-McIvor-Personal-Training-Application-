@@ -3745,6 +3745,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix** (Train Solo's `WeekStrip` and its copy `ClientWeekStrip`, kept in step): heading 13px `leading-tight`, arrows and Today 24px (`h-6`, 12px chevrons, 4px apart), 6px (`mb-1.5`) to the strip.
 - **Tests**: `src/client/dayHeadingTight259.test.js` checks both copies; it fails without the change (2 failed). The #176/#203 test in `pageHeader174.test.js` is updated for the new heading class.
 
+### 260. Nutrition: Today / My Meal Guide switch too close to the logo (owner, 2026-11-16)
+
+- **Problem**: the switch sat right under the logo on the coached client's Nutrition tab.
+- **Fix**: `mt-3` (12px) on the switch row; nothing else moved.
+- **Tests**: `src/client/nutritionSwitchGap260.test.js` checks the gap; it fails without the change.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

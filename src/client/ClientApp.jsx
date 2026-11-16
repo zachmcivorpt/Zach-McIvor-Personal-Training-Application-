@@ -5818,7 +5818,8 @@ export function NutritionScreen({
     <div className="pb-28">
       <TabHeader label="Nutrition" dark={dark} />
 
-      <div className="flex gap-2 px-2.5 mb-4">
+      {/* Clear of the logo (#260, owner). */}
+      <div className="flex gap-2 px-2.5 mt-3 mb-4" data-testid="nutrition-tab-switch">
         {[
           { key: "today", label: "Today" },
           { key: "plan", label: "My Meal Guide" },

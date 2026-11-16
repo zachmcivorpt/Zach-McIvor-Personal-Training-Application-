@@ -65,6 +65,7 @@ rather than inventing new colors per screen:
   - Progress opens with the main goal (tapping it opens Train Solo's own goal page, `GoalPicker`, full screen, #253; never a client-only copy), then "Log body stats & photos" (#252) (`ClientGoal.jsx`, Train Solo's `goals.js` maths, saved as the client's `goal`), then the muscle map.
   - Profile (#255) is Train Solo's layout: ringed picture, the name in capitals, Sessions logged / Kg lifted tiles, Black / White, then "Your coach" and "Settings" glass lists.
   - Don't add Train Solo's own add-ons (Team week, insights, water card) here.
+- Nutrition's Today / My Meal Guide switch keeps a 12px gap (`mt-3`) below the logo (#260).
 - Daily Execution is open on the page; Nutrition is a solid card (no
   glass). Avoid a title that changes length over a backdrop-filter
   card: iOS WebKit can leave the new text half-drawn (#111).
