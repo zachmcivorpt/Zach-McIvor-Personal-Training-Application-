@@ -53,6 +53,7 @@ import {
   Hand,
   Banana,
   ThermometerSun,
+  Sun,
   Video,
   Percent,
   Lock,
@@ -7864,114 +7865,133 @@ export function ProfileScreen({
   ];
   return (
     <div className="pb-28">
-      <TabHeader label="Profile" dark={dark} />
-      <div className="px-2.5">
-        <Card dark={dark}>
-          <div className="flex items-center gap-4">
-            <AvatarPicker dark={dark} name={user.name} url={user.avatarUrl} size={64} onChange={onAvatarChange} />
-            <div>
-              <p className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>{user.name}</p>
-              <p className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>
-                {user.fitnessLevel || "Beginner"} · {user.username}
-              </p>
-            </div>
+      {/* Train Solo's Profile (#255, owner): ringed picture, the name large,
+          their own totals, Black / White, then the rows in glass lists. */}
+      <TabHeader
+        label="Profile"
+        dark={dark}
+        right={
+          onToggleTheme ? (
+            <button type="button" onClick={onToggleTheme} aria-label={dark ? "Switch to white" : "Switch to black"} className="w-9 h-9 -my-1 rounded-full flex items-center justify-center shrink-0" style={clientGlass(dark)}>
+              {dark ? <Sun size={15} className="text-white" /> : <Moon size={15} className="text-black" />}
+            </button>
+          ) : null
+        }
+      />
+      <div className={`px-2.5 ${dark ? "text-white" : "text-black"}`} data-testid="client-profile">
+        <div className="flex flex-col items-center text-center pt-2 pb-5">
+          <span className="relative w-[104px] h-[104px] flex items-center justify-center" style={{ filter: dark ? "drop-shadow(0 0 12px rgba(255,255,255,0.45))" : "none" }}>
+            <svg aria-hidden="true" viewBox="0 0 86 86" className="absolute inset-0 w-full h-full pointer-events-none">
+              <circle cx="43" cy="43" r="38" fill="none" stroke="currentColor" strokeOpacity=".25" strokeWidth="1" />
+              <path d="M43 5 A38 38 0 0 1 81 43" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M43 81 A38 38 0 0 1 5 43" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+            <AvatarPicker dark={dark} name={user.name} url={user.avatarUrl} size={72} onChange={onAvatarChange} />
+          </span>
+          <p className="text-[22px] font-extrabold uppercase tracking-[0.02em] mt-3 leading-tight" data-testid="client-profile-name">{user.name}</p>
+          <p className={`text-xs mt-1 ${dark ? "text-white/55" : "text-black/55"}`}>
+            {user.fitnessLevel || "Beginner"} · {user.username || user.email}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="rounded-2xl px-4 py-3" style={clientGlass(dark)}>
+            <p className="text-[26px] font-bold leading-none tabular-nums" data-testid="client-profile-sessions">{(logsForClient || []).length}</p>
+            <p className={`text-[10px] font-bold uppercase tracking-[0.12em] mt-1.5 ${dark ? "text-white/55" : "text-black/55"}`}>Sessions logged</p>
           </div>
-        </Card>
-      </div>
-
-      <div className="px-2.5 mt-4 space-y-3">
-        <Card dark={dark} onClick={() => setMessagesOpen(true)}>
-          <div className="flex items-center gap-3">
-            <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative"}>
-              <MessageCircle size={18} className={dark ? "text-white" : "text-black"} />
-              {unreadCount > 0 && (
-                <span className={dark ? "absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center" : "absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center"}>
-                  {unreadCount}
-                </span>
-              )}
-            </div>
-            <div className="flex-1">
-              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Messages</p>
-              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Chat directly with your coach</p>
-            </div>
-            <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
+          <div className="rounded-2xl px-4 py-3" style={clientGlass(dark)}>
+            <p className="text-[26px] font-bold leading-none tabular-nums" data-testid="client-profile-kg">
+              {Math.round(
+                (logsForClient || []).reduce((a, l) => a + (l.entries || []).reduce((b, e) => b + (e.sets || []).reduce((c, st) => c + (Number(st.weight) || 0) * (Number(st.reps) || 0), 0), 0), 0)
+              ).toLocaleString("en-AU")}
+            </p>
+            <p className={`text-[10px] font-bold uppercase tracking-[0.12em] mt-1.5 ${dark ? "text-white/55" : "text-black/55"}`}>Kg lifted</p>
           </div>
-        </Card>
-
-        <Card dark={dark} onClick={onOpenCheckIns}>
-          <div className="flex items-center gap-3">
-            <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative"}>
-              <CalendarCheck size={18} className={dark ? "text-white" : "text-black"} />
-              {dueCheckInsCount > 0 && (
-                <span className={dark ? "absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center" : "absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center"}>
-                  {dueCheckInsCount}
-                </span>
-              )}
-            </div>
-            <div className="flex-1">
-              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Check-ins</p>
-              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{dueCheckInsCount > 0 ? `${dueCheckInsCount} due now` : "Fill out forms from your coach"}</p>
-            </div>
-            <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
+        </div>
+        {onToggleTheme && (
+          <div className={`flex items-center justify-between py-3 mb-5 border-y ${dark ? "border-white/10" : "border-black/8"}`}>
+            <span className="text-sm font-semibold">Appearance</span>
+            <span className="flex gap-1.5" role="group" aria-label="Appearance">
+              {[["Black", true], ["White", false]].map(([label, isDark]) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={dark === isDark}
+                  onClick={() => dark !== isDark && onToggleTheme()}
+                  className="h-7 px-3 rounded-full text-[10px] font-extrabold uppercase tracking-[0.1em]"
+                  style={
+                    dark === isDark
+                      ? { backgroundColor: dark ? "#fff" : "#14130F", color: dark ? "#0A0A0B" : "#fff" }
+                      : { border: `1px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(20,19,15,0.08)"}`, color: dark ? "rgba(255,255,255,0.55)" : "rgba(20,19,15,0.55)" }
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </span>
           </div>
-        </Card>
-
-        <Card dark={dark} onClick={() => setCoachOpen(true)}>
-          <div className="flex items-center gap-3">
-            <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center"}>
-              <Activity size={18} className={dark ? "text-white" : "text-black"} />
-            </div>
-            <div className="flex-1">
-              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Quick Tips</p>
-              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Canned answers to common training questions</p>
-            </div>
-            <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
-          </div>
-        </Card>
-
-        {bubbleHidden && (
-          <Card
-            dark={dark}
-            onClick={() => {
-              localStorage.removeItem("chatBubbleHidden");
-              setBubbleHidden(false);
-              showToast("Chat bubble restored");
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center"}>
-                <MessageCircle size={18} className={dark ? "text-white" : "text-black"} />
-              </div>
-              <div className="flex-1">
-                <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Show chat bubble</p>
-                <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>You previously hid the floating chat button</p>
-              </div>
-              <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
-            </div>
-          </Card>
         )}
-      </div>
 
-      <div className="px-2.5 mt-4">
-        <Card dark={dark}>
-          {rows.map((r, i) => (
+        <p className={`text-[11px] font-bold tracking-wide uppercase mb-2.5 ${dark ? "text-white/35" : "text-black/35"}`}>Your coach</p>
+        <div className="rounded-2xl overflow-hidden mb-5" style={clientGlass(dark)}>
+          {[
+            { label: "Messages", sub: "Chat directly with your coach", icon: MessageCircle, badge: unreadCount, onClick: () => setMessagesOpen(true) },
+            { label: "Check-ins", sub: dueCheckInsCount > 0 ? `${dueCheckInsCount} due now` : "Fill out forms from your coach", icon: CalendarCheck, badge: dueCheckInsCount, onClick: onOpenCheckIns },
+            { label: "Quick Tips", sub: "Canned answers to common training questions", icon: Activity, onClick: () => setCoachOpen(true) },
+            ...(bubbleHidden
+              ? [
+                  {
+                    label: "Show chat bubble",
+                    sub: "You previously hid the floating chat button",
+                    icon: MessageCircle,
+                    onClick: () => {
+                      localStorage.removeItem("chatBubbleHidden");
+                      setBubbleHidden(false);
+                      showToast("Chat bubble restored");
+                    },
+                  },
+                ]
+              : []),
+          ].map((r, i) => (
+            <button
+              key={r.label}
+              type="button"
+              onClick={r.onClick}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 text-left ${i > 0 ? (dark ? "border-t border-white/10" : "border-t border-black/8") : ""}`}
+            >
+              <r.icon size={17} className={`shrink-0 ${dark ? "text-white/70" : "text-black/70"}`} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">{r.label}</span>
+                <span className={`block text-xs mt-0.5 truncate ${dark ? "text-white/55" : "text-black/55"}`}>{r.sub}</span>
+              </span>
+              {r.badge > 0 && (
+                <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white" style={{ backgroundColor: MEASURE_BLUE }}>
+                  {r.badge}
+                </span>
+              )}
+              <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
+            </button>
+          ))}
+        </div>
+
+        <p className={`text-[11px] font-bold tracking-wide uppercase mb-2.5 ${dark ? "text-white/35" : "text-black/35"}`}>Settings</p>
+        <div className="rounded-2xl overflow-hidden" style={clientGlass(dark)}>
+          {rows.filter((r) => r.label !== "Appearance").map((r, i) => (
             <button
               key={r.label}
               onClick={r.onClick}
-              className={`w-full flex items-center gap-3 py-3 text-left ${i !== rows.length - 1 ? (dark ? "border-b border-white/5" : "border-b border-black/5") : ""}`}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 text-left ${i > 0 ? (dark ? "border-t border-white/10" : "border-t border-black/8") : ""}`}
             >
-              <r.icon size={17} className={dark ? "text-white/40" : "text-black/40"} />
-              <span className={dark ? "text-white/80 text-sm flex-1" : "text-black/80 text-sm flex-1"}>{r.label}</span>
-              {r.value && <span className={dark ? "text-white/45 text-sm" : "text-black/45 text-sm"}>{r.value}</span>}
+              <r.icon size={17} className={`shrink-0 ${dark ? "text-white/70" : "text-black/70"}`} />
+              <span className="text-sm font-semibold flex-1">{r.label}</span>
               {r.label === "Notifications" && notifCount > 0 && (
-                <span className={dark ? "w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center" : "w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center"}>
+                <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white" style={{ backgroundColor: MEASURE_BLUE }}>
                   {notifCount}
                 </span>
               )}
-              <ChevronRight size={16} className={dark ? "text-white/20" : "text-black/20"} />
+              <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
             </button>
           ))}
-        </Card>
+        </div>
       </div>
 
       <div className="px-2.5 mt-4">

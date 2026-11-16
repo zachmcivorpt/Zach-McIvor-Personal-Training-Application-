@@ -50,9 +50,13 @@ describe("client theme choice", () => {
         </ClientThemeContext.Provider>
       </MemoryRouter>
     );
+    // Train Solo's Black / White pills (#255): White is the current mode;
+    // tapping it again does nothing, tapping Black switches.
     expect(screen.getByText("Appearance")).toBeTruthy();
-    expect(screen.getByText("Light")).toBeTruthy();
-    fireEvent.click(screen.getByText("Appearance"));
+    expect(screen.getByRole("button", { name: "White" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "White" }));
+    expect(onToggleTheme).toHaveBeenCalledTimes(0);
+    fireEvent.click(screen.getByRole("button", { name: "Black" }));
     expect(onToggleTheme).toHaveBeenCalledTimes(1);
   });
 });
