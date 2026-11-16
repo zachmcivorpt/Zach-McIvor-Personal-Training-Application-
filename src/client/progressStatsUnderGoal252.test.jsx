@@ -30,6 +30,6 @@ describe("#252", () => {
       </MemoryRouter>
     );
     // #257: only a small pull (-mb-2) so the weekly review line stays clear of the logo.
-    expect(screen.getByTestId("home-top").className).toMatch(/-mb-2/);
+    expect(screen.getByTestId("home-top").className).toMatch(/!mb-2/);
   });
 });
