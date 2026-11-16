@@ -3640,7 +3640,7 @@ each lights exactly that muscle's outline (screenshots in the session).
   - no review row before any session is logged
   - "Set your main goal" saves a started goal, and a goal shows progress from the client's own logs
 
-  The Home tests fail without the change.
+  The Home layout test fails without the change.
 
 ## What still requires manual testing
 
