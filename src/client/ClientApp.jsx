@@ -7175,6 +7175,7 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
               exercises={Object.values(exercisesById || {})}
               dark={dark}
               onSave={onSaveGoal}
+              onLogWeight={(w) => onLogWeight?.(w)}
             />
           </React.Suspense>
         )}

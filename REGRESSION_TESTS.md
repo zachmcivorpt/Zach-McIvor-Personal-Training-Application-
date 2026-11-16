@@ -3672,6 +3672,15 @@ each lights exactly that muscle's outline (screenshots in the session).
   - Home: the greeting block has `-mb-3`, so the next section sits about 8px below it instead of the page's full 20px.
 - **Tests**: `src/client/progressStatsUnderGoal252.test.jsx` checks the button is the goal's next sibling and that Home's top block is pulled up. Both fail without the change.
 
+### 253. Coached client: "Set your main goal" opens Train Solo's own goal page (owner, 2026-11-16)
+
+- **Problem**: the coached client's goal opened a home-made bottom sheet, not Train Solo's goal page. The owner wants it exactly the same.
+- **Fix**:
+  - Train Solo's page body is now `GoalPicker` (src/solo/SoloGoalScreen.jsx), which takes its data and save as props. `SoloGoalScreen` wraps it with Train Solo's member data, so Train Solo is unchanged.
+  - The client's `ClientGoal.jsx` opens the same `GoalPicker` full screen (portal) with the client's logs, weigh-ins and exercises, saving to their `goal` and logging a weigh-in through Progress's own `onLogWeight`.
+  - The home-made sheet is gone.
+- **Tests**: `src/client/clientLooksLikeSolo248.test.jsx`'s goal case now opens the full-screen page, picks "Complete 20 workouts" and taps "Set my goal". It fails on the old sheet. All Train Solo tests still pass.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
