@@ -13,7 +13,15 @@ vi.mock("../lib/AppContext", async (orig) => ({ ...(await orig()), useApp: () =>
 import { HomeScreen } from "./ClientApp";
 import ClientGoalCard from "./ClientGoal";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+// Home's weekly review row shows on Mondays (#249): pin a Monday evening.
+function onMonday() {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-16T19:00:00"));
+}
 
 function home(extra = {}) {
   window.HTMLElement.prototype.scrollIntoView = () => {};
@@ -46,6 +54,7 @@ function home(extra = {}) {
 
 describe("Home like Train Solo (#248)", () => {
   it("centred logo header (no visible title), smaller greeting, weekly review first, day heading, body stats under the session", () => {
+    onMonday();
     home();
     const header = screen.getAllByTestId("client-tab-header")[0];
     expect(header.querySelector("h1").className).toMatch(/sr-only/);
@@ -56,8 +65,20 @@ describe("Home like Train Solo (#248)", () => {
     expect(order[1].compareDocumentPosition(order[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
   it("no weekly review row before there is anything to review", () => {
+    onMonday();
     home({ reviewData: { workoutLogs: [] } });
     expect(screen.queryByTestId("home-weekly-review")).toBeNull();
+  });
+  it("#249: the weekly review row only on Mondays; logo 26px", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-17T19:00:00")); // Tuesday
+    home();
+    expect(screen.queryByTestId("home-weekly-review")).toBeNull();
+    expect(screen.getAllByTestId("client-tab-header")[0].querySelector("img").style.height).toBe("26px");
+    cleanup();
+    onMonday();
+    home();
+    expect(screen.getByTestId("home-weekly-review")).toBeTruthy();
   });
 });
 

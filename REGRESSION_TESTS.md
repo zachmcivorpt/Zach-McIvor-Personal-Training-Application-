@@ -3642,6 +3642,14 @@ each lights exactly that muscle's outline (screenshots in the session).
 
   The Home layout test fails without the change.
 
+### 249. Coached client Home: bigger logo, tighter header, weekly review on Mondays only (owner, 2026-11-16)
+
+- **Change**: the owner said the logo was too small, the gap between it and the greeting too big, and the weekly review row should only show on Mondays.
+- **Fix**:
+  - `TabHeader`'s logo is now 26px (was 18px), with less space under it (`pb-0.5`), and the greeting row has no top padding.
+  - Home's "Your weekly review" row shows only on Mondays (local day), once there's a session to review.
+- **Tests**: `src/client/clientLooksLikeSolo248.test.jsx` now pins a Monday for the layout tests, and a new case checks there's no row on a Tuesday, the row is there on a Monday, and the logo is 26px. The new case fails without the fix.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

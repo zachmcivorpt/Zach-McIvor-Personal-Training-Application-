@@ -434,12 +434,13 @@ function NutritionQuickTile({ icon: Icon, label, onClick, dark, invert = false }
 // screen readers), an optional line + right-hand action under it.
 function TabHeader({ label, dark = false, right = null, sub = null }) {
   return (
-    <div className="px-2.5 pt-3 pb-1.5" data-testid="client-tab-header">
+    <div className="px-2.5 pt-3 pb-0.5" data-testid="client-tab-header">
+      {/* 26px (#249, owner: bigger than Train Solo's 18px). */}
       <Logo
         variant="mark"
         tone={dark ? "white" : "black"}
         className="block w-auto mx-auto"
-        style={dark ? { height: 18, filter: "drop-shadow(0 0 10px rgba(255,255,255,0.55))" } : { height: 18 }}
+        style={dark ? { height: 26, filter: "drop-shadow(0 0 10px rgba(255,255,255,0.55))" } : { height: 26 }}
       />
       <h1 className="sr-only">{label}</h1>
       {(sub || right) && (
@@ -457,7 +458,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
   return (
-    <div className="flex items-center justify-between px-2.5 pt-0.5 pb-0">
+    <div className="flex items-center justify-between px-2.5 pt-0 pb-0" data-testid="home-header-row">
       <div>
         {/* Smaller, like Train Solo (#248); the day itself is the heading under the week strip. */}
         <p className={`text-[15px] leading-tight font-semibold ${dark ? "text-white" : "text-black"}`} data-testid="home-greeting">
@@ -1431,7 +1432,8 @@ export function HomeScreen({
   // a smaller greeting, the weekly review first, the week strip and the
   // day, the session, the body stats check-in, then nutrition.
   const [reviewOpen, setReviewOpen] = useState(false);
-  const hasReview = (reviewData?.workoutLogs || []).length > 0;
+  // Mondays only (#249, owner), once there's a session to review.
+  const hasReview = new Date().getDay() === 1 && (reviewData?.workoutLogs || []).length > 0;
   const selectedDate = dateForOffset(dayOffset);
   const dayHeading = `${isToday ? "Today" : dayOffset === 1 ? "Tomorrow" : dayOffset === -1 ? "Yesterday" : selectedDate.toLocaleDateString("en-AU", { weekday: "long" })}, ${ordinalDay(selectedDate.getDate())} ${selectedDate.toLocaleDateString("en-AU", { month: "long" })}`;
   const line = dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
