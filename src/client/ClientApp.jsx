@@ -1429,7 +1429,8 @@ export function HomeScreen({
   return (
     <div className="pb-28 space-y-5">
       {/* No greeting (#256, owner): the logo, then straight into the day, as in Train Solo. */}
-      <div className="-mb-3" data-testid="home-top">
+      {/* #257: no negative margin — it pulled the weekly review's top line up through the logo. */}
+      <div className="-mb-2" data-testid="home-top">
         <TabHeader label="Home" dark={dark} />
       </div>
       {hasReview && (
@@ -1437,7 +1438,7 @@ export function HomeScreen({
           <button
             type="button"
             onClick={() => setReviewOpen(true)}
-            className="w-full flex items-center justify-between gap-3 py-3 border-y text-left"
+            className="w-full flex items-center justify-between gap-3 py-2 border-y text-left"
             style={{ borderColor: line }}
             data-testid="home-weekly-review"
           >
