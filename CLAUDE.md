@@ -57,6 +57,12 @@ rather than inventing new colors per screen:
   app's top bar is white) and the bottom; the page header and
   Today/Program switch sit on the plain page above it.
 - Lists are open rows with thin dividers (a darker top rule), not cards.
+- **Reads like Train Solo** (#248, owner):
+  - Every tab's `TabHeader` is Train Solo's: the logo centred, no visible title.
+  - Home order: smaller greeting, "Your weekly review" row, week strip (selected day ringed), day heading, session, Body Stats Check-in, nutrition, then the rest.
+  - Calendar days use Train Solo's ringed date figure and glass cards with one blue tick.
+  - Progress opens with the main goal (`ClientGoal.jsx`, Train Solo's `goals.js` maths, saved as the client's `goal`), then the muscle map.
+  - Don't add Train Solo's own add-ons (Team week, insights, water card) here.
 - Daily Execution is open on the page; Nutrition is a solid card (no
   glass). Avoid a title that changes length over a backdrop-filter
   card: iOS WebKit can leave the new text half-drawn (#111).

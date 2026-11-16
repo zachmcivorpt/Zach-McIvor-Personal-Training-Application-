@@ -170,6 +170,8 @@ function reviewWindowOpen(now = new Date()) {
   const d = now.getDay();
   return (d === 0 && now.getHours() >= 18) || d === 1 || d === 2;
 }
+// Main goal on Progress (#248), lazy with Progress.
+const ClientGoalCard = React.lazy(() => import("./ClientGoal"));
 const MuscleMapCard = React.lazy(() => import("../solo/SoloMuscleMap").then((m) => ({ default: m.SoloMuscleMapCard })));
 import { NutritionTargetsCard } from "../coach/NutritionTargetsCard";
 import { planPhaseSwap } from "./phaseSwap";
@@ -427,15 +429,25 @@ function NutritionQuickTile({ icon: Icon, label, onClick, dark, invert = false }
 // (Home/Training/Nutrition/Calendar/Progress/Profile), each passing its own
 // label. `right` renders an optional control (e.g. Progress's graph icon)
 // at the end of the same row.
-function TabHeader({ label, dark = false, right = null }) {
+// #248 (owner): every tab opens like Train Solo's (SoloPageHeader): the
+// APEX mark centred and lit at the top, no visible page title (kept for
+// screen readers), an optional line + right-hand action under it.
+function TabHeader({ label, dark = false, right = null, sub = null }) {
   return (
-    <div className="px-2.5 pt-3 pb-2 flex items-center gap-3">
-      <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-7 w-auto shrink-0 ${dark ? "opacity-90" : "opacity-95"}`} />
-      <div className={dark ? "w-px h-6 bg-white/15" : "w-px h-6 bg-black/15"} />
-      <h1 className={dark ? "text-white text-sm font-bold tracking-[0.14em] flex-1" : "text-black text-sm font-bold tracking-[0.14em] flex-1"}>
-        {label.toUpperCase()}
-      </h1>
-      {right}
+    <div className="px-2.5 pt-3 pb-1.5" data-testid="client-tab-header">
+      <Logo
+        variant="mark"
+        tone={dark ? "white" : "black"}
+        className="block w-auto mx-auto"
+        style={dark ? { height: 18, filter: "drop-shadow(0 0 10px rgba(255,255,255,0.55))" } : { height: 18 }}
+      />
+      <h1 className="sr-only">{label}</h1>
+      {(sub || right) && (
+        <div className="mt-1.5 flex items-start justify-between gap-3">
+          <div className="min-w-0">{sub}</div>
+          {right}
+        </div>
+      )}
     </div>
   );
 }
@@ -444,19 +456,18 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const dark = useClientDark();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
-  const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
     <div className="flex items-center justify-between px-2.5 pt-0.5 pb-0">
       <div>
-        <p className={`text-[19px] leading-tight font-semibold tracking-[-0.015em] ${dark ? "text-white" : "text-black"}`}>
-          {greeting}, {user.name.split(" ")[0]}
+        {/* Smaller, like Train Solo (#248); the day itself is the heading under the week strip. */}
+        <p className={`text-[15px] leading-tight font-semibold ${dark ? "text-white" : "text-black"}`} data-testid="home-greeting">
+          {greeting.replace("Morning", "morning").replace("Afternoon", "afternoon").replace("Evening", "evening")}, {user.name.split(" ")[0]}
         </p>
-        <p className={`text-[13.5px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>{dateStr}</p>
       </div>
       <div className="flex items-center gap-2.5">
         <button
           onClick={onOpenNotifications}
-          className={`w-10 h-10 rounded-full flex items-center justify-center relative active:scale-95 transition-transform border ${
+          className={`w-9 h-9 rounded-full flex items-center justify-center relative active:scale-95 transition-transform border ${
             dark ? "border-white/15 bg-white/5" : "border-black/12 bg-white/70"
           }`}
         >
@@ -471,7 +482,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
             </span>
           )}
         </button>
-        <Avatar name={user.name} url={user.avatarUrl} size={40} onClick={onAvatarClick} dark={dark} />
+        <Avatar name={user.name} url={user.avatarUrl} size={36} onClick={onAvatarClick} dark={dark} />
       </div>
     </div>
   );
@@ -864,14 +875,18 @@ function DateStrip({ selectedOffset, onSelect }) {
               >
                 {d.toLocaleDateString(undefined, { weekday: "short" })}
               </span>
+              {/* Train Solo's strip (#248): the selected day ringed and lit, today in blue. */}
               <span
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-[15px] font-semibold leading-none transition-colors ${
-                  isSelected ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "text-white" : "text-black"
-                }`}
+                data-selected={isSelected ? "true" : undefined}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[15px] font-bold leading-none transition-colors"
+                style={{
+                  color: isToday ? MEASURE_BLUE : dark ? "#fff" : "#000",
+                  border: `1.5px solid ${isSelected ? MEASURE_BLUE : "transparent"}`,
+                  boxShadow: isSelected && dark ? "0 0 12px rgba(47,143,255,0.45)" : "none",
+                }}
               >
                 {d.getDate()}
               </span>
-              <span className="w-3.5 h-0.5" style={{ backgroundColor: isToday ? MEASURE_BLUE : "transparent" }} />
             </button>
           );
         })}
@@ -1406,30 +1421,55 @@ export function HomeScreen({
   onOpenGroup,
   feedbackReady = null,
   onWatchFeedback,
+  reviewData = null,
+  onCheckIn,
 }) {
   const dark = useClientDark();
   // #218: a past day on Home offers the same "Log a cardio session" as today's Training tab.
   const [cardioOpen, setCardioOpen] = useState(false);
+  // #248 (owner): Home reads like Train Solo's My Training: centred logo,
+  // a smaller greeting, the weekly review first, the week strip and the
+  // day, the session, the body stats check-in, then nutrition.
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const hasReview = (reviewData?.workoutLogs || []).length > 0;
+  const selectedDate = dateForOffset(dayOffset);
+  const dayHeading = `${isToday ? "Today" : dayOffset === 1 ? "Tomorrow" : dayOffset === -1 ? "Yesterday" : selectedDate.toLocaleDateString("en-AU", { weekday: "long" })}, ${ordinalDay(selectedDate.getDate())} ${selectedDate.toLocaleDateString("en-AU", { month: "long" })}`;
+  const line = dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
   return (
     <div className="pb-28 space-y-5">
       <div>
         <TabHeader label="Home" dark={dark} />
         <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
       </div>
-      <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
-      {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
-      {isToday && bodyStatsDueToday && (
-        <div
-          className={`mx-2.5 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
-          style={clientGlass(dark)}
-        >
-          <Scale size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
-          <p className={`flex-1 text-[13px] font-medium ${dark ? "text-white/65" : "text-black/65"}`}>Body stats check-in due today</p>
-          <button onClick={onLogWeight} className="text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0" style={{ backgroundColor: MEASURE_BLUE }}>
-            LOG STATS
+      {hasReview && (
+        <div className="px-2.5">
+          <button
+            type="button"
+            onClick={() => setReviewOpen(true)}
+            className="w-full flex items-center justify-between gap-3 py-3 border-y text-left"
+            style={{ borderColor: line }}
+            data-testid="home-weekly-review"
+          >
+            <span>
+              <span className={`block text-[13px] font-semibold ${dark ? "text-white" : "text-black"}`}>Your weekly review</span>
+              <span className={`block text-[11px] mt-0.5 ${dark ? "text-white/50" : "text-black/50"}`}>Your week, your progress and next week's focus</span>
+            </span>
+            <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
           </button>
+          {reviewOpen && (
+            <React.Suspense fallback={null}>
+              <WeeklyReviewsSection uid={userId} data={reviewData} dark={dark} hideList openLatest onClosed={() => setReviewOpen(false)} onCheckIn={onCheckIn} />
+            </React.Suspense>
+          )}
         </div>
       )}
+      <div>
+        <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
+        <p className={`px-2.5 mt-4 text-[16px] font-bold ${dark ? "text-white" : "text-black"}`} data-testid="home-day-heading">
+          {dayHeading}
+        </p>
+      </div>
+      {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && feedbackReady && (
         <button
           type="button"
@@ -1445,8 +1485,6 @@ export function HomeScreen({
           </span>
         </button>
       )}
-      <ClientGroupsCard groups={groups} onOpen={onOpenGroup} />
-      <ActiveChallengesCard challenges={challenges} userId={userId} />
       <TodayWorkoutCard
         todaySession={daySession}
         activeLog={activeLog}
@@ -1460,6 +1498,26 @@ export function HomeScreen({
         fullWidth
         photo
       />
+      {isToday && bodyStatsDueToday && (
+        // Train Solo's day-plan row (#248): the check-in right under the session.
+        <div className="px-2.5">
+          <button
+            type="button"
+            onClick={onLogWeight}
+            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left"
+            style={clientGlass(dark)}
+            data-testid="home-body-stats"
+          >
+            <Scale size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
+            <span className="min-w-0 flex-1">
+              <span className={`block text-sm font-semibold ${dark ? "text-white" : "text-black"}`}>Body Stats Check-in</span>
+              <span className={`block text-xs mt-0.5 ${dark ? "text-white/50" : "text-black/50"}`}>Log your weight and body stats.</span>
+            </span>
+            <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
+          </button>
+        </div>
+      )}
+      <NutritionSummaryCard nutrition={dayNutrition} targets={targets} onLogFood={onLogFood} onLogWater={onLogWater} onGoToday={() => onSelectDay(0)} isToday={isToday} />
       <CardioLogCard logs={cardioLogs} onDelete={onDeleteCardio} onUpdate={onUpdateCardio} />
       {dayOffset < 0 && onLogCardio && (
         <div className="mx-2.5 px-1">
@@ -1481,9 +1539,16 @@ export function HomeScreen({
         interactive={isToday}
         showToast={showToast}
       />
-      <NutritionSummaryCard nutrition={dayNutrition} targets={targets} onLogFood={onLogFood} onLogWater={onLogWater} onGoToday={() => onSelectDay(0)} isToday={isToday} />
+      <ClientGroupsCard groups={groups} onOpen={onOpenGroup} />
+      <ActiveChallengesCard challenges={challenges} userId={userId} />
     </div>
   );
+}
+
+function ordinalDay(n) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 /* ============================================================================
@@ -6981,7 +7046,7 @@ export function BodyStatsCheckInSheet({ open, onClose, onSave, lastValues, busy 
   );
 }
 
-export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts, autoOpenWeighInKey, reviewData = null, checkInDue = false, onOpenCheckIns }) {
+export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts, autoOpenWeighInKey, reviewData = null, checkInDue = false, onOpenCheckIns, goal = null, onSaveGoal = null }) {
   const dark = useClientDark();
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
@@ -7089,7 +7154,28 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
   // the way Train Solo's Progress does.
   return (
     <div className="pb-28 min-h-screen" style={dark ? undefined : { backgroundColor: SURFACE }}>
-      <TabHeader label="Progress" dark={dark} right={<BarChart3 size={20} className={dark ? "text-white/40" : "text-black/40"} />} />
+      <TabHeader label="Progress" dark={dark} />
+
+      {/* Train Solo's Progress order (#248): main goal, then the muscle map,
+          then the performance timeline. */}
+      <div className="px-2.5 space-y-4 mb-4">
+        {onSaveGoal && (
+          <React.Suspense fallback={null}>
+            <ClientGoalCard
+              goal={goal}
+              logs={logsForClient}
+              weighIns={weighIns}
+              bodyMetrics={bodyMetrics}
+              exercises={Object.values(exercisesById || {})}
+              dark={dark}
+              onSave={onSaveGoal}
+            />
+          </React.Suspense>
+        )}
+        <React.Suspense fallback={null}>
+          <MuscleMapCard logs={logsForClient} exercisesById={exercisesById} dark={dark} />
+        </React.Suspense>
+      </div>
 
       {/* The shared timeline paints its own solid band; here it sits in a
           glass card instead (index.css's .solo-glass-inner clears the fill). */}
@@ -7125,9 +7211,6 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
           </div>
         </div>
 
-        <React.Suspense fallback={null}>
-          <MuscleMapCard logs={logsForClient} exercisesById={exercisesById} dark={dark} />
-        </React.Suspense>
 
         <Card dark={dark}>
           <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Strength Personal Bests</p>
@@ -8504,23 +8587,28 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
       onPointerMove={canSwipe ? swipePointerMove : undefined}
       onPointerUp={canSwipe ? swipePointerUp : undefined}
       onPointerCancel={canSwipe ? swipePointerUp : undefined}
-      className={`w-full flex items-center gap-3 ${dark ? "bg-black border-white/8" : "bg-[#F7F7F8] border-black/8"} border rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
-        onClick ? (dark ? "hover:bg-white/[0.02]" : "hover:bg-black/[0.02]") : ""
-      } ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
-      style={
-        canSwipe
-          ? { touchAction: "pan-y", transform: `translateX(${swipeX}px)`, transition: swiping ? "none" : "transform 200ms ease" }
-          : undefined
-      }
+      className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
+      style={{
+        // Train Solo's calendar card (#248): glass, one blue tick circle.
+        ...clientGlass(dark),
+        ...(canSwipe ? { touchAction: "pan-y", transform: `translateX(${swipeX}px)`, transition: swiping ? "none" : "transform 200ms ease" } : {}),
+      }}
+      data-done={done ? "true" : undefined}
     >
       <span
-        className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : dark ? "bg-black" : "bg-white"}`}
+        className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center"
+        style={{ border: `2px solid ${MEASURE_BLUE}`, backgroundColor: done ? MEASURE_BLUE : "transparent" }}
       >
-        {done && <Check size={11} className={dark ? "text-black" : "text-white"} strokeWidth={3} />}
+        {done && <Check size={11} color="#fff" strokeWidth={3} />}
       </span>
       <div className="flex-1 min-w-0">
-        <p className={dark ? "text-white font-semibold text-[15px] truncate" : "text-black font-semibold text-[15px] truncate"}>{title}</p>
-        {subtitle && <p className={dark ? "text-white/40 text-[13px] mt-0.5 truncate" : "text-black/40 text-[13px] mt-0.5 truncate"}>{subtitle}</p>}
+        <p
+          className={dark ? "text-white font-semibold text-sm truncate" : "text-black font-semibold text-sm truncate"}
+          style={{ textDecoration: done ? "line-through" : "none", opacity: done ? 0.6 : 1 }}
+        >
+          {title}
+        </p>
+        {subtitle && <p className={dark ? "text-white/50 text-xs mt-0.5 truncate" : "text-black/50 text-xs mt-0.5 truncate"}>{subtitle}</p>}
       </div>
       {/* A dedicated grab handle, not the whole card, owns the drag gesture
           (touchAction: none, text-selection disabled) — the card body
@@ -8913,13 +9001,17 @@ function ClientCalendarScreen({
   return (
     <div className="flex flex-col h-full">
       <div className="shrink-0">
-        <TabHeader label="Calendar" dark={dark} />
-        <div className="px-2.5 pb-2 flex items-center justify-between">
-          <p className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>Scroll to see anything past or upcoming.</p>
-          <button onClick={jumpToToday} className={dark ? "text-white/50 hover:text-white text-sm font-semibold shrink-0" : "text-black/50 hover:text-black text-sm font-semibold shrink-0"}>
-            Today
-          </button>
-        </div>
+        {/* Train Solo's calendar header (#248). */}
+        <TabHeader
+          label="Calendar"
+          dark={dark}
+          sub={<p className={dark ? "text-white/50 text-xs" : "text-black/50 text-xs"}>Hold a workout and drag it to another day to move it.</p>}
+          right={
+            <button onClick={jumpToToday} className={dark ? "text-white/50 text-sm font-semibold shrink-0 pt-1" : "text-black/50 text-sm font-semibold shrink-0 pt-1"}>
+              Today
+            </button>
+          }
+        />
       </div>
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-2.5 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
         {days.map(({ date: d, dateStr, scheduledList, dayLogs, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
@@ -8946,14 +9038,26 @@ function ClientCalendarScreen({
               key={dateStr}
               data-date={dateStr}
               ref={isToday ? todayRef : null}
-              className={`${i > 0 ? "mt-5" : ""} transition-colors duration-150 ${
-                isDropTarget && dragOverDate === dateStr ? "bg-blue-50 rounded-2xl ring-2 ring-blue-300" : ""
-              }`}
+              className={`${i > 0 ? "mt-6" : ""} rounded-2xl transition-colors duration-150`}
+              style={isDropTarget && dragOverDate === dateStr ? { boxShadow: `0 0 0 2px ${MEASURE_BLUE}`, backgroundColor: `${MEASURE_BLUE}14` } : undefined}
             >
-              <p className={`font-bold text-base mb-2 ${isToday ? "text-blue-600" : dark ? "text-white" : "text-black"}`}>
-                {isToday ? "Today, " : ""}
-                {d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-              </p>
+              {/* Train Solo's day header (#248): the date as a large figure, today ringed and lit. */}
+              <div className="flex items-center gap-3 mb-2" data-testid="calendar-day-header">
+                <span
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-[17px] font-extrabold tabular-nums shrink-0"
+                  style={{
+                    color: isToday ? MEASURE_BLUE : dark ? "#fff" : "#000",
+                    border: `1.5px solid ${isToday ? MEASURE_BLUE : "transparent"}`,
+                    boxShadow: isToday && dark ? `0 0 12px ${MEASURE_BLUE}66` : "none",
+                  }}
+                >
+                  {d.getDate()}
+                </span>
+                <p className="font-bold text-[12px] uppercase tracking-[0.12em]" style={{ color: isToday ? MEASURE_BLUE : dark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }}>
+                  {isToday ? "Today, " : ""}
+                  {d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+                </p>
+              </div>
               <div className={dark ? "border-b border-white/10 mb-3" : "border-b border-black/10 mb-3"} />
               <div className="space-y-2.5">
                 {scheduledList.map((scheduled) => {
@@ -10271,6 +10375,8 @@ export default function ClientApp() {
             onOpenGroup={setOpenGroupId}
             feedbackReady={unwatchedFeedback}
             onWatchFeedback={() => unwatchedFeedback && watchFeedback(unwatchedFeedback.id)}
+            reviewData={weeklyReviewData}
+            onCheckIn={() => setTab("checkins")}
           />
         )}
         {tab === "workouts" && (
@@ -10386,6 +10492,12 @@ export default function ClientApp() {
             onDeleteBodyMetric={(dateKey, field) => deleteBodyMetric(currentUser.id, dateKey, field)}
             scheduledWorkouts={scheduledWorkoutsForClient}
             autoOpenWeighInKey={autoOpenWeighIn}
+            goal={currentUser.goal || null}
+            onSaveGoal={(g) =>
+              localFirst(updateUser(currentUser.id, { goal: g }))
+                .then(() => showToast("Goal saved"))
+                .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true))
+            }
             reviewData={weeklyReviewData}
             checkInDue={dueCheckInsCount > 0}
             onOpenCheckIns={() => setTab("checkins")}
