@@ -3664,6 +3664,23 @@ each lights exactly that muscle's outline (screenshots in the session).
   - The tab bar is Train Solo's: glass docked to the bottom edge (Train Solo's nav colours), 19px icons, capital 8.5px labels, and a lit blue dot under the current tab. The tabs and their actions are unchanged.
 - **Tests**: `src/client/clientSoloChrome251.test.jsx` checks the header logo is Train Solo's mark. It fails without the fix. All client tests pass.
 
+### 252. Coached client: body stats button under the goal; tight gap under Home's greeting (owner, 2026-11-16)
+
+- **Change**: the owner asked for "Log body stats & photos" to sit below "Set your main goal" on Progress, and for the big gap under Home's greeting to be fixed.
+- **Fix**:
+  - Progress: the button moved to straight after the goal card, before the muscle map.
+  - Home: the greeting block has `-mb-3`, so the next section sits about 8px below it instead of the page's full 20px.
+- **Tests**: `src/client/progressStatsUnderGoal252.test.jsx` checks the button is the goal's next sibling and that Home's top block is pulled up. Both fail without the change.
+
+### 253. Coached client: "Set your main goal" opens Train Solo's own goal page (owner, 2026-11-16)
+
+- **Problem**: the coached client's goal opened a home-made bottom sheet, not Train Solo's goal page. The owner wants it exactly the same.
+- **Fix**:
+  - Train Solo's page body is now `GoalPicker` (src/solo/SoloGoalScreen.jsx), which takes its data and save as props. `SoloGoalScreen` wraps it with Train Solo's member data, so Train Solo is unchanged.
+  - The client's `ClientGoal.jsx` opens the same `GoalPicker` full screen (portal) with the client's logs, weigh-ins and exercises, saving to their `goal` and logging a weigh-in through Progress's own `onLogWeight`.
+  - The home-made sheet is gone.
+- **Tests**: `src/client/clientLooksLikeSolo248.test.jsx`'s goal case now opens the full-screen page, picks "Complete 20 workouts" and taps "Set my goal". It fails on the old sheet. All Train Solo tests still pass.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

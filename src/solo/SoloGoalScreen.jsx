@@ -56,10 +56,45 @@ export default function SoloGoalScreen({ firstTime = false, onDone }) {
   const location = useLocation();
   const { soloCurrentUser, soloExercises, soloWorkoutLogs, soloWeighIns, logSoloWeight } = useSoloApp();
   const { dark } = useSoloTheme();
-  const t = SOLO_THEMES[dark ? "dark" : "light"];
   const uid = soloCurrentUser?.id;
-  const answers = soloCurrentUser?.onboarding?.answers || NO_ANSWERS;
-  const current = soloCurrentUser?.goal || null;
+
+  // Shown by itself once ever: marked seen as it shows (#142 rule).
+  const markedRef = useRef(false);
+  useEffect(() => {
+    if (firstTime && uid && !markedRef.current) {
+      markedRef.current = true;
+      markGoalPromptSeen(uid);
+    }
+  }, [firstTime, uid]);
+
+  function leave() {
+    if (onDone) onDone();
+    else navigate(location.state?.back || "/solo/home", { replace: true, state: location.state?.backState });
+  }
+
+  return (
+    <GoalPicker
+      firstTime={firstTime}
+      dark={dark}
+      ready={!!uid}
+      current={soloCurrentUser?.goal || null}
+      answers={soloCurrentUser?.onboarding?.answers || NO_ANSWERS}
+      exercises={soloExercises}
+      logs={soloWorkoutLogs}
+      weighIns={soloWeighIns}
+      onLogWeight={(w) => logSoloWeight(uid, w)}
+      onSave={(goal) => saveSoloGoal(uid, goal)}
+      onLeave={leave}
+    />
+  );
+}
+
+// The goal page itself (#248): Train Solo's page, also used as-is by the
+// coached client app's Progress (src/client/ClientGoal.jsx) with the
+// client's own data and save.
+export function GoalPicker({ firstTime = false, dark, ready = true, current = null, answers = NO_ANSWERS, exercises: soloExercises, logs: soloWorkoutLogs, weighIns: soloWeighIns, onLogWeight, onSave, onLeave }) {
+  const t = SOLO_THEMES[dark ? "dark" : "light"];
+  const uid = ready;
   const logs = soloWorkoutLogs || [];
   const lifts = useMemo(() => goalLiftExercises(soloExercises || [], logs), [soloExercises, logs]);
 
@@ -80,24 +115,12 @@ export default function SoloGoalScreen({ firstTime = false, onDone }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // Shown by itself once ever: marked seen as it shows (#142 rule).
-  const markedRef = useRef(false);
-  useEffect(() => {
-    if (firstTime && uid && !markedRef.current) {
-      markedRef.current = true;
-      markGoalPromptSeen(uid);
-    }
-  }, [firstTime, uid]);
-
   // "own" is their typed goal; anything else is a suggestion, by type.
   const goalOf = (key) => (key === "own" ? (own ? { ...own, ...drafts.own, ownText: ownText.trim() } : null) : { ...options.find((g) => g.type === key), ...drafts[key] });
   const chosen = selected ? goalOf(selected) : null;
   const hasWeight = latestWeight(soloWeighIns || []) != null;
 
-  function leave() {
-    if (onDone) onDone();
-    else navigate(location.state?.back || "/solo/home", { replace: true, state: location.state?.backState });
-  }
+  const leave = onLeave;
 
   function set(key, field, delta) {
     const g = goalOf(key);
@@ -127,13 +150,13 @@ export default function SoloGoalScreen({ firstTime = false, onDone }) {
       const w = Number(weightToday);
       let weighIns = soloWeighIns || [];
       if (chosen.type === "bodyweight" && !hasWeight && w > 20 && w < 400) {
-        await logSoloWeight(uid, w);
+        await onLogWeight(w);
         weighIns = [{ weight: w, date: Date.now() }];
       }
       const keepStart = current && current.type === chosen.type && current.startKey && (chosen.type !== "lift" || current.exerciseId === chosen.exerciseId) && (chosen.type !== "bodyweight" || current.direction === chosen.direction);
       const goal = keepStart ? { ...current, ...chosen } : startGoal(chosen, { logs, weighIns, todayKey: localDateKey() });
       if (selected !== "own") delete goal.ownText;
-      await saveSoloGoal(uid, goal);
+      await onSave(goal);
       leave();
     } catch {
       setError("Couldn't save your goal — please try again.");
@@ -145,7 +168,7 @@ export default function SoloGoalScreen({ firstTime = false, onDone }) {
     if (!uid) return;
     setBusy(true);
     try {
-      await saveSoloGoal(uid, null);
+      await onSave(null);
       leave();
     } catch {
       setError("Couldn't remove your goal — please try again.");

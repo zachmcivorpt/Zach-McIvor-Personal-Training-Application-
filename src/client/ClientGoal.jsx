@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { ChevronRight, Minus, Plus, Target } from "lucide-react";
+import { ChevronRight, Target } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
-import { BottomSheet } from "../components/ui";
+import { createPortal } from "react-dom";
+import { GoalPicker } from "../solo/SoloGoalScreen";
 import { localDateKey } from "../lib/dateKey";
-import { suggestedGoals, goalTitle, goalProgress, encouragement, startGoal } from "../solo/goals";
+import { goalTitle, goalProgress, encouragement } from "../solo/goals";
 
 // #248 (owner): the coached client's Progress opens like Train Solo's, with
 // their main goal on top ("Set your main goal"). Same goal maths as Train
@@ -11,9 +12,6 @@ import { suggestedGoals, goalTitle, goalProgress, encouragement, startGoal } fro
 // saved on their own user doc (`goal`). Lazy-loaded with Progress.
 
 const tidy = (n) => (n == null ? "–" : (Math.round(n * 10) / 10).toLocaleString("en-AU"));
-const STEP = { consistency: 1, bodyweight: 0.5, lift: 2.5, workouts: 5, steps: 1 };
-const MIN = { consistency: 4, bodyweight: 1, lift: 20, workouts: 5, steps: 7 };
-const MAX = { consistency: 52, bodyweight: 40, lift: 400, workouts: 200, steps: 100 };
 
 function glass(dark) {
   return dark
@@ -21,7 +19,7 @@ function glass(dark) {
     : { backgroundColor: "rgba(255,255,255,0.62)", border: "1px solid rgba(20,19,15,0.08)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
 }
 
-export default function ClientGoalCard({ goal, logs = [], weighIns = [], bodyMetrics = [], exercises = [], dark, onSave }) {
+export default function ClientGoalCard({ goal, logs = [], weighIns = [], bodyMetrics = [], exercises = [], dark, onSave, onLogWeight }) {
   const [open, setOpen] = useState(false);
   const todayKey = localDateKey();
   const progress = useMemo(() => goalProgress(goal, { logs, weighIns, bodyMetrics, todayKey }), [goal, logs, weighIns, bodyMetrics, todayKey]);
@@ -72,94 +70,28 @@ export default function ClientGoalCard({ goal, logs = [], weighIns = [], bodyMet
           <ChevronRight size={16} color={faint} className="shrink-0" />
         </button>
       )}
-      <GoalSheet open={open} onClose={() => setOpen(false)} current={goal} logs={logs} weighIns={weighIns} exercises={exercises} dark={dark} onSave={onSave} />
+      <GoalSheet open={open} onClose={() => setOpen(false)} current={goal} logs={logs} weighIns={weighIns} exercises={exercises} dark={dark} onSave={onSave} onLogWeight={onLogWeight} />
     </div>
   );
 }
 
-function GoalSheet({ open, onClose, current, logs, weighIns, exercises, dark, onSave }) {
-  const options = useMemo(() => {
-    const list = suggestedGoals({ answers: {}, exercises, logs });
-    return current ? [current, ...list.filter((g) => g.type !== current.type)] : list;
-  }, [current, exercises, logs]);
-  const [drafts, setDrafts] = useState({});
-  const [selected, setSelected] = useState(current?.type || null);
-  const [busy, setBusy] = useState(false);
-  const goalOf = (type) => ({ ...options.find((g) => g.type === type), ...drafts[type] });
-  const text = dark ? "#fff" : "#000";
-  const muted = dark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)";
-
-  function bump(type, delta) {
-    const g = goalOf(type);
-    const next = Math.min(MAX[type], Math.max(MIN[type], Math.round(((Number(g.target) || 0) + delta) * 10) / 10));
-    setDrafts((d) => ({ ...d, [type]: { ...d[type], target: next } }));
-  }
-
-  async function save() {
-    if (!selected) return;
-    setBusy(true);
-    try {
-      await onSave(startGoal(goalOf(selected), { logs, weighIns }));
-      onClose();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <BottomSheet open={open} onClose={onClose} title={current ? "Change your goal" : "Set your main goal"} dark={dark}>
-      <div className="px-4 pb-5 space-y-2.5" style={{ color: text }}>
-        <p className="text-xs" style={{ color: muted }}>
-          One goal at a time, tracked from what you already log.
-        </p>
-        {options.map((g) => {
-          const d = goalOf(g.type);
-          const on = selected === g.type;
-          return (
-            <div
-              key={g.type}
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelected(g.type)}
-              className="rounded-2xl px-4 py-3"
-              style={{ ...glass(dark), ...(on ? { borderColor: MEASURE_BLUE, boxShadow: `0 0 0 1px ${MEASURE_BLUE}` } : {}) }}
-              data-testid={`goal-option-${g.type}`}
-            >
-              <p className="text-sm font-semibold">{goalTitle(d)}</p>
-              {on && (
-                <div className="flex items-center gap-3 mt-2.5" onClick={(e) => e.stopPropagation()}>
-                  {g.type === "bodyweight" && (
-                    <button
-                      type="button"
-                      onClick={() => setDrafts((x) => ({ ...x, bodyweight: { ...x.bodyweight, direction: d.direction === "gain" ? "lose" : "gain" } }))}
-                      className="text-xs font-bold px-3 py-1.5 rounded-full"
-                      style={{ border: `1px solid ${MEASURE_BLUE}`, color: MEASURE_BLUE }}
-                    >
-                      {d.direction === "gain" ? "Gain" : "Lose"}
-                    </button>
-                  )}
-                  <button type="button" aria-label="Less" onClick={() => bump(g.type, -STEP[g.type])} className="w-8 h-8 rounded-full flex items-center justify-center" style={glass(dark)}>
-                    <Minus size={14} />
-                  </button>
-                  <span className="text-lg font-extrabold tabular-nums min-w-[3ch] text-center">{tidy(Number(d.target))}</span>
-                  <button type="button" aria-label="More" onClick={() => bump(g.type, STEP[g.type])} className="w-8 h-8 rounded-full flex items-center justify-center" style={glass(dark)}>
-                    <Plus size={14} />
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        <button
-          type="button"
-          onClick={save}
-          disabled={!selected || busy}
-          className="w-full mt-2 py-3.5 rounded-full text-sm font-bold uppercase tracking-[0.06em] disabled:opacity-40"
-          style={{ backgroundColor: MEASURE_BLUE, color: "#fff" }}
-        >
-          {busy ? "Saving…" : "Save goal"}
-        </button>
-      </div>
-    </BottomSheet>
+// Train Solo's own goal page (GoalPicker, #248 owner: "exactly the same"),
+// full screen over the app, with the client's data and save.
+function GoalSheet({ open, onClose, current, logs, weighIns, exercises, dark, onSave, onLogWeight }) {
+  if (!open) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[130] overflow-y-auto" data-testid="client-goal-page">
+      <GoalPicker
+        dark={dark}
+        current={current}
+        exercises={exercises}
+        logs={logs}
+        weighIns={weighIns}
+        onLogWeight={(w) => onLogWeight?.(w)}
+        onSave={(goal) => onSave(goal)}
+        onLeave={onClose}
+      />
+    </div>,
+    document.body
   );
 }

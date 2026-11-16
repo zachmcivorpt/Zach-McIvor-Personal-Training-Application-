@@ -87,8 +87,11 @@ describe("Progress goal (#248)", () => {
     const onSave = vi.fn(() => Promise.resolve());
     render(<ClientGoalCard goal={null} logs={[]} weighIns={[]} bodyMetrics={[]} exercises={[]} dark onSave={onSave} />);
     fireEvent.click(screen.getByText("Set your main goal"));
-    fireEvent.click(screen.getByTestId("goal-option-workouts"));
-    fireEvent.click(screen.getByText("Save goal"));
+    // Train Solo's own goal page (#253), full screen.
+    expect(screen.getByTestId("client-goal-page")).toBeTruthy();
+    expect(screen.getByTestId("goal-options")).toBeTruthy();
+    fireEvent.click(screen.getByText("Complete 20 workouts"));
+    fireEvent.click(screen.getByText("Set my goal"));
     await vi.waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     const saved = onSave.mock.calls[0][0];
     expect(saved).toMatchObject({ type: "workouts", target: 20 });
