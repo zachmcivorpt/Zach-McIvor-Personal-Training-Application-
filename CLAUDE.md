@@ -58,7 +58,7 @@ rather than inventing new colors per screen:
   Today/Program switch sit on the plain page above it.
 - Lists are open rows with thin dividers (a darker top rule), not cards.
 - **Reads like Train Solo** (#248, owner):
-  - Every tab's `TabHeader` is Train Solo's: the logo centred (26px, #249), no visible title, with a tight gap to the greeting.
+  - Every tab's `TabHeader` is Train Solo's: Train Solo's own mark (`SOLO_MARK_*`, never the uploaded logo, #251) centred (26px, #249), no visible title, with a tight gap to the greeting. The tab bar is Train Solo's (capital labels, blue dot, #251).
   - Home order: smaller greeting, "Your weekly review" row (Mondays only, #249), week strip (selected day ringed), day heading, session, Body Stats Check-in, nutrition, then the rest.
   - Calendar days use Train Solo's ringed date figure and glass cards with one blue tick. Anything behind a see-through card (like the red swipe-delete layer) exists only while it is in use (#250), or it tints the card.
   - Progress opens with the main goal (`ClientGoal.jsx`, Train Solo's `goals.js` maths, saved as the client's `goal`), then the muscle map.

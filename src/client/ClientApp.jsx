@@ -175,6 +175,7 @@ const ClientGoalCard = React.lazy(() => import("./ClientGoal"));
 const MuscleMapCard = React.lazy(() => import("../solo/SoloMuscleMap").then((m) => ({ default: m.SoloMuscleMapCard })));
 import { NutritionTargetsCard } from "../coach/NutritionTargetsCard";
 import { planPhaseSwap } from "./phaseSwap";
+import { SOLO_MARK_WHITE, SOLO_MARK_BLACK } from "../solo/soloMark";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet, NutritionPage } from "./NutritionFeatures";
 import { AddFoodPage } from "./AddFoodPage";
 import { buildCorrectedFood } from "../lib/barcodeLookup";
@@ -435,12 +436,14 @@ function NutritionQuickTile({ icon: Icon, label, onClick, dark, invert = false }
 function TabHeader({ label, dark = false, right = null, sub = null }) {
   return (
     <div className="px-2.5 pt-3 pb-0.5" data-testid="client-tab-header">
-      {/* 26px (#249, owner: bigger than Train Solo's 18px). */}
-      <Logo
-        variant="mark"
-        tone={dark ? "white" : "black"}
+      {/* Train Solo's own APEX mark (#251, owner: exactly Train Solo — never
+          the coach's uploaded logo here), 26px (#249). */}
+      <img
+        src={dark ? SOLO_MARK_WHITE : SOLO_MARK_BLACK}
+        alt="APEX"
         className="block w-auto mx-auto"
-        style={dark ? { height: 26, filter: "drop-shadow(0 0 10px rgba(255,255,255,0.55))" } : { height: 26 }}
+        data-testid="client-tab-logo"
+        style={dark ? { height: 26, filter: "drop-shadow(0 0 10px rgba(255,255,255,0.55))" } : { height: 26, mixBlendMode: "multiply" }}
       />
       <h1 className="sr-only">{label}</h1>
       {(sub || right) && (
@@ -10546,19 +10549,25 @@ export default function ClientApp() {
             WebKit repaints it as part of the normal scroll pipeline rather
             than compositing it independently every frame. */}
         <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50" style={{ transform: "translateZ(0)" }}>
+          {/* Train Solo's tab bar (#251): glass docked to the bottom edge,
+              capital labels, a lit blue dot under the current tab. */}
           <div
-            className={`w-full max-w-md backdrop-blur border-t flex px-2 pb-safe ${dark ? "border-white/8" : "border-black/8"}`}
-            style={{ backgroundColor: dark ? "rgba(12,12,12,0.95)" : "rgba(255,255,255,0.95)" }}
+            className="w-full flex backdrop-blur-xl border-t pb-safe"
+            style={{ backgroundColor: dark ? "rgba(10,10,10,0.82)" : "rgba(255,255,255,0.78)", borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(20,19,15,0.07)" }}
+            data-testid="client-tab-bar"
           >
             {TABS.map((t) => {
               const Icon = t.icon;
               const active = tab === t.id;
-              const activeClass = dark ? "text-white" : "text-black";
-              const inactiveClass = dark ? "text-white/35" : "text-black/35";
+              const on = dark ? "#FFFFFF" : "#14130F";
+              const off = dark ? "rgba(255,255,255,0.35)" : "rgba(20,19,15,0.35)";
               return (
-                <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 flex flex-col items-center gap-1 py-3 relative">
-                  <Icon size={21} className={active ? activeClass : inactiveClass} strokeWidth={active ? 2.4 : 2} />
-                  <span className={`text-[10px] font-medium ${active ? activeClass : inactiveClass}`}>{t.label}</span>
+                <button key={t.id} onClick={() => setTab(t.id)} aria-current={active ? "page" : undefined} className="flex-1 h-16 flex flex-col items-center justify-center gap-1 relative">
+                  <Icon size={19} color={active ? on : off} strokeWidth={active ? 2.2 : 1.8} style={active && dark ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.7))" } : undefined} />
+                  <span className="text-[8.5px] font-bold uppercase tracking-[0.1em] leading-none" style={{ color: active ? on : off }}>
+                    {t.label}
+                  </span>
+                  <span className="w-1 h-1 rounded-full" style={{ background: active ? "#2F8FFF" : "transparent", boxShadow: active ? "0 0 8px #2F8FFF" : "none" }} />
                   {t.id === "profile" && dueCheckInsCount > 0 && (
                     <span className={`absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full ${dark ? "bg-white" : "bg-black"}`} />
                   )}
