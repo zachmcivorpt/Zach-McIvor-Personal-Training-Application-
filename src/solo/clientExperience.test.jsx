@@ -169,7 +169,8 @@ describe("weekly review", () => {
     vi.setSystemTime(new Date(2026, 10, 15, 18, 0, 0)); // Sun 15 Nov 2026
     const at = (y, m, d) => new Date(y, m, d, 9).getTime();
     ctx = baseCtx({
-      soloCurrentUser: { ...baseCtx().soloCurrentUser, goal: { type: "workouts", target: 10, startKey: "2026-11-01" } },
+      // Target 1 a week (#245: consistency is weeks on their own target).
+      soloCurrentUser: { ...baseCtx().soloCurrentUser, onboarding: { answers: { ...baseCtx().soloCurrentUser.onboarding.answers, sessionsPerWeek: 1 } }, goal: { type: "workouts", target: 10, startKey: "2026-11-01" } },
       soloWorkoutLogs: [
         { id: "a", purchaseId: "u1_custom", weekNumber: "a", dayId: "q", durationMin: 40, date: at(2026, 10, 3), entries: [{ exerciseId: "gs", sets: [{ weight: 20, reps: 10 }] }] },
         { id: "b", purchaseId: "u1_custom", weekNumber: "b", dayId: "q", durationMin: 40, date: at(2026, 10, 5), entries: [{ exerciseId: "gs", sets: [{ weight: 22.5, reps: 10 }] }] },
@@ -183,7 +184,7 @@ describe("weekly review", () => {
     expect(screen.getByTestId("week-title").textContent).toBe("A new personal record this week.");
     // 30×8 → est. max 38 vs the best before this week, 22.5×10 → 30.
     expect(screen.getByTestId("week-stronger").textContent).toMatch(/Est\. max 30 → 38 kg\+8 kg/);
-    expect(screen.getByTestId("week-consistency").textContent).toMatch(/2 weeks in a row/);
+    expect(screen.getByTestId("week-consistency").textContent).toMatch(/2 weeks on target/);
     expect(screen.getByTestId("week-goal").textContent).toMatch(/Complete 10 workouts30%/);
     expect(screen.getByText("Next week")).toBeTruthy();
     expect(screen.getByTestId("week-focus").textContent).toMatch(/every one moves your goal/);

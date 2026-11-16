@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity, Compass, Users, RotateCcw } from "lucide-react";
+import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity, Compass, Users, RotateCcw, Clock } from "lucide-react";
 import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth } from "../lib/appleHealth";
 import { enableSoloPush, hasSoloPushToken } from "../lib/push";
 import { canUse, TIER_LABELS, activeStore, planRenewal, renewalText } from "./soloAccess";
@@ -16,6 +16,8 @@ import { DeleteAccountSheet } from "../components/ui";
 import { inAppPurchasesAvailable } from "../lib/purchases";
 import SoloPurchaseLog from "./SoloPurchaseLog";
 import { setPartnerAlerts, setSoloAlert } from "./partnerStore";
+import { TrainingTimeSheet } from "./SoloTrainingTime";
+import { timeLabel } from "./retention";
 
 // Adapted from ClientApp.jsx's ProfileScreen: same avatar/name card, sign
 // out, legal links and delete-account pattern, but with every coach-
@@ -43,6 +45,7 @@ export default function SoloProfileScreen() {
   const [startedOpen, setStartedOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [purchaseLogOpen, setPurchaseLogOpen] = useState(false);
+  const [timeSheetOpen, setTimeSheetOpen] = useState(false);
   const [reminderBusy, setReminderBusy] = useState(false);
   const [reminderError, setReminderError] = useState("");
   const uid = soloCurrentUser?.id;
@@ -313,6 +316,20 @@ export default function SoloProfileScreen() {
           <span className="text-sm font-semibold flex-1">My Calendar</span>
           <ChevronRight size={16} color={t.textFaint} />
         </Link>
+        {/* Training reminder (#245): their time, or Off. */}
+        <button type="button" onClick={() => setTimeSheetOpen(true)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left" style={{ borderBottom: `1px solid ${t.panelBorder}` }}>
+          <Clock size={17} color={t.textMuted} className="shrink-0" />
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-semibold">Training reminder</span>
+            <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
+              Once on training days, only if you haven't trained yet.
+            </span>
+          </span>
+          <span className="text-xs font-semibold shrink-0" style={{ color: t.textMuted }}>
+            {timeLabel(soloCurrentUser?.trainingTime)}
+          </span>
+          <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+        </button>
         <button
           type="button"
           onClick={toggleReminders}
@@ -462,6 +479,7 @@ export default function SoloProfileScreen() {
         }}
       />
       <SoloGettingStarted open={startedOpen} onClose={() => setStartedOpen(false)} />
+      <TrainingTimeSheet open={timeSheetOpen} onClose={() => setTimeSheetOpen(false)} uid={uid} current={soloCurrentUser?.trainingTime || null} dark={dark} t={t} />
       {purchaseLogOpen && <SoloPurchaseLog onClose={() => setPurchaseLogOpen(false)} />}
     </div>
   );

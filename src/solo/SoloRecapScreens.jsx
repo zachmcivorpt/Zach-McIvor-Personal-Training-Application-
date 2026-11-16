@@ -14,8 +14,9 @@ import { SoloArtwork } from "./SoloArtwork";
 import { recommendForAnswers } from "./recommendations";
 import { programStats, weekRecap, reviewWeek } from "./trainingRecap";
 import { goalTitle, goalProgress, encouragement } from "./goals";
-import { buildInsights, strengthGains, weeksTrainedInARow, reviewHeadline, weeklyFocus } from "./insights";
-import { comebacksIn } from "./workoutSummary";
+import { buildInsights, strengthGains, reviewHeadline, weeklyFocus } from "./insights";
+import { comebacksIn, weeklyTargetOf } from "./workoutSummary";
+import { weeklyStreak, monthStory, storyMonth } from "./retention";
 import { buildSoloCalendar, addDays, sessionDayLabel } from "./soloCalendar";
 import { localDateKey } from "../lib/dateKey";
 
@@ -361,14 +362,15 @@ export function SoloWeekRecapScreen() {
     const shown = new Set(["prs"]); // already a figure above
     return {
       gains: strengthGains(logs, exercisesById, recap.lastMonday, weekEnd).slice(0, 3),
-      streak: weeksTrainedInARow(logs, addDays(recap.lastMonday, 6)),
+      // #245: the same weekly streak as Progress (weeks on their target).
+      streak: weeklyStreak(logs, weeklyTargetOf(soloCurrentUser), addDays(recap.lastMonday, 6)).weeks,
       comebacks: comebacksIn(logs, recap.lastMonday, weekEnd),
       goal,
       progress,
       insights: buildInsights({ logs, exercisesById, goal, progress, todayKey }).filter((i) => !shown.has(i.id)).slice(0, 2),
       focus: weeklyFocus({ recap, goal, progress, nextPlanned: recap.thisWeek.length }),
     };
-  }, [recap, soloWorkoutLogs, soloExercises, soloCurrentUser?.goal, soloWeighIns, soloBodyMetrics, todayKey]);
+  }, [recap, soloWorkoutLogs, soloExercises, soloCurrentUser, soloWeighIns, soloBodyMetrics, todayKey]);
 
   const range = `${new Date(`${recap.lastMonday}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} – ${new Date(`${addDays(recap.lastMonday, 6)}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`;
   const headline = recap.planned > 0 ? `${recap.plannedDone} of ${recap.planned}` : String(recap.sessionsDone);
@@ -398,7 +400,7 @@ export function SoloWeekRecapScreen() {
         <div className="flex items-center justify-between py-3 border-y" style={{ borderColor: t.panelBorder }} data-testid="week-consistency">
           <span className={SOLO_TYPE.row}>Consistency</span>
           <span className="text-[16px] font-semibold tabular-nums">
-            {review.streak} week{review.streak === 1 ? "" : "s"} in a row
+            {review.streak} week{review.streak === 1 ? "" : "s"} on target
           </span>
         </div>
       )}
@@ -500,6 +502,124 @@ export function SoloWeekRecapScreen() {
 
       {/* No check-in button (#239, owner): Train Solo has no check-ins. */}
       <SoloButton t={t} className="mt-9" onClick={() => navigate("/solo/home", { replace: true })}>
+        Done
+      </SoloButton>
+    </Page>
+  );
+}
+
+// The month in review (#245): shown on My Training from the 1st to the 3rd.
+// Same solid page as the weekly review; every figure from their own logs,
+// weigh-ins and photos; Share uses the program share card.
+export function SoloMonthScreen() {
+  const navigate = useNavigate();
+  const { soloWorkoutLogs, soloExercises, soloProgressPhotos, soloCurrentUser } = useSoloApp();
+  const { dark } = useSoloTheme();
+  const t = SOLO_THEMES[dark ? "dark" : "light"];
+  const [shareOpen, setShareOpen] = useState(false);
+  const todayKey = localDateKey();
+  const story = useMemo(
+    () =>
+      monthStory({
+        logs: soloWorkoutLogs || [],
+        exercisesById: Object.fromEntries((soloExercises || []).map((e) => [e.id, e])),
+        photos: soloProgressPhotos || [],
+        month: storyMonth(todayKey),
+        target: weeklyTargetOf(soloCurrentUser),
+      }),
+    [soloWorkoutLogs, soloExercises, soloProgressPhotos, soloCurrentUser, todayKey]
+  );
+  const photos = story.photoPair
+    ? {
+        before: { id: story.photoPair.before.id, url: story.photoPair.before.url, label: new Date(story.photoPair.before.date).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) },
+        after: { id: story.photoPair.after.id, url: story.photoPair.after.url, label: new Date(story.photoPair.after.date).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) },
+      }
+    : null;
+  const card = {
+    eyebrow: story.name.toUpperCase(),
+    title: "My month",
+    figures: [
+      { value: String(story.sessions), label: "Sessions" },
+      { value: kg(story.volume), label: "Kg lifted" },
+      { value: String(story.prs), label: "PRs set" },
+    ],
+    lifts: story.gains.map((g) => ({ name: g.name, pct: `+${g.gain} kg`, detail: `${g.from} → ${g.to} kg` })),
+    photos: photos ? { before: { label: photos.before.label.toUpperCase() }, after: { label: photos.after.label.toUpperCase() } } : null,
+  };
+
+  return (
+    <Page t={t}>
+      <p className={SOLO_TYPE.eyebrow} style={{ color: t.textMuted }}>
+        Your month · {story.name}
+      </p>
+      <h1 className={`mt-3 ${SOLO_TYPE.title}`} data-testid="month-title">
+        {story.headline}
+      </h1>
+      <p className={`mt-6 ${SOLO_TYPE.hero}`} data-testid="month-sessions">
+        {story.sessions}
+      </p>
+      <p className={`mt-2 ${SOLO_TYPE.body}`} style={{ color: t.textMuted }}>
+        {story.sessions === 1 ? "session" : "sessions"}
+      </p>
+
+      <div className="grid grid-cols-[1fr_1.4fr_0.8fr] gap-x-4 mt-9 border-t" style={{ borderColor: t.panelBorder }}>
+        <Figure small value={`${story.minutes}`} label="Minutes" t={t} />
+        <Figure small value={kg(story.volume)} label="Kg lifted" t={t} />
+        <Figure small value={story.prs} label="PRs" t={t} accent={story.prs > 0} />
+      </div>
+      {story.weeksInMonth > 0 && (
+        <div className="flex items-center justify-between py-3 border-y" style={{ borderColor: t.panelBorder }} data-testid="month-weeks">
+          <span className={SOLO_TYPE.row}>Weeks on target</span>
+          <span className="text-[16px] font-semibold tabular-nums">
+            {story.weeksOnTarget} of {story.weeksInMonth}
+          </span>
+        </div>
+      )}
+
+      {story.gains.length > 0 && (
+        <div className="mt-7" data-testid="month-stronger">
+          <p className={`${SOLO_TYPE.eyebrow} mb-1`} style={{ color: t.textFaint }}>
+            Stronger
+          </p>
+          <ul className="border-t" style={{ borderColor: t.panelBorder }}>
+            {story.gains.map((g) => (
+              <li key={g.exerciseId} className="flex items-center justify-between py-3 border-b" style={{ borderColor: t.panelBorder }}>
+                <span className="min-w-0">
+                  <span className={`block ${SOLO_TYPE.row} truncate`}>{g.name}</span>
+                  <span className={`block ${SOLO_TYPE.meta} mt-0.5 tabular-nums`} style={{ color: t.textMuted }}>
+                    Est. max {g.from} → {g.to} kg
+                  </span>
+                </span>
+                <span className="text-[16px] font-semibold tabular-nums" style={{ color: MEASURE_BLUE }}>
+                  +{g.gain} kg
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {photos && (
+        <div className="mt-7 grid grid-cols-2 gap-2" data-testid="month-photos">
+          {[photos.before, photos.after].map((ph) => (
+            <div key={ph.id} className="relative rounded-2xl overflow-hidden" style={{ aspectRatio: "3 / 4", backgroundColor: t.chipBg }}>
+              <img src={ph.url} alt={ph.label} className="w-full h-full object-cover" />
+              <span className="absolute left-2.5 bottom-2.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide text-white" style={{ backgroundColor: "rgba(10,10,11,0.45)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+                {ph.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {story.sessions > 0 && (
+        <SoloButton t={t} className="mt-8" style={{ backgroundColor: "transparent", color: t.text, border: `1px solid ${t.panelBorder}` }} onClick={() => setShareOpen(true)}>
+          <Share2 size={15} /> Share your month
+        </SoloButton>
+      )}
+      <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} card={card} photos={photos} programName={`${story.name}`} fileName="apex-my-month.jpg" shareTitle={`My ${story.name}`} dark={dark} t={t} />
+
+      <SoloButton t={t} className="mt-4" onClick={() => navigate("/solo/home", { replace: true })}>
         Done
       </SoloButton>
     </Page>

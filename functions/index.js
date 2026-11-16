@@ -185,6 +185,14 @@ exports.soloComebackNudge = onSchedule({ schedule: "0 17 * * *", timeZone: "Aust
   await sendComebackPushes(db, messaging);
 });
 
+// Train Solo training reminder (#245, functions/soloTrainingReminder.js):
+// hourly; one push at the member's own training time on training days,
+// only if they haven't trained yet.
+exports.soloTrainingReminder = onSchedule({ schedule: "0 * * * *", timeZone: "UTC" }, async () => {
+  const { sendTrainingReminders } = require("./soloTrainingReminder");
+  await sendTrainingReminders(db, messaging);
+});
+
 // Coached clients' weekly review (#240): Sunday 6pm Sydney, one push to
 // each active client that their review is ready, with the week's real
 // sessions and PRs. The review itself is worked out in the app from their

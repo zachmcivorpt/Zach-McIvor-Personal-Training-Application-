@@ -687,5 +687,9 @@ service cloud.firestore {
     match /soloComebackPushes/{id} {
       allow read, write: if false;
     }
+    // soloTrainingReminders (#245): the server's record of reminders sent.
+    match /soloTrainingReminders/{id} {
+      allow read, write: if false;
+    }
   }
 }

@@ -23,6 +23,7 @@ vi.mock("./soloScreens", () => ({
   SoloWeekRecapScreen: standIn(),
   SoloJoinScreen: standIn(),
   SoloGoalScreen: standIn(),
+  SoloMonthScreen: standIn(),
   SoloWorkoutSessionScreen: standIn(),
   SoloProgramDetailsScreen: standIn(),
   SoloWorkoutSummaryScreen: standIn(),

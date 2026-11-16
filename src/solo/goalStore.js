@@ -40,3 +40,10 @@ export function markGoalPromptSeen(uid) {
   }
   savedOrQueued(updateDoc(doc(soloDb, "soloUsers", uid), { goalPromptSeenAt: Date.now() })).catch(() => {});
 }
+
+// Training reminder (#245): the time they usually train ("18:00"), or null
+// for none. `trainingTimeAsked` stops My Training asking again.
+export async function saveTrainingTime(uid, time) {
+  const tz = deviceTimeZone();
+  await savedOrQueued(updateDoc(doc(soloDb, "soloUsers", uid), { trainingTime: time || null, trainingTimeAsked: Date.now(), ...(tz ? { tz } : {}) }));
+}
