@@ -58,7 +58,8 @@ describe("Home like Train Solo (#248)", () => {
     home();
     const header = screen.getAllByTestId("client-tab-header")[0];
     expect(header.querySelector("h1").className).toMatch(/sr-only/);
-    expect(screen.getByTestId("home-greeting").className).toMatch(/text-\[15px\]/);
+    // No greeting any more (#256, owner).
+    expect(screen.queryByTestId("home-greeting")).toBeNull();
     expect(screen.getByTestId("home-day-heading").textContent).toMatch(/^Today, \d+(st|nd|rd|th) [A-Z][a-z]+$/);
     const order = ["home-weekly-review", "home-day-heading", "home-body-stats"].map((id) => screen.getByTestId(id));
     expect(order[0].compareDocumentPosition(order[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

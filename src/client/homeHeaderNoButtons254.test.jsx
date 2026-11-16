@@ -18,9 +18,8 @@ describe("Home greeting row (#254)", () => {
         <HomeScreen user={{ id: "u1", name: "Zach McIvor" }} userId="u1" dayOffset={0} onSelectDay={() => {}} isToday habits={[]} completedHabitIds={[]} dayHabitCompletedIds={[]} cardioLogs={[]} challenges={[]} groups={[]} targets={{ calories: 2000 }} dayNutrition={null} notifCount={1} dbReady />
       </MemoryRouter>
     );
-    const row = screen.getByTestId("home-header-row");
-    expect(row.querySelectorAll("button")).toHaveLength(0);
-    expect(row.textContent).toBe("Good " + row.textContent.split("Good ")[1]);
-    expect(row.textContent).not.toMatch(/1/);
+    // #256: no greeting row at all now; still no bell or avatar on Home's top.
+    expect(screen.queryByTestId("home-header-row")).toBeNull();
+    expect(screen.getByTestId("home-top").querySelectorAll("button")).toHaveLength(0);
   });
 });
