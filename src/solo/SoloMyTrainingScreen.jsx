@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SoloButton, SoloPageHeader } from "./SoloUI";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, CalendarPlus, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Dumbbell, HeartPulse, Scale, Camera, Droplet, Minus, Plus, Zap, Pencil } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Dumbbell, HeartPulse, Scale, Camera, Droplet, Minus, Plus, Zap, Pencil, Clock } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
 import { SoloArtwork } from "./SoloArtwork";
 import { isRecoveryAddon } from "./recommendations";
@@ -23,9 +23,11 @@ import SoloSwipeRow from "./SoloSwipeRow";
 import { weekInProgram } from "./currentProgram";
 import { loadWorkoutDraft } from "./workoutDraft";
 import SoloGettingStarted from "./SoloGettingStarted";
+import { TrainingTimeSheet } from "./SoloTrainingTime";
 import SoloTeamWeek from "./SoloTeamWeek";
 import { SoloInsightLine } from "./SoloGoalCard";
 import { daysSinceLastSession, comebackSession, COMEBACK_DAYS } from "./workoutSummary";
+import { restDayInfo, programFinish, finishLabel, monthStoryWindow, storyMonth, TRAINING_TIMES, timeLabel } from "./retention";
 import { shouldAutoShowGettingStarted, markSeenOnPhone } from "./gettingStarted";
 
 // A purchased program's own overview — which week the customer is in, that
@@ -555,6 +557,29 @@ export default function SoloMyTrainingScreen() {
     if (target) navigate(target.path, target.state ? { state: target.state } : undefined);
   }
 
+  // Rest day (#245): what's still recovering (48 h), tomorrow's session,
+  // and a mobility option (recovery add-ons are Plus).
+  const restToday = useMemo(() => {
+    const info = restDayInfo(soloWorkoutLogs, exercisesById);
+    const tomorrowItem = (byDate[addDays(todayKey, 1)] || []).find(isSessionItem);
+    return {
+      ...info,
+      tomorrow: tomorrowItem?.title || null,
+      onMobility: () =>
+        canUse("recoveryAddons", soloAccess)
+          ? navigate("/solo/home", { state: { soloTab: "catalogue" } })
+          : openPaywall({ tier: "plus", reason: "Short mobility and recovery sessions for your rest days — part of Plus." }),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [soloWorkoutLogs, exercisesById, byDate, todayKey, soloAccess]);
+
+  // Training reminder (#245): asked once, for members with a program.
+  const [timeSheetOpen, setTimeSheetOpen] = useState(false);
+  const askTrainingTime = !!currentRow && !soloCurrentUser?.trainingTime && !soloCurrentUser?.trainingTimeAsked;
+  // Monthly story (#245): the 1st to the 3rd, when last month had sessions.
+  const lastMonth = storyMonth(todayKey);
+  const showMonthRow = monthStoryWindow(todayKey) && soloWorkoutLogs.some((l) => localDateKey(new Date(l.date)).startsWith(lastMonth));
+
   // Comeback (#244): back after 4+ quiet days, a short version of their
   // last session, one tap to start. "Not today" hides it until tomorrow.
   const comebackKey = soloCurrentUser?.id ? `apexSoloComebackHidden:${soloCurrentUser.id}` : null;
@@ -655,6 +680,19 @@ export default function SoloMyTrainingScreen() {
           </div>
         )}
 
+        {showMonthRow && (
+          // The 1st to the 3rd (#245): last month in one page.
+          <button type="button" onClick={() => navigate("/solo/month")} className="w-full flex items-center justify-between gap-3 py-3 mb-4 border-y text-left" style={{ borderColor: t.panelBorder }} data-testid="month-row">
+            <span>
+              <span className="block text-[13px] font-semibold">Your month in review</span>
+              <span className="block text-[11px] mt-0.5" style={{ color: t.textMuted }}>
+                {new Date(`${lastMonth}-01T12:00:00`).toLocaleDateString("en-AU", { month: "long" })}: sessions, strength gains and photos
+              </span>
+            </span>
+            <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+          </button>
+        )}
+
         {[0, 1, 2].includes(new Date(`${todayKey}T00:00:00`).getDay()) && soloWorkoutLogs.length > 0 && (
           // Sunday to Tuesday: the weekly review (#141, Sunday from #236).
           <button type="button" onClick={() => navigate("/solo/week")} className="w-full flex items-center justify-between gap-3 py-3 mb-4 border-y text-left" style={{ borderColor: t.panelBorder }}>
@@ -688,6 +726,7 @@ export default function SoloMyTrainingScreen() {
           onOpen={openItem}
           target={(item) => !!logForItem(item) || calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloContentById })}
           onBrowse={() => navigate("/solo/home", { state: { soloTab: "catalogue" } })}
+          restInfo={selectedKey === todayKey ? restToday : null}
           t={t}
         />
 
@@ -730,6 +769,21 @@ export default function SoloMyTrainingScreen() {
             </SoloGlassBox>
           </div>
         )}
+
+        {askTrainingTime && (
+          // #245: one reminder at their training time, asked once.
+          <button type="button" onClick={() => setTimeSheetOpen(true)} className="w-full flex items-center gap-2.5 rounded-2xl px-3.5 py-3.5 text-left mt-4" style={soloGlass(t)} data-testid="ask-training-time">
+            <Clock size={17} color={MEASURE_BLUE} className="shrink-0" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">When do you usually train?</span>
+              <span className="block text-[11px] mt-0.5" style={{ color: t.textMuted }}>
+                One reminder on training days, only if you haven't trained yet
+              </span>
+            </span>
+            <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+          </button>
+        )}
+        <TrainingTimeSheet open={timeSheetOpen} onClose={() => setTimeSheetOpen(false)} uid={soloCurrentUser?.id} current={soloCurrentUser?.trainingTime || null} dark={dark} t={t} />
 
         {/* Today's insight (#236); the goal itself is on Progress (#237). */}
         <SoloInsightLine profile={soloCurrentUser} logs={soloWorkoutLogs} weighIns={soloWeighIns} bodyMetrics={soloBodyMetrics} exercises={soloExercises} todayKey={todayKey} t={t} />
@@ -1144,7 +1198,34 @@ function dayHeading(dateKey, todayKey) {
   return `${dayName}, ${ordinal(d.getDate())} ${d.toLocaleDateString("en-AU", { month: "long" })}`;
 }
 
-function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, onOpen, target, onBrowse, t }) {
+// Rest day (#245): what's still recovering (48 h) and tomorrow's session,
+// every figure from their own logs.
+function RestDayNote({ info, showMobility, t }) {
+  return (
+    <div className="text-sm mt-1 space-y-0.5" style={{ color: t.textMuted }} data-testid="rest-day">
+      <p>
+        {info.recovering.length
+          ? `Recovering: ${info.recovering
+              .slice(0, 3)
+              .map((r) => `${r.label} (${r.hoursLeft} h)`)
+              .join(" · ")}`
+          : "Fully recovered. Rest is part of the program."}
+      </p>
+      {info.tomorrow && (
+        <p>
+          Tomorrow: <span className="font-semibold" style={{ color: t.text }}>{info.tomorrow}</span>
+        </p>
+      )}
+      {showMobility && info.onMobility && (
+        <button type="button" onClick={info.onMobility} className="mt-2 text-xs font-bold uppercase tracking-[0.06em]" style={{ color: MEASURE_BLUE }}>
+          10-minute mobility
+        </button>
+      )}
+    </div>
+  );
+}
+
+function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, onOpen, target, onBrowse, restInfo = null, t }) {
   const sessions = items.filter(isSessionItem);
   const others = items.filter((i) => !isSessionItem(i));
   return (
@@ -1158,9 +1239,13 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, on
           {ownsPrograms ? (
             <>
               <p className="text-lg font-extrabold">Rest day</p>
-              <p className="text-sm mt-1" style={{ color: t.textMuted }}>
-                Nothing scheduled — recover and come back fresh.
-              </p>
+              {restInfo ? (
+                <RestDayNote info={restInfo} showMobility t={t} />
+              ) : (
+                <p className="text-sm mt-1" style={{ color: t.textMuted }}>
+                  Nothing scheduled — recover and come back fresh.
+                </p>
+              )}
             </>
           ) : (
             <>
@@ -1185,6 +1270,14 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, on
           ))}
           {others.length > 0 && (
             <SoloGlassBox t={t} className="rounded-2xl">
+              {sessions.length === 0 && listsReady && restInfo && (
+                // A program's rest day (#245): what's recovering and what's
+                // next above its Active Recovery, which is the mobility option.
+                <div className="px-4 pt-3.5 pb-3">
+                  <p className="text-base font-extrabold">Rest day</p>
+                  <RestDayNote info={restInfo} showMobility={!others.some((i) => i.type === "recovery" || i.type === "addon")} t={t} />
+                </div>
+              )}
               {others.map((item, i) => {
                 const Icon = ITEM_ICON[item.type] || CalendarDays;
                 const actionable = !!target(item);
@@ -1195,7 +1288,7 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, on
                     onClick={() => actionable && onOpen(item)}
                     disabled={!actionable}
                     className="w-full flex items-center gap-3 px-4 py-3 text-left disabled:cursor-default"
-                    style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}
+                    style={i > 0 || (sessions.length === 0 && listsReady && restInfo) ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}
                   >
                     <Icon size={16} color={t.textMuted} className="shrink-0" />
                     <div className="min-w-0 flex-1">
@@ -1475,6 +1568,9 @@ function weekLine(row) {
   if (!row.purchase.startDate) return "Set a start date";
   const parts = [`Week ${row.weekNumber} of ${row.totalWeeks}`];
   if (row.sessionsThisWeek != null) parts.push(`${row.sessionsThisWeek} session${row.sessionsThisWeek === 1 ? "" : "s"}/week`);
+  // #245: when the current program finishes, so the end is in sight.
+  const finish = row.purchase.current ? programFinish(row.purchase.startDate, row.totalWeeks) : null;
+  if (finish && finish >= localDateKey()) parts.push(`finishes ${finishLabel(finish)}`);
   return parts.join(" · ");
 }
 

@@ -22,6 +22,7 @@ import {
   SoloWeekRecapScreen,
   SoloJoinScreen,
   SoloGoalScreen,
+  SoloMonthScreen,
 } from "./soloScreens";
 import { goalPromptSeen } from "./goalStore";
 
@@ -178,6 +179,16 @@ export default function SoloRoutes() {
               <RequireSoloAuth>
                 <RequireOnboardingComplete>
                   <SoloWeekRecapScreen />
+                </RequireOnboardingComplete>
+              </RequireSoloAuth>
+            }
+          />
+          <Route
+            path="month"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloMonthScreen />
                 </RequireOnboardingComplete>
               </RequireSoloAuth>
             }

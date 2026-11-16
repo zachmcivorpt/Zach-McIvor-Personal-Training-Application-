@@ -259,7 +259,7 @@ rather than inventing new colors per screen:
   what can't be measured gets examples, never a guess. The Sunday
   review IS the week recap (`/solo/week`, `reviewWeek`): no second review
   screen, no check-in button (Train Solo has no check-ins, #239), and the one weekly push (Sunday 6pm, `notificationPrefs.weeklyCheckIn`).
-  Scheduled Solo pushes are ONLY that and the comeback push (#244); add no others. Insights only from data with their
+  Scheduled Solo pushes are ONLY that, the comeback push (#244) and the training reminder (#245); add no others. Insights only from data with their
   thresholds; they tie into the goal but never repeat what's on screen next
   to them (goal card, review figures, focus). Next week's focus is one action.
   The after-workout highlight says nothing when there's nothing worth saying.
@@ -277,6 +277,19 @@ rather than inventing new colors per screen:
   version of their latest session (`comebackSession`: up to 3 exercises,
   2 sets, a one-off quick session, never saved); "Not today" hides it for
   the day. Partners hear "Sam's back"; the Sunday review lists comebacks.
+- **Retention (#245, `src/solo/retention.js`)**: Progress shows "Week Streak"
+  (`weeklyStreak`: weeks at `weeklyTargetOf`, this week counts once met, one
+  spare week per 6 on target, never more than one banked), never a day
+  streak; the Sunday review's consistency is the same count. Training
+  reminder: asked once on My Training, changed in Profile (`trainingTime`);
+  the hourly `soloTrainingReminder` sends ONE push at that local hour, on
+  training days only, only if they haven't trained (claimed in
+  `soloTrainingReminders`). Monthly story `/solo/month` (`SoloMonthScreen`,
+  1st–3rd, row on My Training): solid page like the week recap, own logs
+  only. A program's rest day shows recovering muscles (48 h) + tomorrow at
+  the top of its Active Recovery box (every program rest day has one;
+  never only on an empty day). The current program's line shows
+  "finishes <date>" (`programFinish`).
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
 - The muscle map card is also on the coached client's Progress and the coach's client Progress tab (#216), lazy-loaded, unchanged.

@@ -36,6 +36,8 @@ import { MetricTile } from "../components/charts";
 import { MEASURE_BLUE } from "../theme";
 import { SoloPageHeader } from "./SoloUI";
 import SoloGoalCard from "./SoloGoalCard";
+import { weeklyStreak } from "./retention";
+import { weeklyTargetOf } from "./workoutSummary";
 import {
   ClientThemeContext,
   LogWeightSheet,
@@ -53,25 +55,6 @@ const axisStyleFor = (dark) => ({ fontSize: 11, fill: dark ? "rgba(255,255,255,0
 // coached client app keeps its own default three).
 const SOLO_ALWAYS_SHOW_LIFTS = new Set(["Barbell Back Squat", "Deadlift", "Bench Press", "Pull-ups", "Dumbbell Shoulder Press", "Hip Thrust"]);
 const SOLO_LIFT_LABELS = { "Hip Thrust": "Barbell Hip Thrust" };
-
-// Consecutive calendar days (back from today) with at least one logged
-// workout. Coaching's computeWorkoutStreak instead counts consecutive
-// *scheduled* days hit — meaningless here, since a self-guided customer
-// has no coach-assigned schedule, only the program's own day order. This
-// is the one genuinely Solo-specific adaptation; everything else on this
-// screen reuses Coaching's real functions/components as-is.
-function computeDayStreak(logs) {
-  if (!logs.length) return 0;
-  const days = new Set(logs.map((l) => localDateKey(l.date)));
-  const cursor = new Date();
-  if (!days.has(localDateKey(cursor.getTime()))) cursor.setDate(cursor.getDate() - 1);
-  let streak = 0;
-  while (days.has(localDateKey(cursor.getTime()))) {
-    streak++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
-}
 
 // Train Solo's own Progress tab — reuses the coached-client Progress tab's
 // real components and logic as-is (PerformanceTimelineCard, MetricTile,
@@ -145,17 +128,21 @@ export default function SoloProgressScreen() {
   const monthlyVolume = useMemo(() => computeMonthlyVolume(soloWorkoutLogs), [soloWorkoutLogs]);
   const prevMonthlyVolume = useMemo(() => computeMonthlyVolume(soloWorkoutLogs, 1), [soloWorkoutLogs]);
 
+  const weekTarget = weeklyTargetOf(soloCurrentUser);
+  const weekStreak = useMemo(() => weeklyStreak(soloWorkoutLogs, weekTarget, localDateKey()), [soloWorkoutLogs, weekTarget]);
   const tiles = useMemo(() => {
     const workoutsSeries = computeWorkoutsSeries(soloWorkoutLogs);
     const now = Date.now();
     const thisWeek = soloWorkoutLogs.filter((l) => now - l.date <= 7 * 24 * 60 * 60 * 1000).length;
     return [
       { key: "workouts", label: "Workouts Completed", unit: "", decimals: 0, series: workoutsSeries, latest: soloWorkoutLogs.length, date: "all-time" },
-      { key: "streak", label: "Day Streak", unit: "", decimals: 0, series: null, latest: computeDayStreak(soloWorkoutLogs), date: "consecutive days trained" },
+      // #245: weeks on their weekly target, not days in a row (that reset on
+      // every planned rest day). One missed week forgiven per 6 on target.
+      { key: "streak", label: "Week Streak", unit: "", decimals: 0, series: null, latest: weekStreak.weeks, date: weekStreak.spare ? `${weekTarget}×/week · 1 spare` : `weeks at ${weekTarget}×/week` },
       { key: "thisWeek", label: "This Week", unit: "", decimals: 0, series: null, latest: thisWeek, date: thisWeek === 1 ? "session so far" : "sessions so far" },
       { key: "prs", label: "Personal Bests", unit: "", decimals: 0, series: null, latest: computePRsInLastNDays(soloWorkoutLogs, 30), date: "this month" },
     ];
-  }, [soloWorkoutLogs]);
+  }, [soloWorkoutLogs, weekStreak, weekTarget]);
 
   const latestWeighIn = soloWeighIns[soloWeighIns.length - 1];
   const firstWeighIn = soloWeighIns[0];
