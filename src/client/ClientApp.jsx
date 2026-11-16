@@ -1442,7 +1442,8 @@ export function HomeScreen({
   const line = dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
   return (
     <div className="pb-28 space-y-5">
-      <div>
+      {/* -mb-3 (#252, owner): a tight gap under the greeting, not the page's full 20px. */}
+      <div className="-mb-3" data-testid="home-top">
         <TabHeader label="Home" dark={dark} />
         <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
       </div>
@@ -7177,6 +7178,16 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
             />
           </React.Suspense>
         )}
+        {/* Right under the goal (#252, owner). */}
+        <button
+          data-testid="progress-log-stats"
+          type="button"
+          onClick={() => setCheckInOpen(true)}
+          className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-[13px] font-semibold active:scale-[0.98] transition-transform ${dark ? "text-white" : "text-black"}`}
+          style={clientGlass(dark)}
+        >
+          <Scale size={15} style={{ color: MEASURE_BLUE }} /> Log body stats & photos
+        </button>
         <React.Suspense fallback={null}>
           <MuscleMapCard logs={logsForClient} exercisesById={exercisesById} dark={dark} />
         </React.Suspense>
@@ -7189,14 +7200,6 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
       </div>
 
       <div className="px-2.5 space-y-4 mt-4">
-        <button
-          type="button"
-          onClick={() => setCheckInOpen(true)}
-          className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-[13px] font-semibold active:scale-[0.98] transition-transform ${dark ? "text-white" : "text-black"}`}
-          style={clientGlass(dark)}
-        >
-          <Scale size={15} style={{ color: MEASURE_BLUE }} /> Log body stats & photos
-        </button>
 
         <WhoopCard bodyMetrics={bodyMetrics} dark={dark} />
 

@@ -3664,6 +3664,14 @@ each lights exactly that muscle's outline (screenshots in the session).
   - The tab bar is Train Solo's: glass docked to the bottom edge (Train Solo's nav colours), 19px icons, capital 8.5px labels, and a lit blue dot under the current tab. The tabs and their actions are unchanged.
 - **Tests**: `src/client/clientSoloChrome251.test.jsx` checks the header logo is Train Solo's mark. It fails without the fix. All client tests pass.
 
+### 252. Coached client: body stats button under the goal; tight gap under Home's greeting (owner, 2026-11-16)
+
+- **Change**: the owner asked for "Log body stats & photos" to sit below "Set your main goal" on Progress, and for the big gap under Home's greeting to be fixed.
+- **Fix**:
+  - Progress: the button moved to straight after the goal card, before the muscle map.
+  - Home: the greeting block has `-mb-3`, so the next section sits about 8px below it instead of the page's full 20px.
+- **Tests**: `src/client/progressStatsUnderGoal252.test.jsx` checks the button is the goal's next sibling and that Home's top block is pulled up. Both fail without the change.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
