@@ -3650,6 +3650,12 @@ each lights exactly that muscle's outline (screenshots in the session).
   - Home's "Your weekly review" row shows only on Mondays (local day), once there's a session to review.
 - **Tests**: `src/client/clientLooksLikeSolo248.test.jsx` now pins a Monday for the layout tests, and a new case checks there's no row on a Tuesday, the row is there on a Monday, and the logo is 26px. The new case fails without the fix.
 
+### 250. Coached client Calendar: every card showed pink (owner, 2026-11-16)
+
+- **Problem**: after #248 made the calendar cards see-through glass, the red swipe-to-delete layer that always sat behind each card showed through, so every card looked pink.
+- **Fix** (`CalendarEventCard`): the red layer is rendered only while the card is being swiped (`swiping || swipeX !== 0`). The swipe, delete, drag and tap behaviour is unchanged.
+- **Tests**: `src/client/calendarCardNoPink250.test.jsx` checks there's no red layer at rest and that it appears once a swipe starts. It fails without the fix.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

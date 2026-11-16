@@ -8544,7 +8544,7 @@ function CheckInsScreen({ userId, showToast, openFeedbackId = null, onFeedbackOp
 // swipe-to-delete gesture on the same element would fight it. Every other
 // card (which for a real client is *every* card, since dragging is coach-only)
 // gets the swipe.
-function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onPointerDown, onPointerMove, onPointerUp, dragging, onDelete }) {
+export function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onPointerDown, onPointerMove, onPointerUp, dragging, onDelete }) {
   const dark = useClientDark();
   const [swipeX, setSwipeX] = useState(0);
   const [swiping, setSwiping] = useState(false);
@@ -8654,9 +8654,14 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
 
   return (
     <div ref={rowRef} className="relative overflow-hidden rounded-2xl">
-      <div className="absolute inset-0 bg-red-500 rounded-2xl flex items-center justify-end pr-4">
-        <Trash2 size={16} className="text-white" />
-      </div>
+      {/* #250: the cards are see-through glass (#248), so the red delete
+          layer only exists while the card is being swiped — otherwise it
+          showed through and every card looked pink. */}
+      {(swiping || swipeX !== 0) && (
+        <div className="absolute inset-0 bg-red-500 rounded-2xl flex items-center justify-end pr-4" data-testid="calendar-delete-layer">
+          <Trash2 size={16} className="text-white" />
+        </div>
+      )}
       {card}
     </div>
   );
