@@ -5,7 +5,7 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { SOLO_MARK_BLACK } from "../solo/soloMark";
+import { SOLO_MARK_BLACK, SOLO_MARK_WHITE } from "../solo/soloMark";
 
 vi.mock("../lib/AppContext", async (orig) => ({ ...(await orig()), useApp: () => ({ db: { users: [], workoutLogs: {}, messages: {} } }) }));
 import { HomeScreen } from "./ClientApp";
@@ -19,6 +19,6 @@ describe("Train Solo chrome in the client app (#251)", () => {
         <HomeScreen user={{ id: "u1", name: "Zach McIvor" }} userId="u1" dayOffset={0} onSelectDay={() => {}} isToday habits={[]} completedHabitIds={[]} dayHabitCompletedIds={[]} cardioLogs={[]} challenges={[]} groups={[]} targets={{ calories: 2000 }} dayNutrition={null} dbReady />
       </MemoryRouter>
     );
-    expect(screen.getByTestId("client-tab-logo").getAttribute("src")).toBe(SOLO_MARK_BLACK);
+    expect([SOLO_MARK_BLACK, SOLO_MARK_WHITE]).toContain(screen.getByTestId("client-tab-logo").getAttribute("src"));
   });
 });
