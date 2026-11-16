@@ -468,26 +468,9 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
           {greeting.replace("Morning", "morning").replace("Afternoon", "afternoon").replace("Evening", "evening")}, {user.name.split(" ")[0]}
         </p>
       </div>
-      <div className="flex items-center gap-2.5">
-        <button
-          onClick={onOpenNotifications}
-          className={`w-9 h-9 rounded-full flex items-center justify-center relative active:scale-95 transition-transform border ${
-            dark ? "border-white/15 bg-white/5" : "border-black/12 bg-white/70"
-          }`}
-        >
-          <Bell size={17} className={dark ? "text-white/80" : "text-black/80"} />
-          {notifCount > 0 && (
-            <span
-              className={`absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
-                dark ? "bg-white text-black" : "bg-black text-white"
-              }`}
-            >
-              {notifCount}
-            </span>
-          )}
-        </button>
-        <Avatar name={user.name} url={user.avatarUrl} size={36} onClick={onAvatarClick} dark={dark} />
-      </div>
+      {/* No bell or profile picture here (#254, owner): Profile is its own
+          tab, like Train Solo. They also stood taller than the greeting and
+          the weekly review's top line ran under them. */}
     </div>
   );
 }

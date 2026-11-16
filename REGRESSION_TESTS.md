@@ -3681,6 +3681,12 @@ each lights exactly that muscle's outline (screenshots in the session).
   - The home-made sheet is gone.
 - **Tests**: `src/client/clientLooksLikeSolo248.test.jsx`'s goal case now opens the full-screen page, picks "Complete 20 workouts" and taps "Set my goal". It fails on the old sheet. All Train Solo tests still pass.
 
+### 254. Coached client Home: no bell or profile picture; the line through the greeting (owner, 2026-11-16)
+
+- **Problem**: the owner asked for the notification bell and the profile picture to come off Home. They were also taller than the greeting row, and with #252's tighter gap the weekly review's top line ran under them.
+- **Fix**: Home's greeting row (`Header`) is now just the greeting, as in Train Solo. Profile stays its own tab. With the row only text-high, the weekly review's line sits below it again.
+- **Tests**: `src/client/homeHeaderNoButtons254.test.jsx` checks the greeting row has no buttons and no notification count. It fails without the fix.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
