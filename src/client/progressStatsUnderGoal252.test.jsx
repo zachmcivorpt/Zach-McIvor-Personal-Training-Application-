@@ -29,6 +29,7 @@ describe("#252", () => {
         <HomeScreen user={{ id: "u1", name: "Zach McIvor" }} userId="u1" dayOffset={0} onSelectDay={() => {}} isToday habits={[]} completedHabitIds={[]} dayHabitCompletedIds={[]} cardioLogs={[]} challenges={[]} groups={[]} targets={{ calories: 2000 }} dayNutrition={null} dbReady />
       </MemoryRouter>
     );
-    expect(screen.getByTestId("home-top").className).toMatch(/-mb-3/);
+    // #257: only a small pull (-mb-2) so the weekly review line stays clear of the logo.
+    expect(screen.getByTestId("home-top").className).toMatch(/-mb-2/);
   });
 });

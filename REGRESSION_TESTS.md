@@ -3726,6 +3726,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 
   It fails without the change. The #248 and #254 tests are updated for the greeting being removed.
 
+### 257. Coached client Home: weekly review line through the logo; rows too far apart (owner, 2026-11-16)
+
+- **Problem**: with the greeting gone (#256), the logo block's `-mb-3` pulled the weekly review row up, so its top line ran through the logo. The row's padding also left its two lines far apart.
+- **Fix**: the logo block now pulls up only a little (`-mb-2`), so the line sits clear below the logo. The review row is `py-2` (was `py-3`), so its lines are tighter with even spacing around the text.
+- **Tests**: `src/client/homeReviewSpacing257.test.jsx` checks the logo block isn't pulled in by `-mb-3` and the row is `py-2`. It fails without the fix. The #252 test is updated.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
