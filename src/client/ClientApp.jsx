@@ -1411,6 +1411,8 @@ export function HomeScreen({
   onWatchFeedback,
   reviewData = null,
   onCheckIn,
+  weekDot = () => null,
+  phaseLabel = "",
 }) {
   const dark = useClientDark();
   // #218: a past day on Home offers the same "Log a cardio session" as today's Training tab.
@@ -1426,10 +1428,9 @@ export function HomeScreen({
   const line = dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
   return (
     <div className="pb-28 space-y-5">
-      {/* -mb-3 (#252, owner): a tight gap under the greeting, not the page's full 20px. */}
+      {/* No greeting (#256, owner): the logo, then straight into the day, as in Train Solo. */}
       <div className="-mb-3" data-testid="home-top">
         <TabHeader label="Home" dark={dark} />
-        <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
       </div>
       {hasReview && (
         <div className="px-2.5">
@@ -1453,12 +1454,7 @@ export function HomeScreen({
           )}
         </div>
       )}
-      <div>
-        <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
-        <p className={`px-2.5 mt-4 text-[16px] font-bold ${dark ? "text-white" : "text-black"}`} data-testid="home-day-heading">
-          {dayHeading}
-        </p>
-      </div>
+      <ClientWeekStrip dayOffset={dayOffset} onSelect={onSelectDay} heading={dayHeading} dotFor={weekDot} dark={dark} />
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && feedbackReady && (
         <button
@@ -1475,8 +1471,9 @@ export function HomeScreen({
           </span>
         </button>
       )}
-      <TodayWorkoutCard
-        todaySession={daySession}
+      <ClientSessionHero
+        session={daySession}
+        subtitle={phaseLabel}
         activeLog={activeLog}
         onStart={onStartWorkout}
         onDiscard={onDiscardWorkout}
@@ -1485,8 +1482,7 @@ export function HomeScreen({
         completedOnDate={completedOnDate}
         isPastDate={dayOffset < 0}
         dbReady={dbReady}
-        fullWidth
-        photo
+        dark={dark}
       />
       {isToday && bodyStatsDueToday && (
         // Train Solo's day-plan row (#248): the check-in right under the session.
@@ -1531,6 +1527,182 @@ export function HomeScreen({
       />
       <ClientGroupsCard groups={groups} onOpen={onOpenGroup} />
       <ActiveChallengesCard challenges={challenges} userId={userId} />
+    </div>
+  );
+}
+
+// Train Solo's week strip (#256, owner: "exactly the same"), copied from
+// SoloMyTrainingScreen's WeekStrip: the day heading with Today and the
+// week arrows, then one glass box Monday to Sunday, the weekday letter,
+// the chosen day ringed, a lit blue dot under a training day (a tick
+// once it's done). The client app's own day offsets drive it.
+const WEEK_GLASS = {
+  dark: { bg: "rgba(28,28,30,0.55)", border: "rgba(255,255,255,0.1)", text: "#FFFFFF", faint: "rgba(255,255,255,0.35)" },
+  light: { bg: "rgba(255,255,255,0.62)", border: "rgba(20,19,15,0.08)", text: "#14130F", faint: "rgba(20,19,15,0.35)" },
+};
+function ClientWeekStrip({ dayOffset, onSelect, heading, dotFor, dark }) {
+  const t = WEEK_GLASS[dark ? "dark" : "light"];
+  const glass = { backgroundColor: t.bg, border: `1px solid ${t.border}`, backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
+  const selected = dateForOffset(dayOffset);
+  const mondayOffset = dayOffset - ((selected.getDay() + 6) % 7);
+  const offsets = Array.from({ length: 7 }, (_, i) => mondayOffset + i);
+  const showToday = dayOffset !== 0;
+  return (
+    <div className="px-2.5" style={{ color: t.text }} data-testid="client-week-strip">
+      <div className="flex items-center justify-between mb-2.5">
+        <p className="text-sm font-semibold" data-testid="home-day-heading">{heading}</p>
+        <div className="flex items-center gap-1.5">
+          {showToday && (
+            <button type="button" onClick={() => onSelect(0)} className="text-xs font-semibold px-3 h-7 rounded-full" style={{ ...glass, color: MEASURE_BLUE }}>
+              Today
+            </button>
+          )}
+          <button type="button" aria-label="Previous week" onClick={() => onSelect(dayOffset - 7)} className="w-7 h-7 rounded-full flex items-center justify-center" style={glass}>
+            <ChevronLeft size={14} />
+          </button>
+          <button type="button" aria-label="Next week" onClick={() => onSelect(dayOffset + 7)} className="w-7 h-7 rounded-full flex items-center justify-center" style={glass}>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+      <div className="rounded-2xl grid grid-cols-7 p-1.5" style={glass}>
+        {offsets.map((offset) => {
+          const d = dateForOffset(offset);
+          const key = localDateKey(d);
+          const dot = dotFor(key);
+          const isSel = offset === dayOffset;
+          const isToday = offset === 0;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onSelect(offset)}
+              aria-label={d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
+              aria-pressed={isSel}
+              className="flex flex-col items-center py-1.5 rounded-xl"
+            >
+              <span className="text-[10px] font-bold uppercase" style={{ color: isToday ? MEASURE_BLUE : t.faint }}>
+                {d.toLocaleDateString(undefined, { weekday: "narrow" })}
+              </span>
+              <span
+                className="w-8 h-8 mt-0.5 rounded-full flex items-center justify-center text-[16px] font-extrabold tabular-nums"
+                style={{
+                  color: isToday && !isSel ? MEASURE_BLUE : t.text,
+                  border: `1.5px solid ${isSel ? t.text : "transparent"}`,
+                  boxShadow: isSel && dark ? "0 0 12px rgba(255,255,255,0.4)" : "none",
+                }}
+              >
+                {d.getDate()}
+              </span>
+              <span className="h-3 mt-0.5 flex items-center" data-dot={dot || undefined}>
+                {dot === "done" ? (
+                  <CheckCircle2 size={10} color={MEASURE_BLUE} />
+                ) : dot === "planned" ? (
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: MEASURE_BLUE, boxShadow: `0 0 6px ${MEASURE_BLUE}` }} />
+                ) : null}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Train Solo's session card (#256), copied from SoloMyTrainingScreen's
+// SessionHero: the gym photo, the program/week in blue capitals, the
+// session name large in capitals, the exercise count, and the lit ring
+// Start. Same taps as the old card: Start / Resume, View when done or on
+// another day.
+function ClientSessionHero({ session, subtitle, activeLog, onStart, onDiscard, onView, isToday, completedOnDate, isPastDate, dbReady, dark }) {
+  const t = WEEK_GLASS[dark ? "dark" : "light"];
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  if (!session) {
+    return (
+      <div className="mx-2.5 rounded-3xl px-5 py-8 text-center" style={{ backgroundColor: t.bg, border: `1px solid ${t.border}`, color: t.text }}>
+        <p className="text-lg font-extrabold">{dbReady ? "Rest day" : "Loading your schedule…"}</p>
+        {dbReady && <p className="text-sm mt-1" style={{ color: t.faint }}>Nothing scheduled — recover and come back fresh.</p>}
+      </div>
+    );
+  }
+  const light = !dark;
+  const ink = light ? "#0A0A0B" : "#FFFFFF";
+  const exercises = countExercises(session.exercises);
+  const started = isToday && !!activeLog && !completedOnDate;
+  const done = completedOnDate && !started;
+  const canStart = isToday && !done;
+  const onTap = canStart ? onStart : onView;
+  return (
+    <div className="mx-2.5">
+      <button
+        type="button"
+        onClick={onTap}
+        className="relative w-full overflow-hidden rounded-[26px] text-left"
+        style={{ minHeight: 236, border: `1px solid ${done ? t.border : "rgba(47,143,255,0.45)"}`, color: ink }}
+        data-testid="client-session-hero"
+      >
+        <img
+          src="/brand/gym-dark.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ filter: light ? "grayscale(1) brightness(1.35) contrast(0.9)" : "grayscale(1) brightness(0.6) contrast(1.1)", opacity: light ? 0.55 : 1 }}
+        />
+        <span
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{ background: light ? "linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.92) 78%)" : "linear-gradient(180deg, rgba(5,5,6,0.15) 0%, rgba(5,5,6,0.92) 78%)" }}
+        />
+        <span className="relative flex items-end justify-between gap-3 p-4 pt-24">
+          <span className="min-w-0">
+            {subtitle && (
+              <span className="block text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: MEASURE_BLUE }}>
+                {subtitle}
+              </span>
+            )}
+            <span className="block text-[26px] font-extrabold uppercase leading-none mt-1.5 truncate">{session.label}</span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.12em] mt-2" style={{ color: light ? "rgba(10,10,11,0.55)" : "rgba(255,255,255,0.6)" }}>
+              {exercises > 0 ? `${exercises} exercise${exercises === 1 ? "" : "s"}` : ""}
+            </span>
+          </span>
+          {done ? (
+            <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-[0.1em] shrink-0" style={{ color: MEASURE_BLUE }}>
+              <CheckCircle2 size={15} /> Done
+              <ChevronRight size={14} />
+            </span>
+          ) : canStart ? (
+            <span className="relative w-[74px] h-[74px] shrink-0 flex flex-col items-center justify-center" style={{ filter: light ? "none" : "drop-shadow(0 0 10px rgba(255,255,255,0.5))" }}>
+              <svg aria-hidden="true" viewBox="0 0 86 86" className="absolute inset-0 w-full h-full" style={{ color: ink }}>
+                <circle cx="43" cy="43" r="38" fill="none" stroke="currentColor" strokeOpacity=".25" strokeWidth="1" />
+                <path d="M43 5 A38 38 0 0 1 81 43" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                <path d="M43 81 A38 38 0 0 1 5 43" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                <circle cx="43" cy="43" r="30" fill="none" stroke="currentColor" strokeOpacity=".5" strokeWidth="1" strokeDasharray="2 5" />
+              </svg>
+              <Play size={14} fill="currentColor" />
+              <span className="text-[8px] font-bold uppercase tracking-[0.14em] mt-1">{started ? "Resume" : "Start"}</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.12em] shrink-0" style={{ color: isPastDate ? t.faint : MEASURE_BLUE }}>
+              {isPastDate ? "Missed" : "View"} <ChevronRight size={14} />
+            </span>
+          )}
+        </span>
+      </button>
+      {started && onDiscard && (
+        <button
+          type="button"
+          onClick={() => {
+            if (confirmDiscard) {
+              onDiscard();
+              setConfirmDiscard(false);
+            } else setConfirmDiscard(true);
+          }}
+          className="w-full text-center text-[11px] font-medium mt-2"
+          style={{ color: t.faint }}
+        >
+          {confirmDiscard ? "Tap again to discard these sets" : "Not started this — discard progress"}
+        </button>
+      )}
     </div>
   );
 }
@@ -10392,6 +10564,13 @@ export default function ClientApp() {
             onOpenGroup={setOpenGroupId}
             feedbackReady={unwatchedFeedback}
             onWatchFeedback={() => unwatchedFeedback && watchFeedback(unwatchedFeedback.id)}
+            weekDot={(key) => (isDateActuallyCompleted(key, logsForClient) ? "done" : scheduledWorkoutsByDate[key] ? "planned" : null)}
+            phaseLabel={(() => {
+              const ph = getCurrentPhase(clientPhasesForReview, localDateKey(new Date()));
+              if (!ph) return "";
+              const wk = ph.startDate ? Math.floor((Date.now() - new Date(`${ph.startDate}T00:00:00`).getTime()) / (7 * 86400000)) + 1 : null;
+              return wk && wk > 0 ? `${ph.name} · Week ${wk}` : ph.name;
+            })()}
             reviewData={weeklyReviewData}
             onCheckIn={() => setTab("checkins")}
           />

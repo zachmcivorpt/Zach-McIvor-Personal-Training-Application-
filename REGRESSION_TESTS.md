@@ -3700,6 +3700,32 @@ each lights exactly that muscle's outline (screenshots in the session).
   - Sign out, the legal links and Delete account are unchanged, and every row does what it did.
 - **Tests**: `src/client/clientProfileLikeSolo255.test.jsx` checks the capital name, the totals (2 sessions, 1,600 kg), the two section labels, and that Black / White switches the theme. It fails without the change.
 
+### 256. Coached client Home: Train Solo's week strip and session card, exactly; no greeting (owner, 2026-11-16)
+
+- **Problem**: the owner put Train Solo's My Training next to the client Home and they didn't match.
+  - The client's week strip had full weekday names, no glass box, no training-day dots and no week arrows.
+  - The session card was the old photo card ("Completed" pill, View button).
+  - Home still had the greeting.
+- **Fix** (copies of Train Solo's own components, in the client app):
+  - The greeting is gone: Home opens with the logo.
+  - `ClientWeekStrip` is Train Solo's `WeekStrip`:
+    - the day heading ("Today, 16th November") with a Today button and the previous/next week arrows
+    - one glass box Monday to Sunday with weekday letters (today's in blue)
+    - the chosen day ringed (and lit in black), and a lit blue dot under a training day, or a blue tick once it's done
+    - the dots come from the client's scheduled and completed workouts
+  - `ClientSessionHero` is Train Solo's `SessionHero`:
+    - the gym photo with the current phase and week in blue capitals, the session name in capitals and the exercise count
+    - the lit ring Start (Resume mid-workout), "Done" with a tick once completed, and "View" / "Missed" on other days
+    - "discard progress" stays under the card mid-workout
+  - A day with nothing on it shows Train Solo's "Rest day".
+- **Tests**: `src/client/homeWeekLikeSolo256.test.jsx` checks four things:
+  - there's no greeting
+  - the strip has 7 days in one box, the chosen day is ringed and a dot sits under the training day
+  - Next week moves 7 days
+  - the card shows the phase line, the name, the exercise count and Start, and tapping it starts the workout
+
+  It fails without the change. The #248 and #254 tests are updated for the greeting being removed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
