@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTextEntryFocused } from "../lib/textEntryFocus";
 import { useNavigate } from "react-router-dom";
-import { useApp } from "../lib/AppContext";
+import { useApp, peekViewAsReturn, clearViewAsReturn } from "../lib/AppContext";
 import { disablePush } from "../lib/push";
 import { Logo, Toast, Avatar, BottomSheet, CardSurfaceContext } from "../components/ui";
 import { CoachGlass, GLASS, GLASS_BLUE, JARVIS_BACKDROP } from "./darkUI";
@@ -94,7 +94,10 @@ const TAB_BAR_BOTTOM = "max(calc(env(safe-area-inset-bottom) - 14px), 4px)";
 export default function CoachShell() {
   const { currentUser, logout, db, markNotificationRead, markAllNotificationsRead } = useApp();
   const navigate = useNavigate();
-  const [tab, setTab] = useState("dashboard");
+  // Back from View as Client (#247): straight to the client page (and tab)
+  // the coach left from, never a fresh Overview.
+  const [viewAsReturn] = useState(() => peekViewAsReturn(currentUser?.id));
+  const [tab, setTab] = useState(viewAsReturn?.clientId || viewAsReturn?.tab === "clients" ? "clients" : "dashboard");
   const typing = useTextEntryFocused();
   const [clientSearch, setClientSearch] = useState("");
   const [toast, setToast] = useState({ show: false, message: "" });
@@ -102,12 +105,26 @@ export default function CoachShell() {
   // Set when something outside the Clients tab (e.g. "Review Client" on an
   // APEX Insight) needs to jump straight into one specific client's detail
   // view rather than just landing on the roster list.
-  const [pendingClientId, setPendingClientId] = useState(null);
+  const [pendingClientId, setPendingClientId] = useState(viewAsReturn?.clientId || null);
   // Mirrors CoachClients.jsx's own openClient(id, action) — set when a
   // caller outside the Clients tab (e.g. Recent Activity's "body stats
   // logged" row) needs to land on one specific sub-tab, like Progress,
   // instead of always landing on Summary.
-  const [pendingClientAction, setPendingClientAction] = useState(null);
+  const [pendingClientAction, setPendingClientAction] = useState(viewAsReturn?.clientTab ? { tab: viewAsReturn.clientTab } : null);
+  useEffect(() => {
+    if (viewAsReturn) clearViewAsReturn();
+  }, [viewAsReturn]);
+  // The client app's code loads in the background once the console is idle
+  // (#247), so View as Client opens without a loading screen.
+  useEffect(() => {
+    const load = () => import("../client/ClientApp").catch(() => {});
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(load, { timeout: 4000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const t = setTimeout(load, 2500);
+    return () => clearTimeout(t);
+  }, []);
 
   function openClient(clientId, action = null) {
     setPendingClientId(clientId);

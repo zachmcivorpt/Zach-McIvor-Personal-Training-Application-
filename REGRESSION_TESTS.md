@@ -3610,6 +3610,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `WorkoutLogCard` (`src/coach/CoachClientDetail.jsx`) remembers the text it sent (`sentNoteText`); "Sent" is for that exact text (or the chat already holding it), so an edited note can be sent again.
 - **Tests**: `src/coach/workoutNoteResend246.test.jsx` (send, edit, Send is available again and sends the new text); fails on the old code. #215's tests still pass. Full suite passed; build clean.
 
+### 247. Back from View as Client is instant: straight to the client page you left (owner, 2026-11-16)
+
+- **Problem**: leaving View as Client always restarted the coach console on Overview (rebuilt from scratch, then a tab fade), so every "back" looked like a slow reload, and the coach had to find the client again. Going into View as Client also waited on the client app's code the first time.
+- **Fix**: `startViewAsClient(clientId, date, returnTo)` keeps where the coach started (`apexViewAsReturn`, coach uid-checked): the client page and its tab, or the client list. `CoachShell` opens there when it mounts and clears it. The console preloads the client app's code when idle (`requestIdleCallback`), so View as Client opens without a loading screen.
+- **Tests**: `src/coach/viewAsReturn247.test.jsx` (4): back to the client page + tab, back to the list, normal open still Overview, preload present; 3 fail on the old code. #190's test mock gained the two helpers. Full suite passed; build clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

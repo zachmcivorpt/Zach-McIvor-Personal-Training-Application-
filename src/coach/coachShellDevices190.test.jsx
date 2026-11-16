@@ -14,6 +14,8 @@ vi.mock("react-router-dom", () => ({ useNavigate: () => vi.fn() }));
 vi.mock("../lib/push", () => ({ disablePush: vi.fn() }));
 // Real-shaped db (#167): per-client lists are grouped by client id.
 vi.mock("../lib/AppContext", () => ({
+  peekViewAsReturn: () => null,
+  clearViewAsReturn: () => {},
   useApp: () => ({
     currentUser: { id: "coach", name: "Zach McIvor", role: "coach" },
     logout: vi.fn(),

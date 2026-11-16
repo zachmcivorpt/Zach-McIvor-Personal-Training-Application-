@@ -1893,7 +1893,7 @@ function CalendarPanel({ client, showToast }) {
           // Push Day) the date alone made the client app guess, and "Edit"
           // on the Push session opened a fresh Pull Day instead, saving the
           // push numbers under the wrong name.
-          startViewAsClient(client.id, { date: selectedDate, logId: item?.log?.id || null, label: item?.label || null });
+          startViewAsClient(client.id, { date: selectedDate, logId: item?.log?.id || null, label: item?.label || null }, { clientId: client.id, clientTab: "calendar" });
           navigate("/app");
           setSelectedDate(null);
         }}
@@ -6039,7 +6039,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
           )}
           <button
             onClick={() => {
-              startViewAsClient(client.id);
+              startViewAsClient(client.id, null, { clientId: client.id, clientTab });
               navigate("/app");
             }}
             className="w-full mt-2 flex items-center justify-center gap-2 text-white text-xs font-bold tracking-[0.06em] uppercase py-2.5 rounded-xl"
@@ -6137,7 +6137,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
           </div>
           <button
             onClick={() => {
-              startViewAsClient(client.id);
+              startViewAsClient(client.id, null, { clientId: client.id, clientTab });
               navigate("/app");
             }}
             aria-label="View as client"

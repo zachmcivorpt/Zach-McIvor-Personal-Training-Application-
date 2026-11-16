@@ -591,7 +591,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => {
-                          startViewAsClient(c.id);
+                          startViewAsClient(c.id, null, { tab: "clients" });
                           navigate("/app");
                         }}
                         title="Browse and act in the app exactly as this client — works even before they've activated"
@@ -656,7 +656,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    startViewAsClient(c.id);
+                    startViewAsClient(c.id, null, { tab: "clients" });
                     navigate("/app");
                   }}
                   title="Browse and act in the app exactly as this client — works even before they've activated"

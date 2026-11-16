@@ -955,6 +955,7 @@ any Train Solo work from now on:
   client page is opened in a browser before it ships.
 
 - **Swap in View as Client** (#231): full-screen picker, then "Swap in training phase" / "This session only"; phase swaps go through `planPhaseSwap` (phase days + its scheduled days from this day on, never logs). Real clients keep the old sheet.
+- **Back from View as Client** (#247): returns to the client page/tab (or list) it started from via `startViewAsClient(..., returnTo)` → `peekViewAsReturn` in CoachShell; never a fresh Overview. CoachShell preloads ClientApp when idle.
 - **View as Client survives a reload** (#230): kept on the phone (`VIEW_AS_KEY`, coach uid-checked), cleared by `stopViewAsClient` / logout. Never hold it only in React state.
 
 - Subscribe a collection only for the roles firestore.rules lets read
