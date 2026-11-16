@@ -683,5 +683,9 @@ service cloud.firestore {
     match /soloPartnerPushes/{id} {
       allow read, write: if false;
     }
+    // soloComebackPushes (#244): the server's record of comeback pushes sent.
+    match /soloComebackPushes/{id} {
+      allow read, write: if false;
+    }
   }
 }
