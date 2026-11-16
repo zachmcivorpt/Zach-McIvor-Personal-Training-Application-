@@ -1429,8 +1429,10 @@ export function HomeScreen({
   return (
     <div className="pb-28 space-y-5">
       {/* No greeting (#256, owner): the logo, then straight into the day, as in Train Solo. */}
-      {/* #257: no negative margin — it pulled the weekly review's top line up through the logo. */}
-      <div className="-mb-2" data-testid="home-top">
+      {/* #257/#258: the page's space-y gap is a bottom margin on this block,
+          so any negative margin here pulled the weekly review's line up
+          through the logo. A plain 8px gap instead. */}
+      <div className="!mb-2" data-testid="home-top">
         <TabHeader label="Home" dark={dark} />
       </div>
       {hasReview && (

@@ -24,7 +24,7 @@ describe("#257", () => {
         <HomeScreen user={{ id: "u1", name: "Zach" }} userId="u1" dayOffset={0} onSelectDay={() => {}} isToday habits={[]} completedHabitIds={[]} dayHabitCompletedIds={[]} cardioLogs={[]} challenges={[]} groups={[]} targets={{ calories: 2000 }} dayNutrition={null} dbReady reviewData={{ workoutLogs: [{ id: "a", date: Date.now(), entries: [] }] }} />
       </MemoryRouter>
     );
-    expect(screen.getByTestId("home-top").className).not.toMatch(/-mb-3/);
+    expect(screen.getByTestId("home-top").className).not.toMatch(/-mb-/);
     expect(screen.getByTestId("home-weekly-review").className).toMatch(/\bpy-2\b/);
   });
 });

@@ -59,7 +59,7 @@ rather than inventing new colors per screen:
 - Lists are open rows with thin dividers (a darker top rule), not cards.
 - **Reads like Train Solo** (#248, owner):
   - Every tab's `TabHeader` is Train Solo's: Train Solo's own mark (`SOLO_MARK_*`, never the uploaded logo, #251) centred (26px, #249), no visible title, with a tight gap to the greeting. The tab bar is Train Solo's (capital labels, blue dot, #251).
-  - Home order (#256: no greeting at all): the logo (never a negative margin pulling the next line into it, #257), "Your weekly review" row (Mondays only, #249), week strip (selected day ringed), day heading, session, Body Stats Check-in, nutrition, then the rest.
+  - Home order (#256: no greeting at all): the logo (an 8px `!mb-2` gap below it — never a negative margin: space-y is a bottom margin on that block, #257/#258), "Your weekly review" row (Mondays only, #249), week strip (selected day ringed), day heading, session, Body Stats Check-in, nutrition, then the rest.
   - Home's week strip and session card are copies of Train Solo's `WeekStrip` / `SessionHero` (`ClientWeekStrip`, `ClientSessionHero`, #256): keep them in step with Train Solo's whenever those change.
   - Calendar days use Train Solo's ringed date figure and glass cards with one blue tick. Anything behind a see-through card (like the red swipe-delete layer) exists only while it is in use (#250), or it tints the card.
   - Progress opens with the main goal (tapping it opens Train Solo's own goal page, `GoalPicker`, full screen, #253; never a client-only copy), then "Log body stats & photos" (#252) (`ClientGoal.jsx`, Train Solo's `goals.js` maths, saved as the client's `goal`), then the muscle map.

@@ -3732,6 +3732,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: the logo block now pulls up only a little (`-mb-2`), so the line sits clear below the logo. The review row is `py-2` (was `py-3`), so its lines are tighter with even spacing around the text.
 - **Tests**: `src/client/homeReviewSpacing257.test.jsx` checks the logo block isn't pulled in by `-mb-3` and the row is `py-2`. It fails without the fix. The #252 test is updated.
 
+### 258. Coached client Home: the line still ran through the logo after #257 (2026-11-16)
+
+- **Problem**: in a real browser, #257's `-mb-2` still put the weekly review's top line through the logo.
+- **Cause**: the page's `space-y-5` gap is applied as a bottom margin on the logo block itself, so the class replaced the gap instead of trimming it. A negative margin put the line 8px *above* the block's bottom.
+- **Fix**: `!mb-2`, a plain 8px gap below the logo, with no negative margin.
+- **Checks**: rendered at 390px in Chromium; the line now sits clear below the logo. The #252/#257 tests check for `!mb-2` and no negative margin.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
