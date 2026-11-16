@@ -290,6 +290,24 @@ function writeViewAs(v) {
     // Storage unavailable: View as Client just won't survive a reload.
   }
 }
+// Where the coach goes back to after View as Client (#247): the client page
+// (and its tab) they started from, so leaving is instant instead of a fresh
+// Overview. Kept on the phone (the console is a separate screen), read by
+// CoachShell when it opens, then cleared.
+export const VIEW_AS_RETURN_KEY = "apexViewAsReturn";
+export function peekViewAsReturn(coachUid) {
+  try {
+    const v = JSON.parse(localStorage.getItem(VIEW_AS_RETURN_KEY) || "null");
+    return v && v.coachUid === coachUid ? v : null;
+  } catch {
+    return null;
+  }
+}
+export function clearViewAsReturn() {
+  try {
+    localStorage.removeItem(VIEW_AS_RETURN_KEY);
+  } catch {}
+}
 function writeCachedProfile(profile) {
   try {
     if (profile) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
@@ -2887,8 +2905,12 @@ export function AppProvider({ children }) {
     currentUser,
     realUser: profile,
     viewingAsClient: !!viewAsClientId,
-    startViewAsClient: (clientId, date) => {
+    startViewAsClient: (clientId, date, returnTo) => {
       setViewAsClientId(clientId);
+      try {
+        if (returnTo && profile?.id) localStorage.setItem(VIEW_AS_RETURN_KEY, JSON.stringify({ coachUid: profile.id, ...returnTo }));
+        else localStorage.removeItem(VIEW_AS_RETURN_KEY);
+      } catch {}
       writeViewAs(profile?.id ? { coachUid: profile.id, clientId } : null);
       setPendingCoachDate(date || null);
     },

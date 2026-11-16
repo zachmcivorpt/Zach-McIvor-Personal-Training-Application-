@@ -811,7 +811,7 @@ any Train Solo work from now on:
 - **Client page is portalled** (#217): `CoachClientDetail` renders into `document.body` (createPortal) so it covers the console's bars on iPhone; full-screen coach overlays must do the same. The console tab bar's bottom inset is `TAB_BAR_BOTTOM`.
 - **Glass shell**: the client page (`CoachClientDetail`) is a glass HUD. It uses the `JARVIS_BACKDROP` page, and `CoachGlass` makes every `DarkPanel` inside it glass. Use `GlassButton` / `GLASS` / `GLASS_BLUE` (darkUI.jsx) for its buttons, never solid white or solid blue blocks. No yellow or orange, and no colour emoji: lucide line icons only.
 - **One-tap actions**: the Training tab's "Needs you" comes only from `needsYouItems` (`src/coach/needsYou.js`, the client's own logs plus `computePlateaus`), with one action each. Add new items there.
-- **Workout notes** (#215) are private until the coach taps Send to client (or Save & send), which posts a normal chat message. "Sent" is read from the chat, never stored on the note.
+- **Workout notes** (#215) are private until the coach taps Send to client (or Save & send), which posts a normal chat message. "Sent" is read from the chat, never stored on the note, and is for the exact text sent: an edited note can be sent again (#246).
 - **Coach pop-ups over dark content** (#214) are `BottomSheet dark surface={SHEET_GLASS}`: super-transparent dark glass. Never put white-text glass content in a light sheet: it reads white on white.
 - **Library > Programs** (#213): it opens on program cards (`ProgramCardsGrid`), black glass with a glassy white `ApexMarkSvg` and no photos, with level filters and search. A card opens the program detail full width, with "All programs" to go back. Never go back to the cramped list + detail frame.
 - **Calendar tab** (#224, owner): no "Recent Training Load" card, for any client; it opens on the month's adherence. Don't bring it back.
@@ -955,6 +955,7 @@ any Train Solo work from now on:
   client page is opened in a browser before it ships.
 
 - **Swap in View as Client** (#231): full-screen picker, then "Swap in training phase" / "This session only"; phase swaps go through `planPhaseSwap` (phase days + its scheduled days from this day on, never logs). Real clients keep the old sheet.
+- **Back from View as Client** (#247): returns to the client page/tab (or list) it started from via `startViewAsClient(..., returnTo)` → `peekViewAsReturn` in CoachShell; never a fresh Overview. CoachShell preloads ClientApp when idle.
 - **View as Client survives a reload** (#230): kept on the phone (`VIEW_AS_KEY`, coach uid-checked), cleared by `stopViewAsClient` / logout. Never hold it only in React state.
 
 - Subscribe a collection only for the roles firestore.rules lets read
