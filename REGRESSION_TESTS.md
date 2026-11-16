@@ -3687,6 +3687,19 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: Home's greeting row (`Header`) is now just the greeting, as in Train Solo. Profile stays its own tab. With the row only text-high, the weekly review's line sits below it again.
 - **Tests**: `src/client/homeHeaderNoButtons254.test.jsx` checks the greeting row has no buttons and no notification count. It fails without the fix.
 
+### 255. Coached client Profile looks like Train Solo's (owner, 2026-11-16)
+
+- **Change**: the owner asked for the coached client's Profile to look like Train Solo's Profile.
+- **Fix** (`ProfileScreen`):
+  - The header gets Train Solo's moon/sun button.
+  - The picture sits in Train Solo's ring, still tappable to change it, with the name large in capitals and level · email under it.
+  - Two glass tiles show Sessions logged and Kg lifted (full kg, from their own logs).
+  - Appearance is Black / White pills between thin rules.
+  - Messages, Check-ins and Quick Tips are one glass list under "Your coach", with blue badges.
+  - Goals, Equipment, preferences, Notifications, Push and Connected devices are one glass list under "Settings".
+  - Sign out, the legal links and Delete account are unchanged, and every row does what it did.
+- **Tests**: `src/client/clientProfileLikeSolo255.test.jsx` checks the capital name, the totals (2 sessions, 1,600 kg), the two section labels, and that Black / White switches the theme. It fails without the change.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -62,6 +62,7 @@ rather than inventing new colors per screen:
   - Home order: smaller greeting (just the greeting: no bell or profile picture, #254), "Your weekly review" row (Mondays only, #249), week strip (selected day ringed), day heading, session, Body Stats Check-in, nutrition, then the rest.
   - Calendar days use Train Solo's ringed date figure and glass cards with one blue tick. Anything behind a see-through card (like the red swipe-delete layer) exists only while it is in use (#250), or it tints the card.
   - Progress opens with the main goal (tapping it opens Train Solo's own goal page, `GoalPicker`, full screen, #253; never a client-only copy), then "Log body stats & photos" (#252) (`ClientGoal.jsx`, Train Solo's `goals.js` maths, saved as the client's `goal`), then the muscle map.
+  - Profile (#255) is Train Solo's layout: ringed picture, the name in capitals, Sessions logged / Kg lifted tiles, Black / White, then "Your coach" and "Settings" glass lists.
   - Don't add Train Solo's own add-ons (Team week, insights, water card) here.
 - Daily Execution is open on the page; Nutrition is a solid card (no
   glass). Avoid a title that changes length over a backdrop-filter
