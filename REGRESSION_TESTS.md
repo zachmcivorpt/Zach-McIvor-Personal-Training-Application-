@@ -3656,6 +3656,14 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix** (`CalendarEventCard`): the red layer is rendered only while the card is being swiped (`swiping || swipeX !== 0`). The swipe, delete, drag and tap behaviour is unchanged.
 - **Tests**: `src/client/calendarCardNoPink250.test.jsx` checks there's no red layer at rest and that it appears once a swipe starts. It fails without the fix.
 
+### 251. Coached client app: Train Solo's own logo and tab bar (owner, 2026-11-16)
+
+- **Problem**: the owner wanted the client app exactly like Train Solo. The header showed the coach's uploaded logo (an "M") instead of Train Solo's APEX mark, and the bottom bar was the old one.
+- **Fix**:
+  - `TabHeader` draws Train Solo's own mark (`SOLO_MARK_WHITE` / `SOLO_MARK_BLACK`, soloMark.js) at 26px. The coach's uploaded logo is no longer used there.
+  - The tab bar is Train Solo's: glass docked to the bottom edge (Train Solo's nav colours), 19px icons, capital 8.5px labels, and a lit blue dot under the current tab. The tabs and their actions are unchanged.
+- **Tests**: `src/client/clientSoloChrome251.test.jsx` checks the header logo is Train Solo's mark. It fails without the fix. All client tests pass.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
