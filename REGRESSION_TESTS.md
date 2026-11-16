@@ -3616,6 +3616,32 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `startViewAsClient(clientId, date, returnTo)` keeps where the coach started (`apexViewAsReturn`, coach uid-checked): the client page and its tab, or the client list. `CoachShell` opens there when it mounts and clears it. The console preloads the client app's code when idle (`requestIdleCallback`), so View as Client opens without a loading screen.
 - **Tests**: `src/coach/viewAsReturn247.test.jsx` (4): back to the client page + tab, back to the list, normal open still Overview, preload present; 3 fail on the old code. #190's test mock gained the two helpers. Full suite passed; build clean.
 
+### 248. Coached client app: Home, Calendar and Progress look like Train Solo (owner, 2026-11-16)
+
+- **Change**: the owner asked for the coached client app's Home to look exactly like Train Solo's My Training, without Train Solo's add-ons, with Nutrition following the same flow, the Calendar the same as Train Solo's, and Progress the same, including "Set your main goal" at the top. Minimal changes, coached client app only.
+- **Every tab header** (`TabHeader`): it is now Train Solo's: the APEX mark centred and lit, 18px, with no visible title (kept for screen readers) and an optional line plus a right-hand action under it.
+- **Home**: the order is now:
+  - a smaller greeting ("Good evening, Zach", 15px, smaller bell and avatar)
+  - "Your weekly review" as an open row on top (opens the latest week, through `WeeklyReviewsSection openLatest`), shown once they have logged a session
+  - the week strip with the selected day ringed and lit and today in blue
+  - the day heading ("Today, 16th November")
+  - the session
+  - the Body Stats Check-in row when it's due
+  - nutrition
+  - cardio, habits, groups and challenges
+- **Calendar**: Train Solo's header line ("Hold a workout and drag it to another day to move it." plus Today). Each day header is a large date figure, with today ringed in blue, and an uppercase label. Cards are glass with one blue tick circle, and done items are struck through. Drag, swipe-to-delete and taps are unchanged.
+- **Progress**:
+  - It opens with the main goal (`src/client/ClientGoal.jsx`, lazy). It uses the same goal maths as Train Solo (`src/solo/goals.js`) on the client's own logs, weigh-ins and steps, and is saved on their user doc as `goal` (the client may already write their own profile fields).
+  - The muscle map is next, then the performance timeline and the rest as before.
+- **Nutrition**: picks up the same header.
+- **Tests**: `src/client/clientLooksLikeSolo248.test.jsx` checks four things:
+  - the header has no visible title, and the greeting is the smaller size
+  - weekly review, then day heading, then body stats, in that order
+  - no review row before any session is logged
+  - "Set your main goal" saves a started goal, and a goal shows progress from the client's own logs
+
+  The Home tests fail without the change.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

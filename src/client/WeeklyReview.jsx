@@ -278,7 +278,7 @@ export function markReviewSeen(uid, monday) {
 
 // "Weekly reviews" at the bottom of Progress: newest first, the new one
 // marked until opened. Each opens the review page.
-export default function WeeklyReviewsSection({ uid, data, dark, checkInDue = false, onCheckIn, coachView = false, clientName, autoOpen = false, hideList = false, nowMs }) {
+export default function WeeklyReviewsSection({ uid, data, dark, checkInDue = false, onCheckIn, coachView = false, clientName, autoOpen = false, hideList = false, nowMs, openLatest = false, onClosed }) {
   const tone = useTone(dark);
   const weeks = useMemo(() => reviewWeeks(data, { nowMs: nowMs ?? Date.now() }), [data, nowMs]);
   const [open, setOpen] = useState(null);
@@ -296,6 +296,14 @@ export default function WeeklyReviewsSection({ uid, data, dark, checkInDue = fal
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoOpen, uid, weeks[0]?.monday]);
+
+  // Home's "Your weekly review" row (#248) opens the latest week straight away.
+  useEffect(() => {
+    if (!openLatest) return;
+    if (weeks[0]) openWeek(weeks[0].monday);
+    else onClosed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openLatest]);
 
   function openWeek(monday) {
     if (!coachView) markReviewSeen(uid, monday);
@@ -364,9 +372,13 @@ export default function WeeklyReviewsSection({ uid, data, dark, checkInDue = fal
           coachView={coachView}
           clientName={clientName}
           checkInDue={checkInDue}
-          onClose={() => setOpen(null)}
+          onClose={() => {
+            setOpen(null);
+            onClosed?.();
+          }}
           onCheckIn={() => {
             setOpen(null);
+            onClosed?.();
             onCheckIn?.();
           }}
         />
