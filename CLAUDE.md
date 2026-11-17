@@ -796,10 +796,10 @@ any Train Solo work from now on:
   safe to repeat and acked.
 - Built only when Codemagic's `APEX_WATCH` is "true" (`ios/project-watch.yml`
   includes project.yml); keep its version in step with project.yml.
-- Ships in 1.0.5, not 1.0.4 (2026-11-07: 1.0.4 is the subscriptions launch;
-  no extra review risk). `APEX_WATCH` stays "false" until the Watch App ID
-  + profile exist (ROADMAP.txt item W). The iPhone side (WatchBridge.swift)
-  is in every build and does nothing without the Watch app.
+- Ships in 1.0.5: `APEX_WATCH` is "true" since 2026-11-17 (#261) and
+  project.yml / project-watch.yml are 1.0.5. Signing needs the Watch App ID
+  + App Store profile in Codemagic (ROADMAP.txt item W). The iPhone side
+  (WatchBridge.swift) is in every build.
 
 ## Coach console on iPhone, iPad and Mac (#190)
 
