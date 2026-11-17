@@ -28,9 +28,9 @@ workflows:
         BUNDLE_ID: "com.apexcoaching.platform"
         XCODE_PROJECT: "ApexCoach.xcodeproj"
         XCODE_SCHEME: "ApexCoach"
-        # "true" once com.apexcoaching.platform.watchkitapp has an App Store
+        # "true" since 1.0.5 (#261): com.apexcoaching.platform.watchkitapp needs an App Store
         # profile (ROADMAP.txt); builds the Apple Watch app in (#189).
-        APEX_WATCH: "false"
+        APEX_WATCH: "true"
       xcode: latest
     scripts:
       - name: Install xcodegen

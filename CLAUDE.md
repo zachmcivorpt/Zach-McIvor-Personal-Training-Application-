@@ -659,6 +659,7 @@ any Train Solo work from now on:
   RevenueCat webhook). Only ever ADDS purchases — never revokes one missing
   from RevenueCat's answer (an Apple refund is marked by hand). A new
   program needs its own App Store product before it shows a price in the app.
+- **1.0.4 was APPROVED by Apple** (owner, confirmed 2026-11-17).
 - **App Review sign-in is a clean Train Solo account** (apexreview@outlook.com: Free, no purchases), never the coach account or one that owns programs: Apple couldn't find the IAPs otherwise (2026-11-11). Keep it on Free.
 - **App Store description must link the Terms of Use (EULA)** and the privacy policy (Apple rejected 1.0.4 on 2026-11-09 without it): Apple's standard EULA https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ and /legal/privacy-policy. Keep both in every version's description.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
@@ -796,10 +797,10 @@ any Train Solo work from now on:
   safe to repeat and acked.
 - Built only when Codemagic's `APEX_WATCH` is "true" (`ios/project-watch.yml`
   includes project.yml); keep its version in step with project.yml.
-- Ships in 1.0.5, not 1.0.4 (2026-11-07: 1.0.4 is the subscriptions launch;
-  no extra review risk). `APEX_WATCH` stays "false" until the Watch App ID
-  + profile exist (ROADMAP.txt item W). The iPhone side (WatchBridge.swift)
-  is in every build and does nothing without the Watch app.
+- Ships in 1.0.5: `APEX_WATCH` is "true" since 2026-11-17 (#261) and
+  project.yml / project-watch.yml are 1.0.5. Signing needs the Watch App ID
+  + App Store profile in Codemagic (ROADMAP.txt item W). The iPhone side
+  (WatchBridge.swift) is in every build.
 
 ## Coach console on iPhone, iPad and Mac (#190)
 

@@ -3751,6 +3751,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `mt-3` (12px) on the switch row; nothing else moved.
 - **Tests**: `src/client/nutritionSwitchGap260.test.js` checks the gap; it fails without the change.
 
+### 261. Apple Watch app switched on for 1.0.5 (owner, 2026-11-17)
+
+- **Change**: `APEX_WATCH: "true"` in codemagic.yaml, so Codemagic builds from `ios/project-watch.yml` (iPhone app + Watch app, #189); iPhone and Watch versions both 1.0.5.
+- **Needs**: the App ID `com.apexcoaching.platform.watchkitapp` and an App Store profile for it in Codemagic, or the build fails at signing.
+- **Tests**: `src/lib/watchBuild261.test.js` checks the switch is on and all four version fields read 1.0.5; both fail without the change.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
