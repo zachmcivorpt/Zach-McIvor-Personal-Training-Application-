@@ -80,15 +80,16 @@ describe("needsYou helpers (#208)", () => {
 });
 
 describe("the client's Training tab (#208)", () => {
-  it("is glass, shows Needs you with a one-tap Review, and the history filters work", () => {
+  it("is glass, has no Needs you or Performance Timeline (#267), and the history filters work", () => {
     setup("program");
     expect(screen.getByTestId("coach-client-jarvis")).toBeTruthy();
     expect(document.querySelectorAll('[data-glass="true"]').length).toBeGreaterThan(2);
     expect(screen.getByTestId("training-command-header")).toBeTruthy();
-    const item = screen.getAllByTestId("needs-you-item")[0];
-    expect(item.textContent).toMatch(/1 session with client notes this week/);
-    window.HTMLElement.prototype.scrollIntoView = vi.fn();
-    fireEvent.click(within(item).getByText("Review"));
+    expect(screen.queryByTestId("needs-you-item")).toBeNull();
+    expect(screen.queryByText(/NEEDS YOU/i)).toBeNull();
+    expect(screen.queryByText("Performance Timeline")).toBeNull();
+    expect(screen.getByText("Weekly Coach Review")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
     expect(screen.getByRole("tab", { name: "Notes" }).getAttribute("aria-selected")).toBe("true");
     const history = screen.getByRole("tablist", { name: "Filter sessions" }).parentElement;
     expect(within(history).queryByText("Hypertrophy 1A")).toBeNull();

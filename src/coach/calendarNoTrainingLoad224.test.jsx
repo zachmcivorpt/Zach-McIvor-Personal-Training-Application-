@@ -14,7 +14,7 @@ import CoachClientDetail from "./CoachClientDetail";
 afterEach(() => cleanup());
 
 describe("Calendar tab without Recent Training Load (#224)", () => {
-  it("shows adherence and the calendar but no training load card", () => {
+  it("shows the calendar with no training load or adherence card", () => {
     const now = Date.now();
     const client = { id: "u1", name: "John Hopkins", status: "active", role: "client", createdAt: now };
     ctx = {
@@ -34,6 +34,9 @@ describe("Calendar tab without Recent Training Load (#224)", () => {
     );
     expect(screen.queryByText("Recent Training Load")).toBeNull();
     expect(screen.queryByText(/Sets logged, last 14 days/)).toBeNull();
-    expect(screen.getByText("Monthly Training Adherence")).toBeTruthy();
+    // #267 (owner): no month adherence card either; the calendar stays.
+    expect(screen.queryByText("Monthly Training Adherence")).toBeNull();
+    expect(screen.queryByText(/Adherence$/)).toBeNull();
+    expect(screen.getByLabelText("Previous month")).toBeTruthy();
   });
 });

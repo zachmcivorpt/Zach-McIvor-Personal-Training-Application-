@@ -9,10 +9,6 @@ import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, Dang
 import { DEFAULT_NUTRITION_TARGETS, macroGramsSet, adjustMacroPct, resolveNutritionTargets } from "../lib/nutritionTargets";
 import { hasFoodLogged } from "../lib/nutritionLog";
 import {
-  computePerformanceTimeline,
-  computePRsInLastNDays,
-  computeWeeklySessionCompletion,
-  trendDirection,
   closestWeighIn,
   computePlateaus,
   computePersonalBests,
@@ -108,7 +104,8 @@ import { fileToCompressedDataUrl } from "../lib/image";
 import { MICRO_FIELDS } from "../lib/foodDatabase";
 import { parseVideoUrl } from "../lib/video";
 import { matchesSearch } from "../lib/search";
-import { needsYouItems, filterSessionLogs } from "./needsYou";
+import { filterSessionLogs } from "./needsYou";
+import { weeklyCoachReview } from "./weeklyCoachReview";
 
 // Train Solo's muscle map card, shown as-is on the client's Progress tab (#216); loaded only there.
 const MuscleMapCard = React.lazy(() => import("../solo/SoloMuscleMap").then((m) => ({ default: m.SoloMuscleMapCard })));
@@ -1299,57 +1296,6 @@ function CalendarPanel({ client, showToast }) {
   const todayStr = localDateKey(now);
 
 
-  // Adherence for whichever month is currently being viewed (not always the
-  // real current month — the coach can navigate) capped at today so a
-  // future or in-progress month isn't scored against days that haven't
-  // happened yet.
-  const monthAdherence = useMemo(() => {
-    const monthPrefix = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`;
-    const daysInMonth = new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate();
-    const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
-
-    const scheduledThisMonth = scheduledWorkouts.filter(
-      (w) => w.date.startsWith(monthPrefix) && (!isCurrentMonth || w.date <= todayStr)
-    );
-    // A log only fulfills a SCHEDULED day if it's actually that day's
-    // workout (dayLabel matches) — logging a different session on a
-    // scheduled day (e.g. Pull Day on a day scheduled as Leg Day) doesn't
-    // count as that day being completed, same identity check the client's
-    // own Home screen already uses to decide whether today's scheduled
-    // workout still needs doing.
-    const trainingCompleted = scheduledThisMonth.filter((w) => (completedLogsByDate[w.date] || []).some((l) => l.dayLabel === w.label)).length;
-
-    let habitExpected = 0;
-    let habitCompleted = 0;
-    let nutritionExpected = 0;
-    let nutritionCompleted = 0;
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${monthPrefix}-${String(d).padStart(2, "0")}`;
-      if (isCurrentMonth && dateStr > todayStr) break;
-      const activeHabits = habits.filter((h) => {
-        const createdKey = localDateKey(h.createdAt);
-        if (dateStr < createdKey) return false;
-        if (h.endsAt && dateStr > localDateKey(h.endsAt)) return false;
-        return true;
-      });
-      const doneIds = habitLogForClient[dateStr] || [];
-      habitExpected += activeHabits.length;
-      habitCompleted += activeHabits.filter((h) => doneIds.includes(h.id)).length;
-
-      // Today is still in progress — it counts once food is logged, but
-      // an empty morning isn't a missed day yet.
-      if (dateStr === todayStr && !nutritionByDate[dateStr]) continue;
-      nutritionExpected += 1;
-      if (nutritionByDate[dateStr]) nutritionCompleted += 1;
-    }
-
-    const pct = (c, e) => (e === 0 ? null : Math.round((c / e) * 100));
-    return {
-      training: { completed: trainingCompleted, expected: scheduledThisMonth.length, pct: pct(trainingCompleted, scheduledThisMonth.length) },
-      habits: { completed: habitCompleted, expected: habitExpected, pct: pct(habitCompleted, habitExpected) },
-      nutrition: { completed: nutritionCompleted, expected: nutritionExpected, pct: pct(nutritionCompleted, nutritionExpected) },
-    };
-  }, [viewYear, viewMonth, scheduledWorkouts, completedLogsByDate, habits, habitLogForClient, nutritionByDate, now, todayStr]);
 
   function itemsForDate(date) {
     const dateStr = dKey(date);
@@ -1550,33 +1496,7 @@ function CalendarPanel({ client, showToast }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
-      {/* Recent Training Load removed for every client (#224, owner). */}
-      <DarkPanel className="p-4 md:p-5 mb-6">
-        <p className="relative text-white font-semibold text-sm mb-3">{monthLabel} Adherence</p>
-        <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-4">
-          {[
-            { label: "Monthly Training Adherence", stat: monthAdherence.training },
-            { label: "Monthly Habit Adherence", stat: monthAdherence.habits },
-            { label: "Monthly Nutrition Adherence", stat: monthAdherence.nutrition },
-          ].map(({ label, stat }) => (
-            <div key={label}>
-              <p className="text-white text-[11px] font-medium mb-1">{label}</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-white font-bold text-2xl tabular-nums">{stat.pct != null ? `${stat.pct}%` : "—"}</p>
-                {stat.expected > 0 && (
-                  <p className="text-white text-xs tabular-nums">
-                    {stat.completed}/{stat.expected}
-                  </p>
-                )}
-              </div>
-              <div className="mt-1.5 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${stat.pct ?? 0}%`, backgroundColor: MEASURE_BLUE }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </DarkPanel>
-
+      {/* No Recent Training Load (#224) and no month adherence card (#267, owner). */}
       <DarkPanel className="p-4 md:p-5">
         <div className="relative flex items-center justify-between mb-4 flex-wrap gap-2">
           <div className="flex items-center gap-3">
@@ -2130,53 +2050,6 @@ function TrainingCommandHeader({ client, phase, onProgram, onNewPhase }) {
   );
 }
 
-// Jarvis "Needs you" (#208): what needs the coach, one tap each.
-function NeedsYouPanel({ client, logs, onReview, onProgram, onMessage }) {
-  const { db } = useApp();
-  const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
-  const plateaus = useMemo(() => computePlateaus(logs, exercisesById), [logs, exercisesById]);
-  const items = useMemo(() => needsYouItems({ logs, plateaus }), [logs, plateaus]);
-  const dot = { blue: MEASURE_BLUE, red: OVER_RED, white: "#FFFFFF" };
-  return (
-    <DarkPanel className="p-4 md:p-5 mb-6">
-      <div className="flex items-center justify-between">
-        <p className="text-white/55 text-[10.5px] font-bold tracking-[0.18em] uppercase">Needs you · {items.length}</p>
-        {items.length > 0 && <p className="text-[10.5px] font-bold tracking-[0.18em] uppercase" style={{ color: "#7FB8FF" }}>One tap each</p>}
-      </div>
-      {items.length === 0 ? (
-        <p className="text-white text-sm mt-3" data-testid="needs-you-clear">All clear — nothing needs you on {client.name?.split(" ")[0] || "this client"}'s training right now.</p>
-      ) : (
-        <div className="mt-2 divide-y" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-          {items.map((it) => (
-            <div key={it.id} className="flex items-center gap-3 py-3" style={{ borderColor: "rgba(255,255,255,0.07)" }} data-testid="needs-you-item">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: dot[it.tone], boxShadow: `0 0 10px ${dot[it.tone]}` }} />
-              <div className="min-w-0 flex-1">
-                <p className="text-white text-sm font-semibold">{it.title}</p>
-                {it.detail && <p className="text-white/60 text-xs mt-0.5 truncate">{it.detail}</p>}
-              </div>
-              {it.action === "review" && (
-                <GlassButton tone="blue" onClick={onReview}>
-                  Review
-                </GlassButton>
-              )}
-              {it.action === "program" && (
-                <GlassButton tone="blue" onClick={onProgram}>
-                  Swap exercise
-                </GlassButton>
-              )}
-              {it.action === "message" && onMessage && (
-                <GlassButton tone="blue" onClick={onMessage}>
-                  Message
-                </GlassButton>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </DarkPanel>
-  );
-}
-
 function formatDateRangeLabel(dateStr) {
   return new Date(dateStr + "T00:00:00Z").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 }
@@ -2452,19 +2325,7 @@ function TrainingProgramPanel({ client, showToast, onMessage }) {
           onNewPhase={() => setNewPhaseOpen(true)}
         />
 
-        <NeedsYouPanel
-          client={client}
-          logs={workoutLogs}
-          onReview={() => {
-            setHistoryFilter("notes");
-            historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
-          onProgram={() => programRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          onMessage={onMessage}
-        />
-
-        <PerformanceTimelineCard client={client} />
-
+        {/* No Needs you or Performance Timeline here (#267, owner). */}
         <PlateauAlertCard client={client} />
 
         <WeeklyCoachReviewCard client={client} showToast={showToast} />
@@ -5142,98 +5003,6 @@ function PlateauAlertCard({ client }) {
   );
 }
 
-// Small up/down indicator next to a Performance Timeline value — direction
-// only, no green/red judgment call, since "up" isn't universally good (e.g.
-// bodyweight, depending on the client's goal).
-function TimelineTrendArrow({ direction }) {
-  if (!direction) return null;
-  return direction === "up" ? <TrendingUp size={13} className="text-white shrink-0" /> : <TrendingDown size={13} className="text-white shrink-0" />;
-}
-
-// Same 30-day snapshot the client sees on their own Progress tab —
-// strength trend, bodyweight change, consistency, PRs — surfaced here so
-// the coach doesn't have to go dig for it separately.
-function PerformanceTimelineCard({ client }) {
-  const { db } = useApp();
-  const logs = db.workoutLogs[client.id] || [];
-  const weighIns = (db.weighIns || {})[client.id] || [];
-  const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
-  const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
-  const timeline = useMemo(
-    () => computePerformanceTimeline(logs, weighIns, exercisesById, 30, scheduledWorkouts),
-    [logs, weighIns, exercisesById, scheduledWorkouts]
-  );
-
-  const items = [
-    {
-      label: "Strength",
-      sub: "avg. gain on main lifts",
-      value: timeline.strengthChangePct != null ? `${timeline.strengthChangePct > 0 ? "+" : ""}${timeline.strengthChangePct}%` : "—",
-      trend: timeline.strengthChangePct == null ? null : timeline.strengthChangePct > 0 ? "up" : timeline.strengthChangePct < 0 ? "down" : null,
-    },
-    {
-      label: "Bodyweight",
-      sub: "change over 30 days",
-      value: timeline.bodyweightChange != null ? `${timeline.bodyweightChange > 0 ? "+" : ""}${timeline.bodyweightChange} kg` : "—",
-      trend: timeline.bodyweightChange == null ? null : timeline.bodyweightChange > 0 ? "up" : timeline.bodyweightChange < 0 ? "down" : null,
-    },
-    {
-      label: "Consistency",
-      sub: timeline.consistencyPct != null ? `${timeline.consistencyCompleted} of ${timeline.consistencyExpected} sessions` : "nothing scheduled in the last 30 days",
-      value: timeline.consistencyPct != null ? `${timeline.consistencyPct}%` : "—",
-      trend: trendDirection(timeline.consistencyPct, timeline.consistencyPrevPct),
-    },
-    {
-      label: "PRs set",
-      sub: "new heaviest lifts",
-      value: `${timeline.prCount}`,
-      trend: trendDirection(timeline.prCount, timeline.prCountPrev),
-    },
-  ];
-
-  return (
-    <DarkPanel className="p-5 mb-6">
-      <div className="relative flex items-start justify-between gap-3">
-        <div>
-          <p className="text-white text-[11px] font-semibold tracking-wide uppercase">Last 30 Days</p>
-          <p className="text-white font-bold text-lg mt-0.5">Performance Timeline</p>
-        </div>
-        <p className="text-white text-xs text-right shrink-0 mt-0.5">
-          {/* lastActiveAt is a real in-app-use heartbeat (see AppContext.jsx),
-              not the sign-in-only lastLoginAt — falls back to lastLoginAt
-              only for a client who hasn't opened the app again since this
-              shipped, so they don't show as having no data at all. */}
-          {client.lastActiveAt || client.lastLoginAt
-            ? new Date(client.lastActiveAt || client.lastLoginAt).toLocaleString(undefined, {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })
-            : "Never opened the app"}
-          <span className="block text-white text-[10px] font-medium mt-0.5">Last active</span>
-        </p>
-      </div>
-      <p className="relative text-white text-xs mt-1 mb-4">
-        A quick read on how {client.name?.split(" ")[0] || "they"}'ve been trending: getting stronger, showing up, hitting new bests.
-      </p>
-      <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
-        {items.map((it) => (
-          <div key={it.label}>
-            <p className="text-white text-xl font-bold tabular-nums flex items-center gap-1">
-              {it.value}
-              <TimelineTrendArrow direction={it.trend} />
-            </p>
-            <p className="text-white text-[11px] mt-0.5">
-              {it.label} <span className="text-white">· {it.sub}</span>
-            </p>
-          </div>
-        ))}
-      </div>
-    </DarkPanel>
-  );
-}
-
 // A weekly digest so the coach doesn't have to piece together training,
 // nutrition and habit consistency by hand — plus a coach-editable "focus
 // for next week" note, pre-filled with a suggestion pointed at whichever
@@ -5245,77 +5014,18 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   const habits = (db.habits || {})[client.id] || [];
   const habitLog = ((db.habitLog || {})[client.id]) || {};
   const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
-  const weekAgo = Date.now() - 7 * 86400000;
+  const today = localDateKey();
 
-  // All of this used to recompute from scratch on every render (including
-  // ones caused by totally unrelated state elsewhere on the page, e.g.
-  // typing in the Personal Details fields above) — for a client with a lot
-  // of history that's real, repeated work on every keystroke, which is
-  // exactly the kind of thing that shows up as the tab feeling like it
-  // freezes on a slower phone. Memoized so it only recomputes when the
-  // client's actual underlying data changes.
-  const sessionsThisWeek = useMemo(() => logs.filter((l) => l.date >= weekAgo).length, [logs, weekAgo]);
-  // "4 of 7" against what was actually scheduled this calendar week (Mon-Sun),
-  // not just a raw count of logs — a plain count told you nothing about
-  // whether that was a good week without knowing how much was planned.
-  const weeklyCompletion = useMemo(
-    () => computeWeeklySessionCompletion(logs, scheduledWorkouts),
-    [logs, scheduledWorkouts]
+  // One window for every figure: the last 7 full days, ending yesterday
+  // (#267, weeklyCoachReview.js) — today is still in progress.
+  const review = useMemo(
+    () => weeklyCoachReview({ workoutLogs: logs, scheduledWorkouts, nutritionLogs, habits, habitLog, todayKey: today }),
+    [logs, scheduledWorkouts, nutritionLogs, habits, habitLog, today]
   );
-  const volumeThisWeek = useMemo(
-    () =>
-      Math.round(
-        logs
-          .filter((l) => l.date >= weekAgo)
-          .reduce((a, log) => a + log.entries.reduce((b, e) => b + e.sets.reduce((c, s) => c + (s.weight || 0) * (s.reps || 0), 0), 0), 0)
-      ),
-    [logs, weekAgo]
-  );
-  // The week before that, so the Volume tile can show whether load is
-  // trending up or down rather than just a bare number with no context.
-  const twoWeeksAgo = Date.now() - 14 * 86400000;
-  const volumePrevWeek = useMemo(
-    () =>
-      Math.round(
-        logs
-          .filter((l) => l.date >= twoWeeksAgo && l.date < weekAgo)
-          .reduce((a, log) => a + log.entries.reduce((b, e) => b + e.sets.reduce((c, s) => c + (s.weight || 0) * (s.reps || 0), 0), 0), 0)
-      ),
-    [logs, twoWeeksAgo, weekAgo]
-  );
-  const volumeChangePct = volumePrevWeek > 0 ? Math.round(((volumeThisWeek - volumePrevWeek) / volumePrevWeek) * 100) : null;
-  const prCount = useMemo(() => computePRsInLastNDays(logs, 7), [logs]);
-
-  const last7Dates = useMemo(
-    () =>
-      Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        return localDateKey(d);
-      }),
-    []
-  );
-  const nutritionAdherencePct = useMemo(() => {
-    const nutritionByDate = Object.fromEntries(nutritionLogs.map((n) => [n.date, n]));
-    const daysLogged = last7Dates.filter((d) => nutritionByDate[d]?.calories > 0).length;
-    return Math.round((daysLogged / 7) * 100);
-  }, [nutritionLogs, last7Dates]);
-
-  const consistencyPct = useMemo(() => {
-    let habitPossible = 0;
-    let habitDone = 0;
-    last7Dates.forEach((d) => {
-      const completed = habitLog[d] || [];
-      habits.forEach((h) => {
-        if (h.endsAt && h.endsAt < weekAgo) return;
-        const createdKey = localDateKey(h.createdAt);
-        if (d < createdKey) return;
-        habitPossible += 1;
-        if (completed.includes(h.id)) habitDone += 1;
-      });
-    });
-    return habitPossible > 0 ? Math.round((habitDone / habitPossible) * 100) : null;
-  }, [last7Dates, habitLog, habits, weekAgo]);
+  const sessionsThisWeek = review.sessions.logged;
+  const nutritionAdherencePct = review.nutrition.pct;
+  const consistencyPct = review.habits.pct;
+  const fmtDay = (k) => new Date(`${k}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
 
   const autoFocus = useMemo(() => {
     if (sessionsThisWeek === 0) return "No sessions logged this week — check they're not stuck, injured, or need the program adjusted.";
@@ -5346,20 +5056,18 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   }
 
   const stats = [
-    {
-      label: "Sessions",
-      sub: weeklyCompletion.expected > 0 ? "completed" : "this week",
-      value: weeklyCompletion.expected > 0 ? `${weeklyCompletion.completed}/${weeklyCompletion.expected}` : sessionsThisWeek,
-    },
-    { label: "Volume", sub: "kg lifted", value: volumeThisWeek.toLocaleString(), change: volumeChangePct },
+    review.sessions.planned > 0
+      ? { label: "Sessions", sub: "scheduled done", value: `${review.sessions.done}/${review.sessions.planned}` }
+      : { label: "Sessions", sub: "logged", value: review.sessions.logged },
+    { label: "Volume", sub: "kg lifted", value: review.volume.toLocaleString(), change: review.volumeChangePct },
     { label: "Habits", sub: "completion", value: consistencyPct != null ? `${consistencyPct}%` : "—" },
-    { label: "PRs", sub: "this week", value: prCount },
+    { label: "PRs", sub: "set", value: review.prs },
   ];
 
   return (
     <DarkPanel className="p-5 md:p-6 mb-6">
       <p className="relative text-white font-semibold mb-1">Weekly Coach Review</p>
-      <p className="relative text-white text-xs mb-4">Training, nutrition, recovery and performance — last 7 days.</p>
+      <p className="relative text-white text-xs mb-4">Last 7 full days · {fmtDay(review.from)} – {fmtDay(review.to)}</p>
 
       <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {stats.map((s) => (

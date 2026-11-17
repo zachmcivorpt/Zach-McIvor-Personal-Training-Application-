@@ -145,16 +145,15 @@ export const BEHIND_RATE = 0.6;
 const isStrength = (l) => l && !l.cardio;
 
 // Which scheduled dates a client's logs fulfil — a log's own scheduledDate
-// (a missed day finished late) first, else the day it was completed, the
+// (a missed day finished late) if it has one, else the day it was completed, the
 // same rule as the client's own calendar (ClientApp logFulfillsDate). We
 // don't require the label to match: a client who trained that day is never
 // shown as having missed it.
 function fulfilledKeys(logs) {
   const set = new Set();
-  (logs || []).filter(isStrength).forEach((l) => {
-    if (l.scheduledDate) set.add(l.scheduledDate);
-    set.add(localDateKey(new Date(l.date)));
-  });
+  // A late finish counts for its scheduledDate only, never also for the
+  // day it was done (#267).
+  (logs || []).filter(isStrength).forEach((l) => set.add(l.scheduledDate || localDateKey(new Date(l.date))));
   return set;
 }
 

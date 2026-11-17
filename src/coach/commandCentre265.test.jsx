@@ -96,6 +96,9 @@ describe("training maths (#265)", () => {
     const logs = [log("2026-11-16", "Lower A", { scheduledDate: "2026-11-14" }), log("2026-11-15", "Run", { cardio: { activityLabel: "Run" } })];
     const r = trainingSummary({ name: "Sam" }, { workoutLogs: logs, scheduledWorkouts }, TODAY);
     expect(r.missed.map((m) => m.label)).toEqual(["Upper A"]);
+    // the late finish doesn't also fill the day it was done on (#267)
+    const r2 = trainingSummary({ name: "Sam" }, { workoutLogs: [log("2026-11-16", "Lower A", { scheduledDate: "2026-11-14" })], scheduledWorkouts: [sched("2026-11-14", "Lower A"), sched("2026-11-16", "Upper A")] }, TODAY);
+    expect(r2.missed.map((m) => m.label)).toEqual(["Upper A"]);
   });
 
   it("two misses this week = falling behind; done today; program week and progress", () => {
