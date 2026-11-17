@@ -10,7 +10,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Avatar, BottomSheet } from "../components/ui";
-import { MEASURE_BLUE, GOAL_GREEN, OVER_RED } from "../theme";
+import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, CLIENT_DARK_BORDER } from "../theme";
 import { GLASS_BLUE, GlassButton, SHEET_GLASS } from "./darkUI";
 import {
   nutritionDay,
@@ -47,99 +47,73 @@ function daysAgoLabel(n) {
 }
 
 // ---- shared building blocks (identical in both sections) -------------------
-// Frosted glass like Overview's tiles and Coach's notes (#227): see-through
-// fill, hairline border, blur. The section is one pane; the figures and the
-// controls are lighter panes on it.
-const PANE = {
-  // Black frosted glass (owner: "more frosted", then "black not grey"): a
-  // near-black see-through fill with only a faint sheen at the top, heavy
-  // blur, and a bright hairline top edge.
-  background: "linear-gradient(160deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0) 35%), rgba(4,4,6,0.72)",
-  border: "1px solid rgba(255,255,255,0.13)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), 0 24px 48px -28px rgba(0,0,0,0.95)",
-  backdropFilter: "blur(40px) saturate(160%)",
-  WebkitBackdropFilter: "blur(40px) saturate(160%)",
-};
-const TILE = {
-  background: "rgba(0,0,0,0.55)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-};
+// Built like Overview's own Needs attention / Recent activity (owner: "design
+// must match this"): an open section — title + meta, a thin rule, plain rows
+// on the page with a hairline between them. No panels, no boxes, no pills.
+const SECTION_RULE = "rgba(255,255,255,0.22)";
 
-function StatusText({ status, table }) {
-  const s = table[status];
-  const c = s.tone === "muted" ? "rgba(255,255,255,0.6)" : TONE[s.tone];
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 shrink-0 rounded-full px-2.5 h-6 text-[11px] font-semibold whitespace-nowrap"
-      style={{ color: c, background: s.tone === "muted" ? "rgba(255,255,255,0.05)" : `${TONE[s.tone]}14`, border: `1px solid ${s.tone === "muted" ? "rgba(255,255,255,0.12)" : `${TONE[s.tone]}40`}` }}
-      data-testid="cc-status"
-    >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: TONE[s.tone] }} />
-      {s.label}
-    </span>
-  );
+function StatusDot({ status, table }) {
+  return <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: TONE[table[status].tone] }} />;
 }
 
 function Section({ id, title, meta, headerRight, rows, ready, renderLine, onOpen, table }) {
   const [showAll, setShowAll] = useState(false);
-  const visible = rows;
-  const shown = showAll ? visible : visible.slice(0, PREVIEW_ROWS);
+  const shown = showAll ? rows : rows.slice(0, PREVIEW_ROWS);
   return (
-    <section className="min-w-0 rounded-[22px] overflow-hidden" style={PANE} data-testid={`cc-${id}`} aria-label={`${title} overview`}>
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex items-center justify-between gap-3 min-h-[32px]">
-          <h2 className="text-white text-[17px] font-semibold tracking-[-0.01em]">{title}</h2>
-          {headerRight || <span className="text-white/50 text-[12.5px] truncate">{meta}</span>}
-        </div>
+    <section className="min-w-0" data-testid={`cc-${id}`} aria-label={`${title} overview`}>
+      <div className="flex items-baseline justify-between gap-3 mb-2.5">
+        <h2 className="text-white text-[17px] font-semibold tracking-[-0.01em]">{title}</h2>
+        {headerRight || <span className="text-white/50 text-[13px] truncate">{meta}</span>}
       </div>
-      <div className="border-t" style={{ borderColor: "rgba(255,255,255,0.10)" }} data-testid={`cc-${id}-list`}>
+      <div className="border-t" style={{ borderColor: SECTION_RULE }} data-testid={`cc-${id}-list`}>
         {!ready ? (
-          <p className="text-white/45 text-[13px] text-center py-6">Loading…</p>
+          <p className="text-white/50 text-sm text-center py-8">Loading…</p>
         ) : shown.length === 0 ? (
-          <p className="text-white/55 text-[13px] text-center py-6">{rows.length === 0 ? "No active clients yet." : "No clients here right now."}</p>
+          <p className="text-white text-sm text-center py-8">No active clients yet.</p>
         ) : (
-          shown.map((r) => (
-            <div
-              key={r.client.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => onOpen(r)}
-              onKeyDown={(e) => e.key === "Enter" && onOpen(r)}
-              data-testid={`cc-${id}-row-${r.client.id}`}
-              className="flex items-center gap-3 pl-4 pr-2.5 py-2.5 min-h-[60px] border-b last:border-0 cursor-pointer hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors"
-              style={{ borderColor: ROW_RULE }}
-            >
-              <Avatar name={r.client.name} url={r.client.avatarUrl} size={32} dark />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="flex-1 min-w-0 text-white text-[14px] font-semibold truncate">{r.client.name}</p>
-                  <StatusText status={r.status} table={table} />
-                </div>
-                <p className="text-white/50 text-[12px] truncate tabular-nums mt-0.5">{renderLine(r)}</p>
-              </div>
-              {/* One tap straight to a message; the row itself opens the details. */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpen(r, { compose: true });
-                }}
-                aria-label={`Message ${r.client.name}`}
-                data-testid="cc-row-message"
-                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 active:scale-[0.94] transition-transform"
-                style={TILE}
+          shown.map((r) => {
+            const s = table[r.status];
+            return (
+              <div
+                key={r.client.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpen(r)}
+                onKeyDown={(e) => e.key === "Enter" && onOpen(r)}
+                data-testid={`cc-${id}-row-${r.client.id}`}
+                className="flex items-center gap-3 py-3 min-h-[56px] border-b last:border-0 cursor-pointer active:bg-white/[0.04] hover:bg-white/[0.03]"
+                style={{ borderColor: CLIENT_DARK_BORDER }}
               >
-                <MessageSquare size={15} className="text-white/85" />
-              </button>
-            </div>
-          ))
+                <Avatar name={r.client.name} url={r.client.avatarUrl} size={32} dark />
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-[13px] leading-snug truncate">
+                    <span className="font-semibold text-white">{r.client.name}</span> —{" "}
+                    <span data-testid="cc-status" style={{ color: s.tone === "muted" ? "rgba(255,255,255,0.6)" : TONE[s.tone] }}>
+                      {s.label}
+                    </span>
+                  </p>
+                  <p className="text-white/60 text-[12px] leading-snug mt-0.5 truncate tabular-nums">{renderLine(r)}</p>
+                </div>
+                {/* One tap straight to a message; the row itself opens the details. */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpen(r, { compose: true });
+                  }}
+                  aria-label={`Message ${r.client.name}`}
+                  data-testid="cc-row-message"
+                  className="w-10 h-10 -mr-2 flex items-center justify-center shrink-0 active:opacity-60"
+                >
+                  <MessageSquare size={16} style={{ color: MEASURE_BLUE }} />
+                </button>
+              </div>
+            );
+          })
         )}
-        {ready && visible.length > PREVIEW_ROWS && (
-          <button type="button" onClick={() => setShowAll((v) => !v)} className="w-full py-3.5 text-[13px] font-semibold border-t" style={{ color: MEASURE_BLUE, borderColor: ROW_RULE }} data-testid={`cc-${id}-more`}>
-            {showAll ? "Show fewer" : `Show all ${visible.length}`}
+        {ready && rows.length > PREVIEW_ROWS && (
+          <button type="button" onClick={() => setShowAll((v) => !v)} className="w-full py-3 text-[13px] font-semibold" style={{ color: MEASURE_BLUE }} data-testid={`cc-${id}-more`}>
+            {showAll ? "Show fewer" : `Show all ${rows.length}`}
           </button>
         )}
       </div>
@@ -216,7 +190,10 @@ function ClientSheet({ target, onClose, onOpenClient, showToast }) {
       {target && !composing && (
         <div style={{ color: "#fff" }} data-testid="cc-client-sheet">
           <div className="mb-5">
-            <StatusText status={target.row.status} table={target.table} />
+            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium" data-testid="cc-status" style={{ color: target.table[target.row.status].tone === "muted" ? "rgba(255,255,255,0.6)" : TONE[target.table[target.row.status].tone] }}>
+              <StatusDot status={target.row.status} table={target.table} />
+              {target.table[target.row.status].label}
+            </span>
           </div>
           <div className="grid grid-cols-2 gap-5 mb-4">
             {target.measures.map((m) => (
@@ -333,12 +310,12 @@ export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
       title="Nutrition"
       table={NUTRITION_STATUS}
       headerRight={
-        <div className="flex rounded-full p-0.5" style={TILE} role="group" aria-label="Diary day">
+        <div className="flex items-baseline gap-3 text-[13px]" role="group" aria-label="Diary day">
           {[
             ["today", "Today"],
             ["yesterday", "Yesterday"],
           ].map(([k, l]) => (
-            <button key={k} type="button" onClick={() => setDay(k)} aria-pressed={day === k} data-testid={`cc-nutrition-day-${k}`} className="h-8 px-3.5 rounded-full text-[12.5px] font-semibold transition-colors" style={day === k ? { backgroundColor: "#fff", color: "#000" } : { color: "rgba(255,255,255,0.6)" }}>
+            <button key={k} type="button" onClick={() => setDay(k)} aria-pressed={day === k} data-testid={`cc-nutrition-day-${k}`} className="transition-colors" style={day === k ? { color: "#fff", fontWeight: 600 } : { color: "rgba(255,255,255,0.5)" }}>
               {l}
             </button>
           ))}
@@ -413,8 +390,8 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
 export default function CommandCentre({ clients, db, todayKey, ready, onOpenClient, showToast }) {
   const [target, setTarget] = useState(null);
   return (
-    <div className="relative mx-3.5 md:mx-0 mb-8" data-testid="command-centre">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+    <div className="relative mx-4 md:mx-0 mb-7" data-testid="command-centre">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-7 items-start">
         <TrainingOverview clients={clients} db={db} todayKey={todayKey} ready={ready} onOpen={setTarget} />
         <NutritionOverview clients={clients} db={db} todayKey={todayKey} ready={ready} onOpen={setTarget} />
       </div>

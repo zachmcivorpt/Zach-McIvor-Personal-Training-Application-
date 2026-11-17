@@ -101,15 +101,14 @@ rather than inventing new colors per screen:
   keeps its old destination (#115).
 - **No Segments section on Overview** (#232, owner): removed for good; don't bring it back.
 - **Training and Nutrition command centre** (#261, owner): two matching
-  black frosted-glass panes (near-black see-through fill, never grey;
-  40px blur, bright top edge)
-  under the tiles (`src/coach/CommandCentre.jsx`, maths in
-  `commandCentre.js`), side by side from `xl`, stacked below. Kept quiet
-  (owner: "way too much going on", then "more glassy, easier to operate"):
-  no chips, sort menu or boxed figures (owner: "they don't help me") —
-  a title, then one row per client (name, status
-  pill, one short line, a round message button that opens the composer
-  with the first suggestion already filled in). A row opens the client sheet
+  sections under the tiles (`src/coach/CommandCentre.jsx`, maths in
+  `commandCentre.js`), side by side from `xl`, stacked below. Built exactly
+  like Overview's own Needs attention / Recent activity (owner: "design must
+  match this"): title + meta, a thin rule, plain rows — "Name — status" (the
+  status in its colour) over one short line, a blue message icon that opens
+  the composer with the first suggestion filled in. No panels, boxed
+  figures, chips, pills or sort menu (owner: too much going on). Most in
+  need first. A row opens the client sheet
   (figures with exact gaps + bars; Message / Diary or History / Profile). Nutrition is the DAY (Today, or Yesterday as a finished day),
   never a weekly summary: today's shortfall is "to go" / "Under so far",
   never a miss; a partly logged day is "Diary incomplete"; no coach-set
