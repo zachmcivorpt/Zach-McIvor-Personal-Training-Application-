@@ -248,7 +248,10 @@ export function trainingSummary(client, { workoutLogs, scheduledWorkouts, phases
     client,
     status,
     today,
-    week: { from: weekStart, to: weekEnd, assigned: weekDates.length, done: weekDone.length, due: weekDates.filter((k) => k >= todayKey && !done.has(k)).length },
+    // "x/y done" (#270, owner): y is what's been due SO FAR this week —
+    // scheduled days before today, plus today once it's done (today isn't
+    // owed until the day is over). `assigned` is the whole week.
+    week: { from: weekStart, to: weekEnd, soFar: weekDates.filter((k) => k < todayKey || (k === todayKey && done.has(k))).length, assigned: weekDates.length, done: weekDone.length, due: weekDates.filter((k) => k >= todayKey && !done.has(k)).length },
     missed,
     rate: rate === null ? null : Math.round(rate * 100),
     ratePlanned: longPast.length,

@@ -117,7 +117,9 @@ rather than inventing new colors per screen:
   never a miss; a partly logged day is "Diary incomplete"; no coach-set
   `nutritionTargets.calories` = "No assigned target" (the app default is
   not the coach's target); protein over is never red. Training's week
-  starts fresh every Monday (#268, owner): "x/y done", missed, falling
+  starts fresh every Monday (#268, owner); "x/y done" is out of what's
+  due SO FAR (#270: days before today, plus today once done — never the
+  whole week); missed, falling
   behind (2+ misses) are Monday–Sunday of today only (`mondayKey`), never a
   rolling 7 days, and the 4-week rate is context in the sheet, never a
   status. Only scheduled TRAINING counts (#269, owner: "not cardio or

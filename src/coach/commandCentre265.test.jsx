@@ -86,7 +86,7 @@ describe("training maths (#265, week from Monday #268)", () => {
       sched("2026-11-22", "Lower B"), // Sunday, still to come
     ];
     const r = trainingSummary(base, { workoutLogs: [log("2026-11-16", "Upper A")], scheduledWorkouts }, FRI);
-    expect(r.week).toMatchObject({ from: "2026-11-16", to: "2026-11-22", assigned: 4, done: 1, due: 2 });
+    expect(r.week).toMatchObject({ from: "2026-11-16", to: "2026-11-22", assigned: 4, soFar: 2, done: 1, due: 2 }); // Mon done, Wed missed; Fri (today) not owed yet
     expect(r.missed.map((m) => m.label)).toEqual(["Lower A"]);
     expect(r.status).toBe("missed");
     expect(r.today).toMatchObject({ done: false });
@@ -106,7 +106,7 @@ describe("training maths (#265, week from Monday #268)", () => {
       sched("2026-11-16", "I"), // Monday
     ];
     const mon = trainingSummary({ name: "Sam" }, { workoutLogs: [], scheduledWorkouts }, "2026-11-16");
-    expect(mon.week).toMatchObject({ assigned: 1, done: 0, due: 1 });
+    expect(mon.week).toMatchObject({ assigned: 1, soFar: 0, done: 0, due: 1 });
     expect(mon.missed).toEqual([]);
     expect(mon.status).toBe("dueToday"); // was "Falling behind" from the 4-week rate
     expect(mon.rate).toBe(0); // still there as context in the sheet
@@ -129,7 +129,7 @@ describe("training maths (#265, week from Monday #268)", () => {
       { id: "e", date: "2026-11-21", label: "Steps", exercises: [{ exerciseId: "run" }] }, // cardio — out
     ];
     const r = trainingSummary({ name: "Sam" }, { workoutLogs: [log("2026-11-16", "Upper A")], scheduledWorkouts, exercisesById }, FRI);
-    expect(r.week).toMatchObject({ assigned: 2, done: 1, due: 0 });
+    expect(r.week).toMatchObject({ assigned: 2, soFar: 2, done: 1, due: 0 });
     expect(r.missed.map((m) => m.label)).toEqual(["Lower A"]); // the runs on the 17th/18th are not misses
     expect(r.status).toBe("missed");
     expect(r.next).toBeNull(); // Saturday's run isn't "next"
@@ -155,7 +155,7 @@ describe("training maths (#265, week from Monday #268)", () => {
     expect(behind.program).toMatchObject({ name: "Hypertrophy", week: 3, weeks: 4, pct: 64, sessionsDone: 0, sessionsTotal: 3 });
     const done = trainingSummary({ name: "Sam" }, { workoutLogs: [log("2026-11-16", "A"), log("2026-11-18", "B"), log(FRI, "C")], scheduledWorkouts, phases }, FRI);
     expect(done.status).toBe("doneToday");
-    expect(done.week).toMatchObject({ assigned: 3, done: 3, due: 0 });
+    expect(done.week).toMatchObject({ assigned: 3, soFar: 3, done: 3, due: 0 }); // today counts once done
   });
 });
 
@@ -211,6 +211,8 @@ describe("Overview command centre (#265)", () => {
 
     const tr = screen.getByTestId("cc-training");
     expect(within(tr).getByTestId("cc-training-row-p1").textContent).toMatch(/Falling behind/);
+    expect(within(tr).getByTestId("cc-training-row-p1").textContent).toMatch(/0\/2 done/); // due so far, not the whole week (#270)
+    expect(within(tr).getByTestId("cc-training-row-p2").textContent).toMatch(/1\/1 done/);
     expect(within(tr).getByTestId("cc-training-row-p2").textContent).toMatch(/Done today/);
     expect(within(tr).getByTestId("cc-training-row-p3").textContent).toMatch(/Nothing scheduled/);
   });

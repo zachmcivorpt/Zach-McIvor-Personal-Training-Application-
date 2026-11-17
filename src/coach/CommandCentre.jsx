@@ -337,8 +337,8 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
   const nextText = (r) => (r.next ? `Next: ${r.next.label || "Session"} ${r.next.date === todayKey ? "today" : shortDate(r.next.date)}` : "Nothing upcoming");
 
   const open = (r, opts) => {
-    const weekTone = r.week.assigned === 0 ? "muted" : r.missed.length ? "red" : r.week.done === r.week.assigned ? "green" : "blue";
-    const weekText = r.week.assigned === 0 ? "Nothing scheduled" : r.missed.length ? `${r.missed.length} missed${r.week.due ? ` · ${r.week.due} to do` : ""}` : r.week.due ? `${r.week.due} still to do` : "All sessions done";
+    const weekTone = r.week.assigned === 0 ? "muted" : r.missed.length ? "red" : r.week.soFar > 0 && r.week.done === r.week.soFar ? "green" : "blue";
+    const weekText = r.week.assigned === 0 ? "Nothing scheduled" : r.missed.length ? `${r.missed.length} missed${r.week.due ? ` · ${r.week.due} to do` : ""}` : r.week.soFar === 0 && r.week.due ? `Nothing due yet · ${r.week.due} to do` : r.week.due ? `${r.week.due} still to do` : "All sessions done";
     const prog = r.program;
     onOpen({
       kind: "training",
@@ -347,7 +347,7 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
       row: r,
       table: TRAINING_STATUS,
       measures: [
-        { label: "This week", actual: `${r.week.done}`, target: r.week.assigned || null, unit: r.week.assigned ? "" : " sessions", diffText: weekText, tone: weekTone, pct: r.week.assigned ? (r.week.done / r.week.assigned) * 100 : 0 },
+        { label: "This week", actual: `${r.week.done}`, target: r.week.soFar || null, unit: r.week.soFar ? " so far" : "", diffText: weekText, tone: weekTone, pct: r.week.soFar ? (r.week.done / r.week.soFar) * 100 : 0 },
         prog
           ? { label: "Program", actual: `Wk ${prog.week}`, target: prog.weeks || null, unit: "", diffText: `${prog.name}${prog.sessionsTotal ? ` · ${prog.sessionsDone}/${prog.sessionsTotal} sessions` : ""}`, tone: "blue", pct: prog.pct ?? 0 }
           : { label: "Program", actual: "–", target: null, unit: "", diffText: "No current phase", tone: "muted", pct: 0 },
@@ -368,7 +368,7 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
       onOpen={open}
       renderLine={(r) => {
         const next = r.next ? `Next ${r.next.label || "session"} ${r.next.date === todayKey ? "today" : weekday(r.next.date)}` : "Nothing upcoming";
-        return r.week.assigned ? `${r.week.done}/${r.week.assigned} done · ${next}` : next;
+        return r.week.soFar ? `${r.week.done}/${r.week.soFar} done · ${next}` : next;
       }}
     />
   );

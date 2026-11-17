@@ -3808,6 +3808,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `isTrainingSession` (`src/coach/commandCentre.js`): a scheduled entry counts only if at least one of its exercises isn't a rest marker or a library exercise in the Cardio, Warm-up or Cool-down category. An entry with no exercise list, or an exercise missing from the library, still counts (it can't be told apart). `trainingSummary` (Overview: x/y done, missed, falling behind, next) and `weeklyCoachReview` (the client page's Sessions figure) both use it; the Overview passes the coach's exercise library.
 - **Tests**: `commandCentre265.test.jsx` (a week with Upper A done, a run and a rowing/warm-up conditioning day, Lower A missed, a Saturday run: 1/2 done, only Lower A missed, no "next" run) and `weeklyCoachReview267.test.jsx` (an added cardio-only day leaves Sessions at 3 of 4). Both fail on the code before this fix (checked by restoring it).
 
+### 270. Overview Training: "x/y done" is out of what's due so far (owner, 2026-11-18)
+
+- **Problem**: after #268 the row read "1/4 done" on a Wednesday for a client who had done everything due so far — y was the whole week, including sessions still to come. The owner: "it should say 2/2, the second number should be so far, not overall".
+- **Fix** (`trainingSummary` → `week.soFar`, shown in the row and the client sheet as "x / y so far"): y counts this week's scheduled training days before today, plus today once it's done — today isn't owed until the day is over. `week.assigned` (whole week) and `week.due` (still to come) stay for the sheet's "N still to do". Before anything is due (Monday morning) the row shows only the next session, and the sheet says "Nothing due yet · N to do".
+- **Tests**: `commandCentre265.test.jsx` — Fri with Mon done, Wed missed, today and Sunday still to come: 1 of 2 so far; Monday morning: 0 so far; a full week done including today: 3 of 3; the real Overview rows read "0/2 done" and "1/1 done". The four training-maths tests fail on the #268 code (no `soFar`; checked by restoring it).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
