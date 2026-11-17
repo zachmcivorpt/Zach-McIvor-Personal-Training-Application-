@@ -3696,9 +3696,7 @@ function NutritionGoalSummaryCard({ targets, onEditTargets }) {
   const total = proteinPct + carbsPct + fatPct;
 
   return (
-    <div className="relative overflow-hidden border mb-6" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
-      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
-      <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+    <DarkPanel className="mb-6">
       <div className="relative p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
@@ -3736,7 +3734,7 @@ function NutritionGoalSummaryCard({ targets, onEditTargets }) {
           </>
         )}
       </div>
-    </div>
+    </DarkPanel>
   );
 }
 
@@ -3772,11 +3770,7 @@ function NutritionGraphCard({ client, showToast }) {
   const average = loggedValues.length ? Math.round(loggedValues.reduce((a, b) => a + b, 0) / loggedValues.length) : null;
 
   return (
-    <div className="relative overflow-hidden border mb-6" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
-      {/* Thin blue gradient line top and bottom — no glow, no corner
-          brackets, just the lines. */}
-      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
-      <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+    <DarkPanel className="mb-6">
 
       <div className="relative p-5">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
@@ -3870,11 +3864,35 @@ function NutritionGraphCard({ client, showToast }) {
       </div>
 
       <NutritionTargetsCard client={client} showToast={showToast} open={targetsOpen} onClose={() => setTargetsOpen(false)} />
-    </div>
+    </DarkPanel>
   );
 }
 
 const NUTRITION_MEAL_CATEGORIES = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
+
+// Same header as the Training tab (#266): "NAME · NUTRITION", today's
+// target, and the tab's two main actions.
+function NutritionCommandHeader({ client, targets, onTargets, onMealGuide, hasGuide }) {
+  return (
+    <div className="flex items-end justify-between gap-3 flex-wrap mb-4" data-testid="nutrition-command-header">
+      <div className="min-w-0">
+        <p className="text-white/55 text-[10.5px] font-bold tracking-[0.18em] uppercase">{client.name?.split(" ")[0] || "Client"} · Nutrition</p>
+        <p className="text-white text-xl font-bold truncate">
+          {targets.calories.toLocaleString()} kcal a day
+          <span style={{ color: "#7FB8FF" }}> · {targets.protein}g protein</span>
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <GlassButton onClick={onTargets}>
+          <Pencil size={13} /> EDIT TARGETS
+        </GlassButton>
+        <GlassButton tone="blue" onClick={onMealGuide}>
+          {hasGuide ? <Pencil size={13} /> : <Plus size={13} />} MEAL GUIDE
+        </GlassButton>
+      </div>
+    </div>
+  );
+}
 
 function NutritionPanel({ client, showToast }) {
   const { db, setNutritionForDate } = useApp();
@@ -3943,8 +3961,11 @@ function NutritionPanel({ client, showToast }) {
   }
 
   return (
-    <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
-      <div className="border p-5 mb-6 -mx-4 md:-mx-6" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
+    <div className="px-4 py-4 md:px-6 md:py-5 pb-16">
+      {/* Matches the Training tab (#266): the same header, then glass panels
+          inside the page gutter — never a square full-bleed box. */}
+      <NutritionCommandHeader client={client} targets={targets} onTargets={() => setTargetsOpen(true)} onMealGuide={() => setMealPlanOpen(true)} hasGuide={!!mealPlan} />
+      <DarkPanel className="p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
           <p className="text-white font-semibold">{navTitle}</p>
           <div className="flex items-center gap-1.5">
@@ -4110,7 +4131,7 @@ function NutritionPanel({ client, showToast }) {
             </DangerButton>
           </div>
         )}
-      </div>
+      </DarkPanel>
 
       <NutritionGoalSummaryCard targets={targets} onEditTargets={() => setTargetsOpen(true)} />
       <NutritionGraphCard client={client} showToast={showToast} />

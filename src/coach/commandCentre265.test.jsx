@@ -197,6 +197,13 @@ describe("Overview command centre (#265)", () => {
     expect(screen.getByText("Needs attention").compareDocumentPosition(cc) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("the greeting lines up with the sections on iPad (no extra side padding from sm)", async () => {
+    await renderOverview();
+    const hero = screen.getByTestId("overview-hero");
+    expect(hero.className).toMatch(/\bmd:px-0\b/);
+    expect(hero.className).not.toMatch(/sm:px-7/);
+  });
+
   it("the row's message button opens the composer in one tap", async () => {
     await renderOverview();
     fireEvent.click(within(screen.getByTestId("cc-nutrition-row-p1")).getByTestId("cc-row-message"));

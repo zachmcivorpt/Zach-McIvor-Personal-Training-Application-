@@ -111,8 +111,9 @@ rather than inventing new colors per screen:
   status in its colour) over one short line, a blue message icon that opens
   the composer with the first suggestion filled in. No panels, boxed
   figures, chips, pills or sort menu (owner: too much going on). Most in
-  need first. Nutrition is today only (no Yesterday, owner). A row opens the client sheet
-  (figures with exact gaps + bars; Message / Diary or History / Profile). Nutrition is TODAY, never a weekly summary: today's shortfall is "to go" / "Under so far",
+  need first. A row opens the client sheet (figures with exact gaps + bars;
+  Message / Diary or History / Profile). Nutrition is TODAY only (no
+  Yesterday view, owner), never a weekly summary: today's shortfall is "to go" / "Under so far",
   never a miss; a partly logged day is "Diary incomplete"; no coach-set
   `nutritionTargets.calories` = "No assigned target" (the app default is
   not the coach's target); protein over is never red. Training counts a
@@ -860,6 +861,7 @@ any Train Solo work from now on:
 - **Workout notes** (#215) are private until the coach taps Send to client (or Save & send), which posts a normal chat message. "Sent" is read from the chat, never stored on the note, and is for the exact text sent: an edited note can be sent again (#246).
 - **Coach pop-ups over dark content** (#214) are `BottomSheet dark surface={SHEET_GLASS}`: super-transparent dark glass. Never put white-text glass content in a light sheet: it reads white on white.
 - **Library > Programs** (#213): it opens on program cards (`ProgramCardsGrid`), black glass with a glassy white `ApexMarkSvg` and no photos, with level filters and search. A card opens the program detail full width, with "All programs" to go back. Never go back to the cramped list + detail frame.
+- **Nutrition tab matches Training** (#266, owner): it opens with `NutritionCommandHeader` (same build as `TrainingCommandHeader`: "NAME · NUTRITION", the target, EDIT TARGETS / MEAL GUIDE), and every box on it is a `DarkPanel` inside the page gutter — never a square full-bleed box (`-mx-4`) or a solid card with blue lines.
 - **Calendar tab** (#224, owner): no "Recent Training Load" card, for any client; it opens on the month's adherence. Don't bring it back.
 - **Calendar tiles**: workouts are chips (done = solid blue, planned = outlined), habits one line of dots, nutrition one kcal line, with a filter. Bulk delete keeps the full per-item list.
 
