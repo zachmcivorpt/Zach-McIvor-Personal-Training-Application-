@@ -512,6 +512,15 @@ export const FOOD_DATABASE = [
   { id: "bk14", name: "Yeast (dried)", cals: 325, protein: 40, carbs: 41, fat: 7, per: 100, defaultQty: 7, units: ["tsp"] },
   { id: "bk15", name: "Breadcrumbs", cals: 395, protein: 13, carbs: 72, fat: 5, per: 100, defaultQty: 30, units: ["cup"] },
 
+  // --- Dried herbs & spices (USDA FoodData Central values) ---
+  // Small amounts, but counted: a teaspoon or two in a recipe is 5-15 kcal.
+  { id: "sp01", name: "Smoked Paprika (ground)", cals: 282, protein: 14.1, carbs: 54, fat: 12.9, per: 100, defaultQty: 2, units: ["tsp", "tbsp"] },
+  { id: "sp02", name: "Ground Cumin", cals: 375, protein: 17.8, carbs: 44.2, fat: 22.3, per: 100, defaultQty: 2, units: ["tsp", "tbsp"] },
+  { id: "sp03", name: "Ground Cinnamon", cals: 247, protein: 4, carbs: 80.6, fat: 1.2, per: 100, defaultQty: 2, units: ["tsp", "tbsp"] },
+  { id: "sp04", name: "Garlic Powder", cals: 331, protein: 16.6, carbs: 72.7, fat: 0.7, per: 100, defaultQty: 2, units: ["tsp", "tbsp"] },
+  { id: "sp05", name: "Dried Oregano", cals: 265, protein: 9, carbs: 68.9, fat: 4.3, per: 100, defaultQty: 1, units: ["tsp", "tbsp"] },
+  { id: "sp06", name: "Chilli Flakes", cals: 318, protein: 12, carbs: 56.6, fat: 17.3, per: 100, defaultQty: 1, units: ["tsp", "tbsp"] },
+
   // --- Fast food & restaurant staples ---
   { id: "ff01", name: "Cheeseburger (fast food)", cals: 303, protein: 15, carbs: 30, fat: 14, per: 100, defaultQty: 150 },
   { id: "ff02", name: "Hamburger (fast food)", cals: 250, protein: 13, carbs: 31, fat: 9, per: 100, defaultQty: 130 },

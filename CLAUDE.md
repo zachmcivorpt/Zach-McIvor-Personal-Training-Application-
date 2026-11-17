@@ -366,6 +366,16 @@ with numbers clients and coaches can trust. How it's built now:
   scanning; never strip a URL down to digits and look that up. Keep
   QR_CODE and DATA_MATRIX in `BARCODE_FORMATS`.
 - Train Solo has no nutrition logging; none of this touches `src/solo/`.
+- **Meal Library data** (coach meals, `masterMeals`): the generated sets
+  are `fitnessMealsAU.js` (420) and `instaMealsAU.js` (100), both synced by
+  the Meal Library's SYNC AU MEAL LIBRARY button. Build new meals only
+  from Food Library entries (macros = exact sum of the lines), say raw or
+  cooked weight on meat/fish/rice/pasta/potato, and don't invent nutrition
+  data for an ingredient the library lacks — add it with a sourced value
+  or leave the dish out. Regenerate the Insta set with
+  `node scripts/viteRun.mjs scripts/genInstaMealsAU.mjs`. Stock photos are
+  free-licence Unsplash only, checked against the recipe (no visible
+  ingredient the recipe doesn't have); no photo beats a misleading one.
 - Cardio on a past day (#218): Home's past days show "Log a cardio session", saved on that day at midday.
 
 ## Deferred until the next App Store upload
