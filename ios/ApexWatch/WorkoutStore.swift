@@ -138,7 +138,9 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
                   let next = try? JSONDecoder().decode(WatchWorkout.self, from: data)
             else {
                 if context["sentAt"] != nil {
-                    // No workout running on the phone.
+                    // No workout running on the phone: end the Apple Health
+                    // workout too — saved unless the phone discarded it (#262).
+                    WorkoutSessionManager.shared.end(save: (context["ended"] as? String) != "discarded")
                     self.workout = nil
                     self.pending = [:]
                     self.restEndsAt = nil
@@ -146,6 +148,8 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
                 return
             }
             if self.workout?.sessionId != next.sessionId { self.pending = [:] }
+            // A workout is running on the phone: record it in Apple Health (#262).
+            WorkoutSessionManager.shared.start(apexSessionId: next.sessionId)
             // A set the phone now has with these numbers no longer needs the local copy.
             for exercise in next.exercises {
                 for set in exercise.sets where set.done {

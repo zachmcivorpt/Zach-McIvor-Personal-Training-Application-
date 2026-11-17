@@ -797,6 +797,12 @@ any Train Solo work from now on:
   safe to repeat and acked.
 - Built only when Codemagic's `APEX_WATCH` is "true" (`ios/project-watch.yml`
   includes project.yml); keep its version in step with project.yml.
+- **Apple Health workout on the Watch** (#262, `WorkoutSessionManager.swift`):
+  it follows the phone's workout only — starts when one arrives (the phone
+  also opens the Watch app via `startWatchApp`), saved after Finish, thrown
+  away after Discard (`clearWatchWorkout(reason)`), 4 h cap, under a minute
+  never saved. Shows elapsed time + heart rate only, never calories. It
+  never touches the APEX log. The Watch App ID needs HealthKit.
 - Ships in 1.0.5: `APEX_WATCH` is "true" since 2026-11-17 (#261) and
   project.yml / project-watch.yml are 1.0.5. Signing needs the Watch App ID
   + App Store profile in Codemagic (ROADMAP.txt item W). The iPhone side
