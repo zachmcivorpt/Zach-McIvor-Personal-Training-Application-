@@ -101,7 +101,8 @@ rather than inventing new colors per screen:
   keeps its old destination (#115).
 - **No Segments section on Overview** (#232, owner): removed for good; don't bring it back.
 - **Training and Nutrition command centre** (#261, owner): two matching
-  frosted-glass panes (milky white fill, 40px blur, bright top edge)
+  black frosted-glass panes (near-black see-through fill, never grey;
+  40px blur, bright top edge)
   under the tiles (`src/coach/CommandCentre.jsx`, maths in
   `commandCentre.js`), side by side from `xl`, stacked below. Kept quiet
   (owner: "way too much going on", then "more glassy, easier to operate"):
