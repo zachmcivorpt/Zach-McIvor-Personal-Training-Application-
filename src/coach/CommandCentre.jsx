@@ -19,7 +19,6 @@ import {
   trainingSummary,
   trainingSuggestions,
   sortRows,
-  addDaysKey,
   NUTRITION_STATUS,
   TRAINING_STATUS,
 } from "./commandCentre";
@@ -283,13 +282,11 @@ function measureFromCompare(cmp, label, unit, inProgress) {
 }
 
 export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
-  const [day, setDay] = useState("today");
-  const dateKey = day === "today" ? todayKey : addDaysKey(todayKey, -1);
-  const final = day !== "today";
-  const rows = useMemo(() => sortRows(clients.map((c) => nutritionDay(c, db.nutritionLogs?.[c.id], dateKey, { final })), "priority", NUTRITION_STATUS), [clients, db.nutritionLogs, dateKey, final]);
+  // Today only (owner: no Yesterday view).
+  const rows = useMemo(() => sortRows(clients.map((c) => nutritionDay(c, db.nutritionLogs?.[c.id], todayKey)), "priority", NUTRITION_STATUS), [clients, db.nutritionLogs, todayKey]);
 
   const open = (r, opts) => {
-    const inProgress = !final;
+    const inProgress = true;
     onOpen({
       kind: "nutrition",
       compose: !!opts?.compose,
@@ -298,8 +295,8 @@ export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
       table: NUTRITION_STATUS,
       measures: [measureFromCompare(r.protein, "Protein", "g", inProgress), measureFromCompare(r.calories, "Calories", "kcal", inProgress)],
       detail: r.logged
-        ? `${final ? "Yesterday" : "Today"}: ${r.meals} meal${r.meals === 1 ? "" : "s"}, ${r.itemCount} item${r.itemCount === 1 ? "" : "s"}${r.lastLoggedAt ? ` · last logged ${clockTime(r.lastLoggedAt)}` : ""}`
-        : `No meals logged ${final ? "yesterday" : "yet today"}.`,
+        ? `Today: ${r.meals} meal${r.meals === 1 ? "" : "s"}, ${r.itemCount} item${r.itemCount === 1 ? "" : "s"}${r.lastLoggedAt ? ` · last logged ${clockTime(r.lastLoggedAt)}` : ""}`
+        : "No meals logged yet today.",
       suggestions: () => nutritionSuggestions(r, nutritionTrend(r.client, db.nutritionLogs?.[r.client.id], todayKey)),
     });
   };
@@ -309,18 +306,7 @@ export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
       id="nutrition"
       title="Nutrition"
       table={NUTRITION_STATUS}
-      headerRight={
-        <div className="flex items-baseline gap-3 text-[13px]" role="group" aria-label="Diary day">
-          {[
-            ["today", "Today"],
-            ["yesterday", "Yesterday"],
-          ].map(([k, l]) => (
-            <button key={k} type="button" onClick={() => setDay(k)} aria-pressed={day === k} data-testid={`cc-nutrition-day-${k}`} className="transition-colors" style={day === k ? { color: "#fff", fontWeight: 600 } : { color: "rgba(255,255,255,0.5)" }}>
-              {l}
-            </button>
-          ))}
-        </div>
-      }
+      meta={`Today · ${shortDate(todayKey)}`}
       rows={rows}
       ready={ready}
       onOpen={open}

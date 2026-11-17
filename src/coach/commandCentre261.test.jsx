@@ -184,14 +184,15 @@ describe("Overview command centre (#261)", () => {
     expect(onOpenClient).toHaveBeenLastCalledWith("p2", undefined);
   });
 
-  it("no boxed figures; most in need first; Yesterday switches the day", async () => {
+  it("no boxed figures, today only, most in need first, below Coach's notes", async () => {
     await renderOverview();
     const nut = screen.getByTestId("cc-nutrition");
     expect(within(nut).queryByTestId(/cc-nutrition-stat-/)).toBeNull();
     const order = () => within(nut).getAllByTestId(/cc-nutrition-row-/).map((r) => r.dataset.testid);
     expect(order()[0]).toBe("cc-nutrition-row-p3"); // no meals logged first
-    fireEvent.click(within(nut).getByTestId("cc-nutrition-day-yesterday"));
-    expect(within(nut).getByTestId("cc-nutrition-row-p2").textContent).toMatch(/No meals logged/);
+    expect(within(nut).queryByText("Yesterday")).toBeNull();
+    const notes = screen.getByTestId("coach-notes");
+    expect(notes.compareDocumentPosition(screen.getByTestId("command-centre")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("the row's message button opens the composer in one tap", async () => {

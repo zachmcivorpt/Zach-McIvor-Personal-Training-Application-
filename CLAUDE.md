@@ -81,7 +81,8 @@ rather than inventing new colors per screen:
   to the right. The greeting and the count use the matching glass type
   (`GLASS_HEADING_STYLE`: white-to-steel gradient text, faint blue glow).
   On phones the heading is smaller (greeting 20px, count 44px, mark 130px;
-  30/56/300 from `sm`). Coach's notes sit directly above Needs attention,
+  30/56/300 from `sm`). Coach's notes sit directly under the tiles, above Training / Nutrition
+  (#261) and Needs attention,
   in a frosted-glass box like the tiles, never a solid charcoal one (#227).
   Needs attention (#228): a program phase or meal guide ending within 4
   days (`ENDING_SOON_DAYS`, `src/coach/endingSoon.js`), or ended with
@@ -101,16 +102,15 @@ rather than inventing new colors per screen:
   keeps its old destination (#115).
 - **No Segments section on Overview** (#232, owner): removed for good; don't bring it back.
 - **Training and Nutrition command centre** (#261, owner): two matching
-  sections under the tiles (`src/coach/CommandCentre.jsx`, maths in
+  sections under Coach's notes (`src/coach/CommandCentre.jsx`, maths in
   `commandCentre.js`), side by side from `xl`, stacked below. Built exactly
   like Overview's own Needs attention / Recent activity (owner: "design must
   match this"): title + meta, a thin rule, plain rows — "Name — status" (the
   status in its colour) over one short line, a blue message icon that opens
   the composer with the first suggestion filled in. No panels, boxed
   figures, chips, pills or sort menu (owner: too much going on). Most in
-  need first. A row opens the client sheet
-  (figures with exact gaps + bars; Message / Diary or History / Profile). Nutrition is the DAY (Today, or Yesterday as a finished day),
-  never a weekly summary: today's shortfall is "to go" / "Under so far",
+  need first. Nutrition is today only (no Yesterday, owner). A row opens the client sheet
+  (figures with exact gaps + bars; Message / Diary or History / Profile). Nutrition is TODAY, never a weekly summary: today's shortfall is "to go" / "Under so far",
   never a miss; a partly logged day is "Diary incomplete"; no coach-set
   `nutritionTargets.calories` = "No assigned target" (the app default is
   not the coach's target); protein over is never red. Training counts a
