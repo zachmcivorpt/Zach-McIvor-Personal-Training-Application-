@@ -53,16 +53,20 @@ function daysAgoLabel(n) {
 // fill, hairline border, blur. The section is one pane; the figures and the
 // controls are lighter panes on it.
 const PANE = {
-  background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025))",
-  border: "1px solid rgba(255,255,255,0.12)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 48px -28px rgba(0,0,0,0.9)",
-  backdropFilter: "blur(22px) saturate(140%)",
-  WebkitBackdropFilter: "blur(22px) saturate(140%)",
+  // Frosted (owner: "more frosted"): a milky white fill with a soft sheen
+  // from the top, heavy blur, and a bright hairline top edge.
+  background: "linear-gradient(160deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.07) 38%, rgba(255,255,255,0.045) 100%)",
+  border: "1px solid rgba(255,255,255,0.16)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 0 40px rgba(255,255,255,0.025), 0 24px 48px -28px rgba(0,0,0,0.9)",
+  backdropFilter: "blur(40px) saturate(160%)",
+  WebkitBackdropFilter: "blur(40px) saturate(160%)",
 };
 const TILE = {
-  background: "rgba(255,255,255,0.035)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05))",
+  border: "1px solid rgba(255,255,255,0.15)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
 };
 
 function StatusText({ status, table }) {
