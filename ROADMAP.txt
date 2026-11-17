@@ -323,10 +323,13 @@ OWNER TO DO, in order
    W. APPLE WATCH APP (#189, built 2026-11-07, OFF until these are done —
       clients log their coached workout's sets from the Watch):
       a. developer.apple.com > Identifiers > + App ID
-         "com.apexcoaching.platform.watchkitapp" (no capabilities).
+         "com.apexcoaching.platform.watchkitapp" — DONE 2026-11-17. Then
+         (#262, Apple Health workout) tick HealthKit on it, regenerate its
+         App Store profile and re-fetch it in Codemagic.
       b. Profiles > + App Store profile for that App ID; make it available
          to Codemagic (as the iPhone app's profile is).
-      c. codemagic.yaml: APEX_WATCH: "true" — for 1.0.5, AFTER 1.0.4 is
+      c. DONE 2026-11-17 (#261): APEX_WATCH "true", versions 1.0.5.
+         codemagic.yaml: APEX_WATCH: "true" — for 1.0.5, AFTER 1.0.4 is
          submitted (decided 2026-11-07: keep the launch build's review
          simple). Bump project.yml + project-watch.yml to 1.0.5 then.
       d. TestFlight: the Watch check in REGRESSION_TESTS.md

@@ -9503,8 +9503,14 @@ export default function ClientApp() {
   // No session (finished, discarded, never started): the Apple Watch shows
   // "Start on iPhone" and the iPhone app drops any Watch actions still
   // waiting for this page (#189).
+  // Why it ended goes with it: the Watch saves its Apple Health workout
+  // after Finish and throws it away after Discard (#262).
+  const watchEndReasonRef = useRef(null);
   useEffect(() => {
-    if (!activeLog) clearWatchWorkout();
+    if (!activeLog) {
+      clearWatchWorkout(watchEndReasonRef.current);
+      watchEndReasonRef.current = null;
+    }
   }, [activeLog]);
   // Which session is actually being run right now — defaults to todaySession
   // (the Home/Training-tab "Start" flow never passes one explicitly) but lets
@@ -10215,6 +10221,7 @@ export default function ClientApp() {
     clearExerciseNotes(currentUser.id, Array.from(allExerciseIds));
     clearSessionNote(currentUser.id);
     setSummaryData({ daySession: session, activeLog: cleanedLog, durationMin, durationSec });
+    watchEndReasonRef.current = "finished";
     setActiveLog(null);
     setExerciseNotes({});
     setSessionNote("");
@@ -10239,6 +10246,7 @@ export default function ClientApp() {
   function discardActiveSession() {
     clearExerciseNotes(currentUser.id, Object.keys(exerciseNotes));
     clearSessionNote(currentUser.id);
+    watchEndReasonRef.current = "discarded";
     setActiveLog(null);
     setExerciseNotes({});
     setSessionNote("");

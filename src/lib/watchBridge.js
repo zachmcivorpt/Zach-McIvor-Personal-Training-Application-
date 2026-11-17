@@ -81,8 +81,10 @@ export function sendWorkoutToWatch(workout) {
   post({ action: "workout", workout });
 }
 
-export function clearWatchWorkout() {
-  post({ action: "clear" });
+// `reason` ("finished" | "discarded") tells the Watch to save or throw away
+// its Apple Health workout (#262); anything else is treated as finished.
+export function clearWatchWorkout(reason) {
+  post(reason === "finished" || reason === "discarded" ? { action: "clear", reason } : { action: "clear" });
 }
 
 export function ackWatchAction(id) {

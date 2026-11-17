@@ -1,6 +1,7 @@
 import Foundation
 import WatchConnectivity
 import WebKit
+import HealthKit
 
 // Apple Watch workout logging (REGRESSION_TESTS.md #189).
 //
@@ -8,7 +9,9 @@ import WebKit
 // bridge only carries it between the page and the Watch app (ios/ApexWatch):
 //
 //   page  → here : apexWatch.postMessage({ action: "workout", workout })
-//                  { action: "clear" }   — no workout running
+//                  { action: "clear", reason } — no workout running
+//                  ("finished" | "discarded", passed to the Watch so its
+//                  Apple Health workout is saved or thrown away, #262)
 //                  { action: "ack", id } — a Watch action was applied
 //   here  → Watch: WCSession application context ["workout": JSON string]
 //   Watch → here : sendMessage / transferUserInfo ["action": JSON string]
@@ -53,11 +56,13 @@ final class WatchBridge: NSObject, WCSessionDelegate {
             UserDefaults.standard.set(json, forKey: contextKey)
             pushContext(json)
             deliverPending()
+            launchWatchWorkout(sessionId: (workout as? [String: Any])?["sessionId"] as? String)
         case "clear":
             pageHasWorkout = false
             UserDefaults.standard.removeObject(forKey: contextKey)
             UserDefaults.standard.removeObject(forKey: pendingKey)
-            pushContext(nil)
+            UserDefaults.standard.removeObject(forKey: launchedKey)
+            pushContext(nil, ended: body["reason"] as? String)
         case "ack":
             guard let id = body["id"] as? String else { return }
             var pending = loadPending()
@@ -78,12 +83,31 @@ final class WatchBridge: NSObject, WCSessionDelegate {
         pageHasWorkout = false
     }
 
-    private func pushContext(_ json: String?) {
+    // A workout started on the phone opens the APEX Watch app with an Apple
+    // Health workout running (#262) — once per workout, only with the Watch
+    // app installed. The Watch also starts one itself when the workout arrives.
+    private let launchedKey = "apexWatchLaunchedSession"
+    private lazy var healthStore = HKHealthStore()
+
+    private func launchWatchWorkout(sessionId: String?) {
+        guard let id = sessionId, HKHealthStore.isHealthDataAvailable(), WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
+        guard UserDefaults.standard.string(forKey: launchedKey) != id else { return }
+        UserDefaults.standard.set(id, forKey: launchedKey)
+        let config = HKWorkoutConfiguration()
+        config.activityType = .traditionalStrengthTraining
+        config.locationType = .indoor
+        healthStore.startWatchApp(with: config) { _, _ in }
+    }
+
+    private func pushContext(_ json: String?, ended: String? = nil) {
         guard WCSession.isSupported() else { return }
         let session = WCSession.default
         guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
         var context: [String: Any] = ["sentAt": Date().timeIntervalSince1970]
         if let json = json { context["workout"] = json }
+        if json == nil, let ended = ended { context["ended"] = ended }
         try? session.updateApplicationContext(context)
         // Live too when the Watch app is open, so a logged set shows at once.
         if session.isReachable {

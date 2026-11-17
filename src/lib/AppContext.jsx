@@ -2502,13 +2502,17 @@ export function AppProvider({ children }) {
         // opens APEX (client or coach, every single time) downloads and
         // parses it before anything can render, for a feature the
         // overwhelming majority of opens never touch.
-        const { FITNESS_MEALS_AU } = await import("./fitnessMealsAU");
+        // Plus the 100-meal "Insta" batch (instaMealsAU.js: high-protein
+        // breakfasts/lunches/dinners with stock photos). A meal's own
+        // photoUrl only applies when the coach hasn't set one.
+        const [{ FITNESS_MEALS_AU }, { INSTA_MEALS_AU }] = await Promise.all([import("./fitnessMealsAU"), import("./instaMealsAU")]);
+        const ALL_MEALS = [...FITNESS_MEALS_AU, ...INSTA_MEALS_AU];
         const existingById = new Map((db.masterMeals || []).map((m) => [m.id, m]));
-        const newCount = FITNESS_MEALS_AU.filter((m) => !existingById.has(m.id)).length;
+        const newCount = ALL_MEALS.filter((m) => !existingById.has(m.id)).length;
         try {
-          for (let i = 0; i < FITNESS_MEALS_AU.length; i += 400) {
+          for (let i = 0; i < ALL_MEALS.length; i += 400) {
             const batch = writeBatch(firestore);
-            FITNESS_MEALS_AU.slice(i, i + 400).forEach((meal) => {
+            ALL_MEALS.slice(i, i + 400).forEach((meal) => {
               const existing = existingById.get(meal.id);
               batch.set(doc(firestore, "masterMeals", meal.id), existing?.photoUrl ? { ...meal, photoUrl: existing.photoUrl } : meal);
             });
