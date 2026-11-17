@@ -729,15 +729,10 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         <GlassTile value={dbReady ? awaitingReply : "–"} label="Messages to reply" onClick={() => onNavigate("messages")} />
       </div>
 
-      {/* Coach's notes sit above Training / Nutrition and Needs attention (#227, #261 owner). */}
+      {/* Coach's notes sit above Needs attention, then Training / Nutrition (#227, #261 owner). */}
       <div className="relative mx-4 md:mx-0 mb-7" data-testid="coach-notes">
         <CoachNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
       </div>
-
-      {/* Training and Nutrition command centre (#261, owner): every active
-          client's training and today's nutrition, side by side on wide
-          screens, stacked on phones; below Coach's notes (owner). */}
-      <CommandCentre clients={active} db={db} todayKey={todayKey} ready={dbReady && usersReady} onOpenClient={onOpenClient} showToast={showToast} />
 
       <section className="relative mx-4 md:mx-0 mb-7">
         <SectionHead title="Needs attention" meta={visibleNeedsAttention.length > 0 ? String(visibleNeedsAttention.length) : null} />
@@ -768,6 +763,11 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           )}
         </div>
       </section>
+
+      {/* Training and Nutrition command centre (#261, owner): every active
+          client's training and today's nutrition, side by side on wide
+          screens, stacked on phones; below Coach's notes and Needs attention (owner). */}
+      <CommandCentre clients={active} db={db} todayKey={todayKey} ready={dbReady && usersReady} onOpenClient={onOpenClient} showToast={showToast} />
 
       {/* A client's own save (nutrition, workout, weigh-in, habit, check-in)
           can fail silently on their end — the only way a coach used to find
