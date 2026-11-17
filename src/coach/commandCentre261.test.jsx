@@ -193,10 +193,20 @@ describe("Overview command centre (#261)", () => {
     fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention"));
     expect(within(list).queryByTestId("cc-nutrition-row-p2")).toBeNull();
     expect(within(list).getByTestId("cc-nutrition-row-p3")).toBeTruthy();
+    fireEvent.click(within(nut).getByTestId("cc-nutrition-clear"));
+    expect(within(list).getByTestId("cc-nutrition-row-p2")).toBeTruthy();
     fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention"));
+    fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention")); // tap again clears too
     expect(within(list).getByTestId("cc-nutrition-row-p2")).toBeTruthy();
     fireEvent.click(within(nut).getByTestId("cc-nutrition-day-yesterday"));
     expect(within(nut).getByTestId("cc-nutrition-stat-calories").textContent).toMatch(/^0/);
+  });
+
+  it("the row's message button opens the composer in one tap", async () => {
+    await renderOverview();
+    fireEvent.click(within(screen.getByTestId("cc-nutrition-row-p1")).getByTestId("cc-row-message"));
+    const sheet = await screen.findByTestId("cc-message-sheet");
+    expect(within(sheet).getAllByTestId("cc-suggestion")[0].textContent).toMatch(/Hey Pat/);
   });
 
   it("Message: suggestion from real data → edit → send through the chat", async () => {
@@ -206,8 +216,11 @@ describe("Overview command centre (#261)", () => {
     fireEvent.click(within(await screen.findByTestId("cc-client-sheet")).getByTestId("cc-action-message"));
     const sheet = await screen.findByTestId("cc-message-sheet");
     const send = within(sheet).getByTestId("cc-message-send");
-    expect(send.disabled).toBe(true);
     const suggestion = within(sheet).getAllByTestId("cc-suggestion")[0];
+    // opens with the first suggestion already in the box
+    expect(within(sheet).getByTestId("cc-message-text").value).toBe(suggestion.textContent);
+    fireEvent.change(within(sheet).getByTestId("cc-message-text"), { target: { value: "" } });
+    expect(send.disabled).toBe(true);
     expect(suggestion.textContent).toMatch(/Hey Pat, noticed you've missed 2 scheduled sessions this week/);
     fireEvent.click(suggestion);
     const box = within(sheet).getByTestId("cc-message-text");

@@ -7,7 +7,7 @@
 // differences + thin bars) and the actions: Message (suggestions written
 // from the client's own figures, edited, sent through sendMessage),
 // Diary / History, and Profile. Every figure comes from commandCentre.js.
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Avatar, BottomSheet } from "../components/ui";
 import { MEASURE_BLUE, GOAL_GREEN, OVER_RED } from "../theme";
@@ -25,11 +25,10 @@ import {
   NUTRITION_STATUS,
   TRAINING_STATUS,
 } from "./commandCentre";
-import { ChevronRight, Send, ExternalLink, BookOpen, History, MessageSquare, UserRound, Sparkles, ArrowLeft } from "lucide-react";
+import { Send, ExternalLink, BookOpen, History, MessageSquare, UserRound, Sparkles, ArrowLeft } from "lucide-react";
 
 const PREVIEW_ROWS = 5;
 const TONE = { green: GOAL_GREEN, red: OVER_RED, blue: MEASURE_BLUE, muted: "rgba(255,255,255,0.35)" };
-const RULE = "rgba(255,255,255,0.22)";
 const ROW_RULE = "rgba(255,255,255,0.07)";
 
 const fmt = (n) => Math.round(n).toLocaleString();
@@ -50,26 +49,52 @@ function daysAgoLabel(n) {
 }
 
 // ---- shared building blocks (identical in both sections) -------------------
+// Frosted glass like Overview's tiles and Coach's notes (#227): see-through
+// fill, hairline border, blur. The section is one pane; the figures and the
+// controls are lighter panes on it.
+const PANE = {
+  background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025))",
+  border: "1px solid rgba(255,255,255,0.12)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 48px -28px rgba(0,0,0,0.9)",
+  backdropFilter: "blur(22px) saturate(140%)",
+  WebkitBackdropFilter: "blur(22px) saturate(140%)",
+};
+const TILE = {
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+};
+
 function StatusText({ status, table }) {
   const s = table[status];
+  const c = s.tone === "muted" ? "rgba(255,255,255,0.6)" : TONE[s.tone];
   return (
-    <span className="inline-flex items-center gap-1.5 shrink-0 text-[11.5px] font-medium whitespace-nowrap" style={{ color: s.tone === "muted" ? "rgba(255,255,255,0.5)" : TONE[s.tone] }} data-testid="cc-status">
+    <span
+      className="inline-flex items-center gap-1.5 shrink-0 rounded-full px-2.5 h-6 text-[11px] font-semibold whitespace-nowrap"
+      style={{ color: c, background: s.tone === "muted" ? "rgba(255,255,255,0.05)" : `${TONE[s.tone]}14`, border: `1px solid ${s.tone === "muted" ? "rgba(255,255,255,0.12)" : `${TONE[s.tone]}40`}` }}
+      data-testid="cc-status"
+    >
       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: TONE[s.tone] }} />
       {s.label}
     </span>
   );
 }
 
-// A large open figure that doubles as a filter.
+// A large figure on a glass tile that doubles as a filter (tap again to clear).
 function Figure({ value, label, tone, active, onClick, testId }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={active} data-testid={testId} className="text-left min-w-0 active:opacity-70 transition-opacity">
-      <span className="block text-[28px] sm:text-[32px] font-semibold tracking-[-0.04em] leading-none tabular-nums" style={{ color: tone ? TONE[tone] : "#fff" }}>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      data-testid={testId}
+      className="text-left min-w-0 rounded-xl px-3.5 py-3 active:scale-[0.97] transition-[transform,background] duration-150"
+      style={active ? GLASS_BLUE : TILE}
+    >
+      <span className="block text-[26px] sm:text-[30px] font-semibold tracking-[-0.04em] leading-none tabular-nums" style={{ color: tone ? TONE[tone] : "#fff" }}>
         {value}
       </span>
-      <span className="block text-[11.5px] mt-1.5 truncate" style={{ color: active ? MEASURE_BLUE : "rgba(255,255,255,0.55)", fontWeight: active ? 600 : 400 }}>
-        {label}
-      </span>
+      <span className={`block text-[11.5px] leading-tight mt-1.5 ${active ? "text-white font-semibold" : "text-white/60"}`}>{label}</span>
     </button>
   );
 }
@@ -79,18 +104,31 @@ function Section({ id, title, meta, headerRight, figures, filter, setFilter, row
   const test = filters[filter] || (() => true);
   const visible = rows.filter(test);
   const shown = showAll ? visible : visible.slice(0, PREVIEW_ROWS);
+  const activeFigure = figures.find((f) => f.filter === filter);
   return (
-    <section className="min-w-0" data-testid={`cc-${id}`} aria-label={`${title} overview`}>
-      <div className="flex items-baseline justify-between gap-3 mb-3">
-        <h2 className="text-white text-[17px] font-semibold tracking-[-0.01em]">{title}</h2>
-        {headerRight || <span className="text-white/50 text-[13px] truncate">{meta}</span>}
+    <section className="min-w-0 rounded-[22px] overflow-hidden" style={PANE} data-testid={`cc-${id}`} aria-label={`${title} overview`}>
+      <div className="px-4 pt-4 pb-3">
+        <div className="flex items-center justify-between gap-3 mb-3 min-h-[32px]">
+          <h2 className="text-white text-[17px] font-semibold tracking-[-0.01em]">{title}</h2>
+          {headerRight || <span className="text-white/50 text-[12.5px] truncate">{meta}</span>}
+        </div>
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${figures.length}, minmax(0, 1fr))` }}>
+          {figures.map((f) => (
+            <Figure key={f.filter} {...f} value={ready ? f.value : "–"} active={filter === f.filter} onClick={() => setFilter(filter === f.filter ? "all" : f.filter)} testId={`cc-${id}-stat-${f.filter}`} />
+          ))}
+        </div>
+        {activeFigure && (
+          <div className="flex items-center justify-between mt-2.5 text-[12px]">
+            <span className="text-white/60">
+              Showing <span className="text-white font-semibold">{activeFigure.label.toLowerCase()}</span> · {visible.length}
+            </span>
+            <button type="button" onClick={() => setFilter("all")} className="font-semibold px-2 py-1 -my-1" style={{ color: MEASURE_BLUE }} data-testid={`cc-${id}-clear`}>
+              Show everyone
+            </button>
+          </div>
+        )}
       </div>
-      <div className="grid grid-cols-3 gap-4 mb-4">
-        {figures.map((f) => (
-          <Figure key={f.filter} {...f} value={ready ? f.value : "–"} active={filter === f.filter} onClick={() => setFilter(filter === f.filter ? "all" : f.filter)} testId={`cc-${id}-stat-${f.filter}`} />
-        ))}
-      </div>
-      <div className="border-t" style={{ borderColor: RULE }} data-testid={`cc-${id}-list`}>
+      <div className="border-t" style={{ borderColor: "rgba(255,255,255,0.10)" }} data-testid={`cc-${id}-list`}>
         {!ready ? (
           <p className="text-white/45 text-[13px] text-center py-6">Loading…</p>
         ) : shown.length === 0 ? (
@@ -104,21 +142,36 @@ function Section({ id, title, meta, headerRight, figures, filter, setFilter, row
               onClick={() => onOpen(r)}
               onKeyDown={(e) => e.key === "Enter" && onOpen(r)}
               data-testid={`cc-${id}-row-${r.client.id}`}
-              className="flex items-center gap-3 py-2.5 min-h-[52px] border-b last:border-0 cursor-pointer hover:bg-white/[0.03] active:bg-white/[0.04]"
+              className="flex items-center gap-3 pl-4 pr-2.5 py-2.5 min-h-[60px] border-b last:border-0 cursor-pointer hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors"
               style={{ borderColor: ROW_RULE }}
             >
-              <Avatar name={r.client.name} url={r.client.avatarUrl} size={28} dark />
+              <Avatar name={r.client.name} url={r.client.avatarUrl} size={32} dark />
               <div className="flex-1 min-w-0">
-                <p className="text-white text-[13.5px] font-semibold truncate">{r.client.name}</p>
-                <p className="text-white/50 text-[12px] truncate tabular-nums">{renderLine(r)}</p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="flex-1 min-w-0 text-white text-[14px] font-semibold truncate">{r.client.name}</p>
+                  <StatusText status={r.status} table={table} />
+                </div>
+                <p className="text-white/50 text-[12px] truncate tabular-nums mt-0.5">{renderLine(r)}</p>
               </div>
-              <StatusText status={r.status} table={table} />
-              <ChevronRight size={14} className="text-white/30 shrink-0" />
+              {/* One tap straight to a message; the row itself opens the details. */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpen(r, { compose: true });
+                }}
+                aria-label={`Message ${r.client.name}`}
+                data-testid="cc-row-message"
+                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 active:scale-[0.94] transition-transform"
+                style={TILE}
+              >
+                <MessageSquare size={15} className="text-white/85" />
+              </button>
             </div>
           ))
         )}
         {ready && visible.length > PREVIEW_ROWS && (
-          <button type="button" onClick={() => setShowAll((v) => !v)} className="w-full py-3 text-[13px] font-semibold border-t" style={{ color: MEASURE_BLUE, borderColor: ROW_RULE }} data-testid={`cc-${id}-more`}>
+          <button type="button" onClick={() => setShowAll((v) => !v)} className="w-full py-3.5 text-[13px] font-semibold border-t" style={{ color: MEASURE_BLUE, borderColor: ROW_RULE }} data-testid={`cc-${id}-more`}>
             {showAll ? "Show fewer" : `Show all ${visible.length}`}
           </button>
         )}
@@ -152,6 +205,19 @@ function Measure({ label, actual, target, unit, diffText, tone, pct }) {
 function ClientSheet({ target, onClose, onOpenClient, showToast }) {
   const { sendMessage } = useApp();
   const [composing, setComposing] = useState(false);
+  // The row's message button opens the sheet straight on the composer.
+  // The composer opens with the first (most relevant) suggestion already
+  // in the box, ready to edit or send.
+  function startCompose() {
+    const first = target?.suggestions?.()[0] || "";
+    setText(first);
+    setPicked(first ? 0 : null);
+    setComposing(true);
+  }
+  useEffect(() => {
+    if (target?.compose) startCompose();
+    else if (target) setComposing(false);
+  }, [target]);
   const [text, setText] = useState("");
   const [picked, setPicked] = useState(null);
   const first = target?.client?.name?.split(" ")[0] || "client";
@@ -194,7 +260,7 @@ function ClientSheet({ target, onClose, onOpenClient, showToast }) {
             {target.detail}
           </p>
           <div className="grid grid-cols-3 gap-2">
-            <GlassButton tone="blue" onClick={() => setComposing(true)} data-testid="cc-action-message">
+            <GlassButton tone="blue" onClick={startCompose} data-testid="cc-action-message">
               <MessageSquare size={13} /> Message
             </GlassButton>
             {target.kind === "nutrition" ? (
@@ -286,10 +352,11 @@ export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
   const rows = useMemo(() => sortRows(clients.map((c) => nutritionDay(c, db.nutritionLogs?.[c.id], dateKey, { final })), "priority", NUTRITION_STATUS), [clients, db.nutritionLogs, dateKey, final]);
   const withTargets = rows.filter((r) => r.logged && r.assigned);
 
-  const open = (r) => {
+  const open = (r, opts) => {
     const inProgress = !final;
     onOpen({
       kind: "nutrition",
+      compose: !!opts?.compose,
       client: r.client,
       row: r,
       table: NUTRITION_STATUS,
@@ -307,12 +374,12 @@ export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
       title="Nutrition"
       table={NUTRITION_STATUS}
       headerRight={
-        <div className="flex items-center gap-3 text-[13px]" role="group" aria-label="Diary day">
+        <div className="flex rounded-full p-0.5" style={TILE} role="group" aria-label="Diary day">
           {[
             ["today", "Today"],
             ["yesterday", "Yesterday"],
           ].map(([k, l]) => (
-            <button key={k} type="button" onClick={() => setDay(k)} aria-pressed={day === k} data-testid={`cc-nutrition-day-${k}`} className="transition-colors" style={{ color: day === k ? "#fff" : "rgba(255,255,255,0.4)", fontWeight: day === k ? 600 : 400 }}>
+            <button key={k} type="button" onClick={() => setDay(k)} aria-pressed={day === k} data-testid={`cc-nutrition-day-${k}`} className="h-8 px-3.5 rounded-full text-[12.5px] font-semibold transition-colors" style={day === k ? { backgroundColor: "#fff", color: "#000" } : { color: "rgba(255,255,255,0.6)" }}>
               {l}
             </button>
           ))}
@@ -360,12 +427,13 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
   const dueToday = rows.filter((r) => r.today);
   const nextText = (r) => (r.next ? `Next: ${r.next.label || "Session"} ${r.next.date === todayKey ? "today" : shortDate(r.next.date)}` : "Nothing upcoming");
 
-  const open = (r) => {
+  const open = (r, opts) => {
     const weekTone = r.week.assigned === 0 ? "muted" : r.missed.length ? "red" : r.week.done === r.week.assigned ? "green" : "blue";
     const weekText = r.week.assigned === 0 ? "Nothing scheduled" : r.missed.length ? `${r.missed.length} missed${r.week.due ? ` · ${r.week.due} to do` : ""}` : r.week.due ? `${r.week.due} still to do` : "All sessions done";
     const prog = r.program;
     onOpen({
       kind: "training",
+      compose: !!opts?.compose,
       client: r.client,
       row: r,
       table: TRAINING_STATUS,
@@ -408,8 +476,8 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
 export default function CommandCentre({ clients, db, todayKey, ready, onOpenClient, showToast }) {
   const [target, setTarget] = useState(null);
   return (
-    <div className="relative mx-4 md:mx-0 mb-8" data-testid="command-centre">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 xl:gap-10 items-start">
+    <div className="relative mx-3.5 md:mx-0 mb-8" data-testid="command-centre">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
         <TrainingOverview clients={clients} db={db} todayKey={todayKey} ready={ready} onOpen={setTarget} />
         <NutritionOverview clients={clients} db={db} todayKey={todayKey} ready={ready} onOpen={setTarget} />
       </div>
