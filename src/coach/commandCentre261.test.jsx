@@ -154,12 +154,8 @@ describe("Overview command centre (#261)", () => {
     const nut = screen.getByTestId("cc-nutrition");
     const pat = within(nut).getByTestId("cc-nutrition-row-p1");
     expect(within(pat).getByText("Under so far")).toBeTruthy();
-    expect(pat.textContent).toMatch(/115\s*\/\s*160g/);
-    expect(pat.textContent).toMatch(/45g to go/);
-    expect(pat.textContent).toMatch(/350 kcal to go/);
-    const quinn = within(nut).getByTestId("cc-nutrition-row-p2");
-    expect(within(quinn).getByText("Goal completed", { selector: "span" })).toBeTruthy();
-    expect(quinn.textContent).toMatch(/Target reached/);
+    expect(pat.textContent).toMatch(/115\/160g P · 1,850\/2,200 kcal/);
+    expect(within(nut).getByTestId("cc-nutrition-row-p2").textContent).toMatch(/Goal completed/);
     expect(within(nut).getByTestId("cc-nutrition-row-p3").textContent).toMatch(/No meals logged/);
     expect(within(nut).getByTestId("cc-nutrition-stat-logged").textContent).toMatch(/2\/3/);
 
@@ -170,31 +166,35 @@ describe("Overview command centre (#261)", () => {
     expect(within(tr).getByTestId("cc-training-stat-doneToday").textContent).toMatch(/1\/1/);
   });
 
-  it("rows and actions open the right place", async () => {
+  it("a row opens the client sheet with exact gaps; its actions open the right place", async () => {
     const { onOpenClient } = await renderOverview();
-    const nutRow = screen.getByTestId("cc-nutrition-row-p1");
-    fireEvent.click(within(nutRow).getByTestId("cc-action-diary"));
+    fireEvent.click(screen.getByTestId("cc-nutrition-row-p1"));
+    let sheet = await screen.findByTestId("cc-client-sheet");
+    expect(sheet.textContent).toMatch(/45g to go/);
+    expect(sheet.textContent).toMatch(/350 kcal to go/);
+    fireEvent.click(within(sheet).getByTestId("cc-action-diary"));
     expect(onOpenClient).toHaveBeenLastCalledWith("p1", { tab: "nutrition" });
-    fireEvent.click(within(screen.getByTestId("cc-training-row-p1")).getByTestId("cc-action-history"));
+
+    fireEvent.click(screen.getByTestId("cc-training-row-p1"));
+    sheet = await screen.findByTestId("cc-client-sheet");
+    expect(sheet.textContent).toMatch(/2 missed/);
+    fireEvent.click(within(sheet).getByTestId("cc-action-history"));
     expect(onOpenClient).toHaveBeenLastCalledWith("p1", { tab: "program" });
-    fireEvent.click(within(nutRow).getByTestId("cc-action-profile"));
-    expect(onOpenClient).toHaveBeenLastCalledWith("p1", undefined);
-    fireEvent.click(nutRow);
-    expect(onOpenClient).toHaveBeenLastCalledWith("p1", undefined);
+
+    fireEvent.click(screen.getByTestId("cc-training-row-p2"));
+    fireEvent.click(within(await screen.findByTestId("cc-client-sheet")).getByTestId("cc-action-profile"));
+    expect(onOpenClient).toHaveBeenLastCalledWith("p2", undefined);
   });
 
-  it("filters, sorts and switches to yesterday", async () => {
+  it("figures filter the list (tap again to clear) and Yesterday switches the day", async () => {
     await renderOverview();
     const nut = screen.getByTestId("cc-nutrition");
-    fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention"));
     const list = within(nut).getByTestId("cc-nutrition-list");
+    fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention"));
     expect(within(list).queryByTestId("cc-nutrition-row-p2")).toBeNull();
     expect(within(list).getByTestId("cc-nutrition-row-p3")).toBeTruthy();
-    fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention")); // toggles back to all
+    fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention"));
     expect(within(list).getByTestId("cc-nutrition-row-p2")).toBeTruthy();
-    fireEvent.change(within(nut).getByTestId("cc-nutrition-sort"), { target: { value: "name" } });
-    const names = within(list).getAllByRole("button").filter((b) => b.dataset.testid?.startsWith("cc-nutrition-row-")).map((b) => b.dataset.testid);
-    expect(names).toEqual(["cc-nutrition-row-p1", "cc-nutrition-row-p2", "cc-nutrition-row-p3"]);
     fireEvent.click(within(nut).getByTestId("cc-nutrition-day-yesterday"));
     expect(within(nut).getByTestId("cc-nutrition-stat-logged").textContent).toMatch(/0\/3/);
   });
@@ -202,7 +202,8 @@ describe("Overview command centre (#261)", () => {
   it("Message: suggestion from real data → edit → send through the chat", async () => {
     sendMessage.mockClear();
     const { showToast } = await renderOverview();
-    fireEvent.click(within(screen.getByTestId("cc-training-row-p1")).getByTestId("cc-action-message"));
+    fireEvent.click(screen.getByTestId("cc-training-row-p1"));
+    fireEvent.click(within(await screen.findByTestId("cc-client-sheet")).getByTestId("cc-action-message"));
     const sheet = await screen.findByTestId("cc-message-sheet");
     const send = within(sheet).getByTestId("cc-message-send");
     expect(send.disabled).toBe(true);

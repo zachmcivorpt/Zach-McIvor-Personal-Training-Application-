@@ -101,11 +101,12 @@ rather than inventing new colors per screen:
   keeps its old destination (#115).
 - **No Segments section on Overview** (#232, owner): removed for good; don't bring it back.
 - **Training and Nutrition command centre** (#261, owner): two matching
-  glass panels under the tiles (`src/coach/CommandCentre.jsx`, maths in
-  `commandCentre.js`), side by side from `xl`, stacked below. Same frame for
-  both: four figures (each one a filter), status chips + sort, client rows
-  with two measured figures + thin bars, Message / Diary or History /
-  Profile. Nutrition is the DAY (Today, or Yesterday as a finished day),
+  open sections under the tiles (`src/coach/CommandCentre.jsx`, maths in
+  `commandCentre.js`), side by side from `xl`, stacked below. Kept quiet
+  (owner: "way too much going on"): no boxes, chips, sort menu or row
+  buttons — a title, three large figures (each a filter), then one row per
+  client (name, one short line, a status dot). A row opens the client sheet
+  (figures with exact gaps + bars; Message / Diary or History / Profile). Nutrition is the DAY (Today, or Yesterday as a finished day),
   never a weekly summary: today's shortfall is "to go" / "Under so far",
   never a miss; a partly logged day is "Diary incomplete"; no coach-set
   `nutritionTargets.calories` = "No assigned target" (the app default is

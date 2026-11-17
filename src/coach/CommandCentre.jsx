@@ -1,18 +1,17 @@
 // Coach Overview → Training and Nutrition command centre (#261, owner).
 //
-// Two matching dark-glass panels on Overview: the same header, the same
-// four figures (each one a filter), the same filter chips + sort, the same
-// client rows (two measured figures with a thin bar each, one line of
-// detail, and three actions) and the same message sheet. Every figure comes
-// from commandCentre.js (the client's own logs, targets and schedule);
-// every button does what it says: Message opens suggestions written from
-// those figures and sends through the normal chat (sendMessage), Diary /
-// History / the row open the client's page on the right tab.
+// Two matching open sections (no boxes, owner: "way too much going on"):
+// a title, three large figures (each one a filter — tap again to clear),
+// then one quiet row per client: name, one line of figures, a status dot.
+// Tapping a row opens the client sheet with the measured figures (exact
+// differences + thin bars) and the actions: Message (suggestions written
+// from the client's own figures, edited, sent through sendMessage),
+// Diary / History, and Profile. Every figure comes from commandCentre.js.
 import React, { useMemo, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Avatar, BottomSheet } from "../components/ui";
 import { MEASURE_BLUE, GOAL_GREEN, OVER_RED } from "../theme";
-import { GLASS, GLASS_BLUE, GlassButton, SHEET_GLASS } from "./darkUI";
+import { GLASS_BLUE, GlassButton, SHEET_GLASS } from "./darkUI";
 import {
   nutritionDay,
   nutritionTrend,
@@ -26,21 +25,21 @@ import {
   NUTRITION_STATUS,
   TRAINING_STATUS,
 } from "./commandCentre";
-import { Utensils, Dumbbell, MessageSquare, ChevronRight, Sparkles, Send, ExternalLink, BookOpen, History } from "lucide-react";
+import { ChevronRight, Send, ExternalLink, BookOpen, History, MessageSquare, UserRound, Sparkles, ArrowLeft } from "lucide-react";
 
-const PREVIEW_ROWS = 6;
-const TONE = { green: GOAL_GREEN, red: OVER_RED, blue: MEASURE_BLUE, muted: "rgba(255,255,255,0.45)" };
-const PANEL = {
-  ...GLASS,
-  background: "linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025))",
-  border: "1px solid rgba(255,255,255,0.10)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07), 0 18px 40px -24px rgba(0,0,0,0.9)",
-};
+const PREVIEW_ROWS = 5;
+const TONE = { green: GOAL_GREEN, red: OVER_RED, blue: MEASURE_BLUE, muted: "rgba(255,255,255,0.35)" };
+const RULE = "rgba(255,255,255,0.22)";
+const ROW_RULE = "rgba(255,255,255,0.07)";
 
 const fmt = (n) => Math.round(n).toLocaleString();
 function shortDate(key) {
   const [y, m, d] = key.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }).replace(",", "");
+}
+function weekday(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short" });
 }
 function clockTime(ms) {
   return new Date(ms).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
@@ -50,197 +49,76 @@ function daysAgoLabel(n) {
   return n === 0 ? "today" : n === 1 ? "yesterday" : `${n}d ago`;
 }
 
-// ---- shared building blocks (identical in both panels) ---------------------
-function StatusPill({ status, table }) {
+// ---- shared building blocks (identical in both sections) -------------------
+function StatusText({ status, table }) {
   const s = table[status];
-  const color = TONE[s.tone];
   return (
-    <span
-      className="inline-flex items-center gap-1.5 shrink-0 rounded-full px-2 py-[3px] text-[10.5px] font-semibold tracking-[0.02em] whitespace-nowrap"
-      style={{ color: s.tone === "muted" ? "rgba(255,255,255,0.7)" : color, backgroundColor: s.tone === "muted" ? "rgba(255,255,255,0.06)" : `${color}1A`, border: `1px solid ${s.tone === "muted" ? "rgba(255,255,255,0.12)" : `${color}55`}` }}
-      data-testid="cc-status"
-    >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+    <span className="inline-flex items-center gap-1.5 shrink-0 text-[11.5px] font-medium whitespace-nowrap" style={{ color: s.tone === "muted" ? "rgba(255,255,255,0.5)" : TONE[s.tone] }} data-testid="cc-status">
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: TONE[s.tone] }} />
       {s.label}
     </span>
   );
 }
 
-function Stat({ value, label, tone, active, onClick, testId }) {
+// A large open figure that doubles as a filter.
+function Figure({ value, label, tone, active, onClick, testId }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      data-testid={testId}
-      className="flex flex-col items-start text-left rounded-xl px-3 py-2.5 min-w-0 transition-colors active:scale-[0.98]"
-      style={active ? GLASS_BLUE : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
-    >
-      <span className="text-white text-[22px] sm:text-[26px] font-semibold tracking-[-0.03em] leading-none tabular-nums" style={tone ? { color: TONE[tone] } : undefined}>
+    <button type="button" onClick={onClick} aria-pressed={active} data-testid={testId} className="text-left min-w-0 active:opacity-70 transition-opacity">
+      <span className="block text-[28px] sm:text-[32px] font-semibold tracking-[-0.04em] leading-none tabular-nums" style={{ color: tone ? TONE[tone] : "#fff" }}>
         {value}
       </span>
-      <span className="text-white/55 text-[10.5px] sm:text-[11px] leading-tight mt-1.5">{label}</span>
+      <span className="block text-[11.5px] mt-1.5 truncate" style={{ color: active ? MEASURE_BLUE : "rgba(255,255,255,0.55)", fontWeight: active ? 600 : 400 }}>
+        {label}
+      </span>
     </button>
   );
 }
 
-// One measured figure: label, "actual / target", the exact difference, and
-// a thin bar (blue under, green hit, red over — muted with no target).
-function Measure({ label, actual, target, unit, diffText, tone, pct }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-white/45 text-[10px] font-semibold tracking-[0.08em] uppercase">{label}</p>
-      <p className="text-white text-[13px] mt-0.5 tabular-nums truncate">
-        <span className="font-semibold">{actual}</span>
-        {target != null && <span className="text-white/45"> / {target}{unit}</span>}
-        {target == null && unit && <span className="text-white/45">{unit}</span>}
-      </p>
-      <div className="h-[3px] rounded-full mt-1.5 overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-        <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${Math.max(0, Math.min(100, pct || 0))}%`, backgroundColor: TONE[tone] }} />
-      </div>
-      <p className="text-[11px] mt-1 truncate" style={{ color: tone === "muted" ? "rgba(255,255,255,0.45)" : TONE[tone] }}>
-        {diffText}
-      </p>
-    </div>
-  );
-}
-
-function RowAction({ icon: Icon, label, onClick, testId }) {
-  return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      aria-label={label}
-      title={label}
-      data-testid={testId}
-      className="h-8 px-2.5 rounded-lg inline-flex items-center gap-1.5 text-white/80 text-[11px] font-semibold hover:text-white active:scale-[0.96] transition"
-      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}
-    >
-      <Icon size={13} />
-      <span className="hidden sm:inline">{label}</span>
-    </button>
-  );
-}
-
-function ClientRow({ row, table, measures, detail, actions, onOpen, testId }) {
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(e) => e.key === "Enter" && onOpen()}
-      data-testid={testId}
-      className="px-3.5 sm:px-4 py-3 border-t cursor-pointer hover:bg-white/[0.025] active:bg-white/[0.04] transition-colors"
-      style={{ borderColor: "rgba(255,255,255,0.07)" }}
-    >
-      <div className="flex items-center gap-2.5 min-w-0">
-        <Avatar name={row.client.name} url={row.client.avatarUrl} size={30} dark />
-        <p className="flex-1 min-w-0 text-white text-[13.5px] font-semibold truncate">{row.client.name}</p>
-        <StatusPill status={row.status} table={table} />
-      </div>
-      <div className="grid grid-cols-2 gap-x-4 mt-2.5 sm:pl-[40px]">
-        {measures.map((m) => (
-          <Measure key={m.label} {...m} />
-        ))}
-      </div>
-      <div className="flex items-center gap-2 mt-2.5 sm:pl-[40px]">
-        <p className="flex-1 min-w-0 text-white/55 text-[11.5px] leading-snug">{detail}</p>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {actions.map((a) => (
-            <RowAction key={a.label} {...a} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Chip({ label, count, active, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className="h-7 px-2.5 rounded-full text-[11px] font-semibold whitespace-nowrap shrink-0 transition-colors"
-      style={active ? { backgroundColor: "#fff", color: "#000" } : { color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" }}
-    >
-      {label}
-      <span className={`ml-1 tabular-nums ${active ? "text-black/50" : "text-white/40"}`}>{count}</span>
-    </button>
-  );
-}
-
-// The panel frame both sections share: header, four figures, filters +
-// sort, rows, "Show all".
-function OverviewPanel({ id, icon: Icon, title, subtitle, headerRight, stats, filters, filter, setFilter, sort, setSort, sortOptions, rows, renderRow, ready, emptyText }) {
+function Section({ id, title, meta, headerRight, figures, filter, setFilter, rows, filters, ready, renderLine, onOpen, table }) {
   const [showAll, setShowAll] = useState(false);
-  const active = filters.find((f) => f.id === filter) || filters[0];
-  const visible = rows.filter(active.test);
+  const test = filters[filter] || (() => true);
+  const visible = rows.filter(test);
   const shown = showAll ? visible : visible.slice(0, PREVIEW_ROWS);
   return (
-    <section className="relative rounded-2xl overflow-hidden min-w-0" style={PANEL} data-testid={`cc-${id}`} aria-label={`${title} overview`}>
-      <div className="px-3.5 sm:px-4 pt-4 pb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={GLASS_BLUE}>
-            <Icon size={15} className="text-white" />
-          </span>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-white text-[16px] font-semibold tracking-[-0.01em] leading-tight">{title}</h2>
-            <p className="text-white/50 text-[11.5px] truncate">{subtitle}</p>
-          </div>
-          {headerRight}
-        </div>
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mt-3.5">
-          {stats.map((s) => (
-            <Stat key={s.filter} {...s} value={ready ? s.value : "–"} active={filter === s.filter} onClick={() => setFilter(filter === s.filter ? "all" : s.filter)} testId={`cc-${id}-stat-${s.filter}`} />
-          ))}
-        </div>
-        <div className="flex items-start gap-2 mt-3">
-          {/* Status chips; the figures above are filters themselves, so
-              their chips only show while one is selected. One scrolling
-              line on phones, wrapping from sm. */}
-          <div className="flex sm:flex-wrap gap-1.5 flex-1 min-w-0 overflow-x-auto sm:overflow-visible no-scrollbar">
-            {filters
-              .filter((f) => f.id === "all" || f.id === filter || (!stats.some((st) => st.filter === f.id && f.id !== "attention") && rows.some(f.test)))
-              .map((f) => (
-                <Chip key={f.id} label={f.label} count={rows.filter(f.test).length} active={filter === f.id} onClick={() => setFilter(f.id)} />
-              ))}
-          </div>
-          <label className="shrink-0">
-            <span className="sr-only">Sort {title}</span>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              data-testid={`cc-${id}-sort`}
-              className="h-7 rounded-full pl-2.5 pr-1.5 text-[11px] font-semibold text-white outline-none"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)", colorScheme: "dark" }}
-            >
-              {sortOptions.map((o) => (
-                <option key={o.id} value={o.id} style={{ backgroundColor: "#111" }}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+    <section className="min-w-0" data-testid={`cc-${id}`} aria-label={`${title} overview`}>
+      <div className="flex items-baseline justify-between gap-3 mb-3">
+        <h2 className="text-white text-[17px] font-semibold tracking-[-0.01em]">{title}</h2>
+        {headerRight || <span className="text-white/50 text-[13px] truncate">{meta}</span>}
       </div>
-      <div data-testid={`cc-${id}-list`}>
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        {figures.map((f) => (
+          <Figure key={f.filter} {...f} value={ready ? f.value : "–"} active={filter === f.filter} onClick={() => setFilter(filter === f.filter ? "all" : f.filter)} testId={`cc-${id}-stat-${f.filter}`} />
+        ))}
+      </div>
+      <div className="border-t" style={{ borderColor: RULE }} data-testid={`cc-${id}-list`}>
         {!ready ? (
-          <p className="text-white/45 text-[12.5px] text-center py-8 border-t" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-            Loading…
-          </p>
+          <p className="text-white/45 text-[13px] text-center py-6">Loading…</p>
         ) : shown.length === 0 ? (
-          <p className="text-white/55 text-[12.5px] text-center py-8 border-t" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-            {rows.length === 0 ? "No active clients yet." : emptyText}
-          </p>
+          <p className="text-white/55 text-[13px] text-center py-6">{rows.length === 0 ? "No active clients yet." : "No clients here right now."}</p>
         ) : (
-          shown.map(renderRow)
+          shown.map((r) => (
+            <div
+              key={r.client.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onOpen(r)}
+              onKeyDown={(e) => e.key === "Enter" && onOpen(r)}
+              data-testid={`cc-${id}-row-${r.client.id}`}
+              className="flex items-center gap-3 py-2.5 min-h-[52px] border-b last:border-0 cursor-pointer hover:bg-white/[0.03] active:bg-white/[0.04]"
+              style={{ borderColor: ROW_RULE }}
+            >
+              <Avatar name={r.client.name} url={r.client.avatarUrl} size={28} dark />
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-[13.5px] font-semibold truncate">{r.client.name}</p>
+                <p className="text-white/50 text-[12px] truncate tabular-nums">{renderLine(r)}</p>
+              </div>
+              <StatusText status={r.status} table={table} />
+              <ChevronRight size={14} className="text-white/30 shrink-0" />
+            </div>
+          ))
         )}
         {ready && visible.length > PREVIEW_ROWS && (
-          <button type="button" onClick={() => setShowAll((v) => !v)} className="w-full py-3 text-[12.5px] font-semibold border-t" style={{ color: MEASURE_BLUE, borderColor: "rgba(255,255,255,0.07)" }} data-testid={`cc-${id}-more`}>
+          <button type="button" onClick={() => setShowAll((v) => !v)} className="w-full py-3 text-[13px] font-semibold border-t" style={{ color: MEASURE_BLUE, borderColor: ROW_RULE }} data-testid={`cc-${id}-more`}>
             {showAll ? "Show fewer" : `Show all ${visible.length}`}
           </button>
         )}
@@ -249,73 +127,131 @@ function OverviewPanel({ id, icon: Icon, title, subtitle, headerRight, stats, fi
   );
 }
 
-// ---- Message sheet: suggestions from real figures, editable, then sent
-// through the normal chat (sendMessage) ------------------------------------
-function MessageSheet({ target, onClose, onOpenChat }) {
+// One measured figure in the client sheet: "actual / target", a thin bar
+// and the exact difference.
+function Measure({ label, actual, target, unit, diffText, tone, pct }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-white/45 text-[10.5px] font-semibold tracking-[0.08em] uppercase">{label}</p>
+      <p className="text-white text-[22px] font-semibold tracking-[-0.03em] mt-1 tabular-nums leading-none">
+        {actual}
+        {target != null && <span className="text-white/40 text-[15px] font-medium"> / {target}{unit}</span>}
+        {target == null && unit && <span className="text-white/40 text-[15px] font-medium">{unit}</span>}
+      </p>
+      <div className="h-[3px] rounded-full mt-2.5 overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+        <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, pct || 0))}%`, backgroundColor: TONE[tone] }} />
+      </div>
+      <p className="text-[12px] mt-1.5" style={{ color: tone === "muted" ? "rgba(255,255,255,0.45)" : TONE[tone] }}>
+        {diffText}
+      </p>
+    </div>
+  );
+}
+
+// ---- Client sheet: figures + actions, and the message composer ------------
+function ClientSheet({ target, onClose, onOpenClient, showToast }) {
   const { sendMessage } = useApp();
+  const [composing, setComposing] = useState(false);
   const [text, setText] = useState("");
   const [picked, setPicked] = useState(null);
-  const open = !!target;
   const first = target?.client?.name?.split(" ")[0] || "client";
 
-  function choose(s, i) {
-    setPicked(i);
-    setText(s);
+  function reset() {
+    setComposing(false);
+    setText("");
+    setPicked(null);
+  }
+  function close() {
+    reset();
+    onClose();
+  }
+  function go(action) {
+    const id = target.client.id;
+    close();
+    onOpenClient(id, action);
   }
   function send() {
     const body = text.trim();
     if (!body || !target) return;
     sendMessage(target.client.id, "coach", body);
-    target.onSent?.(`Message sent to ${first}`);
-    setText("");
-    setPicked(null);
-    onClose();
-  }
-  function close() {
-    setText("");
-    setPicked(null);
-    onClose();
+    showToast?.(`Message sent to ${first}`);
+    close();
   }
 
   return (
-    <BottomSheet open={open} onClose={close} title={`Message ${first}`} dark surface={SHEET_GLASS} backdropClassName="bg-black/40">
-      {target && (
+    <BottomSheet open={!!target} onClose={close} title={composing ? `Message ${first}` : target?.client?.name || ""} dark surface={SHEET_GLASS} backdropClassName="bg-black/40">
+      {target && !composing && (
+        <div style={{ color: "#fff" }} data-testid="cc-client-sheet">
+          <div className="mb-5">
+            <StatusText status={target.row.status} table={target.table} />
+          </div>
+          <div className="grid grid-cols-2 gap-5 mb-4">
+            {target.measures.map((m) => (
+              <Measure key={m.label} {...m} />
+            ))}
+          </div>
+          <p className="text-white/55 text-[12.5px] leading-relaxed mb-5 pt-3 border-t" style={{ borderColor: ROW_RULE }}>
+            {target.detail}
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <GlassButton tone="blue" onClick={() => setComposing(true)} data-testid="cc-action-message">
+              <MessageSquare size={13} /> Message
+            </GlassButton>
+            {target.kind === "nutrition" ? (
+              <GlassButton onClick={() => go({ tab: "nutrition" })} data-testid="cc-action-diary">
+                <BookOpen size={13} /> Diary
+              </GlassButton>
+            ) : (
+              <GlassButton onClick={() => go({ tab: "program" })} data-testid="cc-action-history">
+                <History size={13} /> History
+              </GlassButton>
+            )}
+            <GlassButton onClick={() => go(undefined)} data-testid="cc-action-profile">
+              <UserRound size={13} /> Profile
+            </GlassButton>
+          </div>
+        </div>
+      )}
+      {target && composing && (
         <div style={{ color: "#fff" }} data-testid="cc-message-sheet">
           <p className="flex items-center gap-1.5 text-white/55 text-[11px] font-semibold tracking-[0.08em] uppercase mb-2">
-            <Sparkles size={11} style={{ color: MEASURE_BLUE }} /> Suggested from {first}'s {target.kind === "nutrition" ? "nutrition" : "training"}
+            <Sparkles size={11} style={{ color: MEASURE_BLUE }} /> Suggested from {first}'s {target.kind}
           </p>
           <div className="space-y-1.5 mb-4">
-            {target.suggestions.map((s, i) => (
+            {target.suggestions().map((s, i) => (
               <button
                 key={i}
                 type="button"
-                onClick={() => choose(s, i)}
+                onClick={() => {
+                  setPicked(i);
+                  setText(s);
+                }}
                 data-testid="cc-suggestion"
-                className="w-full text-left rounded-xl px-3 py-2.5 text-[13px] leading-snug text-white/90 transition-colors"
+                className="w-full text-left rounded-xl px-3 py-2.5 text-[13px] leading-snug text-white/90"
                 style={picked === i ? GLASS_BLUE : { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}
               >
                 {s}
               </button>
             ))}
           </div>
-          <label className="block text-white/55 text-[11px] font-semibold tracking-[0.08em] uppercase mb-1.5" htmlFor="cc-message-text">
-            Your message
-          </label>
           <textarea
-            id="cc-message-text"
+            aria-label="Your message"
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={4}
-            placeholder="Pick a suggestion above or write your own…"
+            placeholder="Pick a suggestion or write your own…"
             data-testid="cc-message-text"
             className="w-full rounded-xl px-3.5 py-3 text-[14px] leading-relaxed text-white outline-none placeholder:text-white/35 resize-none"
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)" }}
           />
-          <div className="flex items-center gap-2 mt-3">
-            <GlassButton onClick={() => onOpenChat(target.client.id)} className="flex-1">
-              <ExternalLink size={13} /> Open chat
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            <GlassButton onClick={() => setComposing(false)}>
+              <ArrowLeft size={13} /> Back
             </GlassButton>
-            <GlassButton tone="blue" onClick={send} disabled={!text.trim()} className="flex-1" data-testid="cc-message-send">
+            <GlassButton onClick={() => go({ messages: true })}>
+              <ExternalLink size={13} /> Chat
+            </GlassButton>
+            <GlassButton tone="blue" onClick={send} disabled={!text.trim()} data-testid="cc-message-send">
               <Send size={13} /> Send
             </GlassButton>
           </div>
@@ -326,268 +262,162 @@ function MessageSheet({ target, onClose, onOpenChat }) {
 }
 
 // ---- Nutrition -------------------------------------------------------------
-const NUTRITION_FILTERS = [
-  { id: "all", label: "All", test: () => true },
-  { id: "attention", label: "Attention", test: nutritionNeedsAttention },
-  { id: "completed", label: "Completed", test: (r) => r.status === "completed" },
-  { id: "under", label: "Under", test: (r) => r.status === "under" || r.status === "inProgress" },
-  { id: "over", label: "Over", test: (r) => r.status === "over" },
-  { id: "notLogged", label: "No meals", test: (r) => r.status === "notLogged" },
-  { id: "incomplete", label: "Incomplete", test: (r) => r.status === "incomplete" },
-  { id: "noTarget", label: "No target", test: (r) => r.status === "noTarget" },
-  { id: "logged", label: "Logged", test: (r) => r.logged },
-  { id: "protein", label: "Protein hit", test: (r) => r.protein.state === "hit" || r.protein.state === "over" },
-  { id: "calories", label: "Calories hit", test: (r) => r.calories.state === "hit" },
-];
-const NUTRITION_SORTS = [
-  { id: "priority", label: "Priority" },
-  { id: "protein", label: "Protein gap" },
-  { id: "calories", label: "Calorie gap" },
-  { id: "name", label: "Name" },
-];
+const NUTRITION_FILTERS = {
+  logged: (r) => r.logged,
+  protein: (r) => r.protein.state === "hit" || r.protein.state === "over",
+  attention: nutritionNeedsAttention,
+};
 
 function measureFromCompare(cmp, label, unit, inProgress) {
-  const u = unit === "kcal" ? " kcal" : unit;
-  if (cmp.target == null) return { label, actual: unit === "kcal" ? fmt(cmp.actual) : `${cmp.actual}g`, target: null, unit: unit === "kcal" ? " kcal" : "", diffText: "No target assigned", tone: "muted", pct: 0 };
-  const tone = cmp.state === "hit" ? "green" : cmp.state === "over" ? (unit === "g" ? "blue" : "red") : inProgress ? "blue" : "red";
-  const abs = Math.abs(cmp.diff);
-  const diffText =
-    cmp.state === "hit"
-      ? unit === "kcal"
-        ? "Target reached"
-        : "Goal completed"
-      : cmp.state === "over"
-        ? `${unit === "kcal" ? fmt(abs) : abs}${u} over`
-        : `${unit === "kcal" ? fmt(abs) : abs}${u} ${inProgress ? "to go" : "under"}`;
-  return {
-    label,
-    actual: unit === "kcal" ? fmt(cmp.actual) : `${cmp.actual}`,
-    target: unit === "kcal" ? fmt(cmp.target) : cmp.target,
-    unit: unit === "kcal" ? "" : "g",
-    diffText,
-    tone,
-    pct: (cmp.actual / cmp.target) * 100,
-  };
+  const kcal = unit === "kcal";
+  if (cmp.target == null) return { label, actual: kcal ? fmt(cmp.actual) : `${cmp.actual}g`, target: null, unit: kcal ? " kcal" : "", diffText: "No target assigned", tone: "muted", pct: 0 };
+  const tone = cmp.state === "hit" ? "green" : cmp.state === "over" ? (kcal ? "red" : "blue") : inProgress ? "blue" : "red";
+  const abs = kcal ? fmt(Math.abs(cmp.diff)) : Math.abs(cmp.diff);
+  const u = kcal ? " kcal" : "g";
+  const diffText = cmp.state === "hit" ? (kcal ? "Target reached" : "Goal completed") : cmp.state === "over" ? `${abs}${u} over` : `${abs}${u} ${inProgress ? "to go" : "under"}`;
+  return { label, actual: kcal ? fmt(cmp.actual) : `${cmp.actual}`, target: kcal ? fmt(cmp.target) : cmp.target, unit: kcal ? "" : "g", diffText, tone, pct: (cmp.actual / cmp.target) * 100 };
 }
 
-export function NutritionOverview({ clients, db, todayKey, ready, onOpenClient, onMessage }) {
+export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
   const [day, setDay] = useState("today");
   const [filter, setFilter] = useState("all");
-  const [sort, setSort] = useState("priority");
   const dateKey = day === "today" ? todayKey : addDaysKey(todayKey, -1);
   const final = day !== "today";
-  const rows = useMemo(
-    () => clients.map((c) => nutritionDay(c, db.nutritionLogs?.[c.id], dateKey, { final })),
-    [clients, db.nutritionLogs, dateKey, final]
-  );
-  const sorted = useMemo(() => {
-    if (sort === "protein" || sort === "calories") {
-      // Furthest from target first; no target / nothing logged last.
-      const gap = (r) => (r.logged && r[sort].target ? Math.abs(r[sort].diff) / r[sort].target : -1);
-      return rows.slice().sort((a, b) => gap(b) - gap(a));
-    }
-    return sortRows(rows, sort, NUTRITION_STATUS);
-  }, [rows, sort]);
-
-  const loggedCount = rows.filter((r) => r.logged).length;
+  const rows = useMemo(() => sortRows(clients.map((c) => nutritionDay(c, db.nutritionLogs?.[c.id], dateKey, { final })), "priority", NUTRITION_STATUS), [clients, db.nutritionLogs, dateKey, final]);
   const withTargets = rows.filter((r) => r.logged && r.assigned);
-  const stats = [
-    { filter: "logged", value: `${loggedCount}/${rows.length}`, label: "Logged meals" },
-    { filter: "protein", value: withTargets.filter((r) => r.protein.state !== "under").length, label: "Protein hit", tone: "green" },
-    { filter: "calories", value: withTargets.filter((r) => r.calories.state === "hit").length, label: "Calories on target", tone: "green" },
-    { filter: "attention", value: rows.filter(nutritionNeedsAttention).length, label: "Need attention", tone: "red" },
-  ];
+
+  const open = (r) => {
+    const inProgress = !final;
+    onOpen({
+      kind: "nutrition",
+      client: r.client,
+      row: r,
+      table: NUTRITION_STATUS,
+      measures: [measureFromCompare(r.protein, "Protein", "g", inProgress), measureFromCompare(r.calories, "Calories", "kcal", inProgress)],
+      detail: r.logged
+        ? `${final ? "Yesterday" : "Today"}: ${r.meals} meal${r.meals === 1 ? "" : "s"}, ${r.itemCount} item${r.itemCount === 1 ? "" : "s"}${r.lastLoggedAt ? ` · last logged ${clockTime(r.lastLoggedAt)}` : ""}`
+        : `No meals logged ${final ? "yesterday" : "yet today"}.`,
+      suggestions: () => nutritionSuggestions(r, nutritionTrend(r.client, db.nutritionLogs?.[r.client.id], todayKey)),
+    });
+  };
 
   return (
-    <OverviewPanel
+    <Section
       id="nutrition"
-      icon={Utensils}
       title="Nutrition"
-      subtitle={`${final ? "Yesterday" : "Today"} · ${shortDate(dateKey)} · ${final ? "full day" : "in progress"}`}
+      table={NUTRITION_STATUS}
       headerRight={
-        <div className="flex rounded-full p-0.5 shrink-0" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }} role="group" aria-label="Diary day">
+        <div className="flex items-center gap-3 text-[13px]" role="group" aria-label="Diary day">
           {[
             ["today", "Today"],
             ["yesterday", "Yesterday"],
           ].map(([k, l]) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setDay(k)}
-              aria-pressed={day === k}
-              data-testid={`cc-nutrition-day-${k}`}
-              className="h-6 px-2.5 rounded-full text-[11px] font-semibold transition-colors"
-              style={day === k ? { backgroundColor: "#fff", color: "#000" } : { color: "rgba(255,255,255,0.65)" }}
-            >
+            <button key={k} type="button" onClick={() => setDay(k)} aria-pressed={day === k} data-testid={`cc-nutrition-day-${k}`} className="transition-colors" style={{ color: day === k ? "#fff" : "rgba(255,255,255,0.4)", fontWeight: day === k ? 600 : 400 }}>
               {l}
             </button>
           ))}
         </div>
       }
-      stats={stats}
-      filters={NUTRITION_FILTERS}
+      figures={[
+        { filter: "logged", value: `${rows.filter((r) => r.logged).length}/${rows.length}`, label: "Logged meals" },
+        { filter: "protein", value: withTargets.filter((r) => r.protein.state !== "under").length, label: "Hit protein" },
+        { filter: "attention", value: rows.filter(nutritionNeedsAttention).length, label: "Need attention" },
+      ]}
       filter={filter}
       setFilter={setFilter}
-      sort={sort}
-      setSort={setSort}
-      sortOptions={NUTRITION_SORTS}
-      rows={sorted}
+      filters={NUTRITION_FILTERS}
+      rows={rows}
       ready={ready}
-      emptyText="No clients match this filter."
-      renderRow={(r) => {
-        const inProgress = !final;
-        const detail = r.logged
-          ? `${r.meals} meal${r.meals === 1 ? "" : "s"} · ${r.itemCount} item${r.itemCount === 1 ? "" : "s"}${r.lastLoggedAt ? ` · last logged ${clockTime(r.lastLoggedAt)}` : ""}`
-          : `No meals logged ${final ? "yesterday" : "yet today"}`;
-        return (
-          <ClientRow
-            key={r.client.id}
-            row={r}
-            table={NUTRITION_STATUS}
-            testId={`cc-nutrition-row-${r.client.id}`}
-            onOpen={() => onOpenClient(r.client.id)}
-            measures={[measureFromCompare(r.protein, "Protein", "g", inProgress), measureFromCompare(r.calories, "Calories", "kcal", inProgress)]}
-            detail={detail}
-            actions={[
-              { icon: MessageSquare, label: "Message", testId: "cc-action-message", onClick: () => onMessage({ kind: "nutrition", client: r.client, suggestions: nutritionSuggestions(r, nutritionTrend(r.client, db.nutritionLogs?.[r.client.id], todayKey)) }) },
-              { icon: BookOpen, label: "Diary", testId: "cc-action-diary", onClick: () => onOpenClient(r.client.id, { tab: "nutrition" }) },
-              { icon: ChevronRight, label: "Profile", testId: "cc-action-profile", onClick: () => onOpenClient(r.client.id) },
-            ]}
-          />
-        );
-      }}
+      onOpen={open}
+      renderLine={(r) =>
+        !r.logged
+          ? "No meals logged"
+          : r.assigned
+            ? `${r.protein.actual}/${r.protein.target}g P · ${fmt(r.calories.actual)}/${fmt(r.calories.target)} kcal`
+            : `${r.protein.actual}g P · ${fmt(r.calories.actual)} kcal`
+      }
     />
   );
 }
 
 // ---- Training --------------------------------------------------------------
-const TRAINING_FILTERS = [
-  { id: "all", label: "All", test: () => true },
-  { id: "attention", label: "Attention", test: trainingNeedsAttention },
-  { id: "doneToday", label: "Done today", test: (r) => r.status === "doneToday" || !!r.today?.done },
-  { id: "toDo", label: "Still to do", test: (r) => r.week.due > 0 },
-  { id: "missed", label: "Missed", test: (r) => r.missed.length > 0 },
-  { id: "behind", label: "Falling behind", test: (r) => r.status === "behind" },
-  { id: "onTrack", label: "On track", test: (r) => r.status === "onTrack" },
-  { id: "consistent", label: "Consistent", test: (r) => r.consistent },
-  { id: "noSchedule", label: "Nothing scheduled", test: (r) => r.status === "noSchedule" },
-];
-const TRAINING_SORTS = [
-  { id: "priority", label: "Priority" },
-  { id: "rate", label: "Completion" },
-  { id: "name", label: "Name" },
-];
+const TRAINING_FILTERS = {
+  doneToday: (r) => !!r.today,
+  week: (r) => r.week.assigned > 0,
+  attention: trainingNeedsAttention,
+};
 
-export function TrainingOverview({ clients, db, todayKey, ready, onOpenClient, onMessage }) {
+export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
   const [filter, setFilter] = useState("all");
-  const [sort, setSort] = useState("priority");
   const rows = useMemo(
     () =>
-      clients.map((c) =>
-        trainingSummary(c, { workoutLogs: db.workoutLogs?.[c.id], scheduledWorkouts: db.scheduledWorkouts?.[c.id], phases: db.clientPhases?.[c.id] }, todayKey)
+      sortRows(
+        clients.map((c) => trainingSummary(c, { workoutLogs: db.workoutLogs?.[c.id], scheduledWorkouts: db.scheduledWorkouts?.[c.id], phases: db.clientPhases?.[c.id] }, todayKey)),
+        "priority",
+        TRAINING_STATUS
       ),
     [clients, db.workoutLogs, db.scheduledWorkouts, db.clientPhases, todayKey]
   );
-  const sorted = useMemo(() => {
-    if (sort === "rate") return rows.slice().sort((a, b) => (a.rate ?? 101) - (b.rate ?? 101));
-    return sortRows(rows, sort, TRAINING_STATUS);
-  }, [rows, sort]);
-
   const dueToday = rows.filter((r) => r.today);
   const weekAssigned = rows.reduce((a, r) => a + r.week.assigned, 0);
   const weekDone = rows.reduce((a, r) => a + r.week.done, 0);
-  const stats = [
-    { filter: "doneToday", value: `${dueToday.filter((r) => r.today.done).length}/${dueToday.length}`, label: "Done today" },
-    { filter: "toDo", value: `${weekDone}/${weekAssigned}`, label: "Sessions this week" },
-    { filter: "missed", value: rows.filter((r) => r.missed.length > 0).length, label: "Missed a session", tone: "red" },
-    { filter: "attention", value: rows.filter(trainingNeedsAttention).length, label: "Need attention", tone: "red" },
-  ];
+  const nextText = (r) => (r.next ? `Next: ${r.next.label || "Session"} ${r.next.date === todayKey ? "today" : shortDate(r.next.date)}` : "Nothing upcoming");
+
+  const open = (r) => {
+    const weekTone = r.week.assigned === 0 ? "muted" : r.missed.length ? "red" : r.week.done === r.week.assigned ? "green" : "blue";
+    const weekText = r.week.assigned === 0 ? "Nothing scheduled" : r.missed.length ? `${r.missed.length} missed${r.week.due ? ` · ${r.week.due} to do` : ""}` : r.week.due ? `${r.week.due} still to do` : "All sessions done";
+    const prog = r.program;
+    onOpen({
+      kind: "training",
+      client: r.client,
+      row: r,
+      table: TRAINING_STATUS,
+      measures: [
+        { label: "Last 7 days", actual: `${r.week.done}`, target: r.week.assigned || null, unit: r.week.assigned ? "" : " sessions", diffText: weekText, tone: weekTone, pct: r.week.assigned ? (r.week.done / r.week.assigned) * 100 : 0 },
+        prog
+          ? { label: "Program", actual: `Wk ${prog.week}`, target: prog.weeks || null, unit: "", diffText: `${prog.name}${prog.sessionsTotal ? ` · ${prog.sessionsDone}/${prog.sessionsTotal} sessions` : ""}`, tone: "blue", pct: prog.pct ?? 0 }
+          : { label: "Program", actual: "–", target: null, unit: "", diffText: "No current phase", tone: "muted", pct: 0 },
+      ],
+      detail: [r.lastLog ? `Last: ${r.lastLog.dayLabel || "Workout"} ${daysAgoLabel(r.daysSinceLast)}` : "No sessions logged yet", nextText(r), r.rate !== null ? `${r.rate}% of sessions done over 4 weeks` : null].filter(Boolean).join(" · "),
+      suggestions: () => trainingSuggestions(r),
+    });
+  };
 
   return (
-    <OverviewPanel
+    <Section
       id="training"
-      icon={Dumbbell}
       title="Training"
-      subtitle={`Today · ${shortDate(todayKey)} · last 7 days`}
-      headerRight={null}
-      stats={stats}
-      filters={TRAINING_FILTERS}
+      meta={`Today · ${shortDate(todayKey)}`}
+      table={TRAINING_STATUS}
+      figures={[
+        { filter: "doneToday", value: `${dueToday.filter((r) => r.today.done).length}/${dueToday.length}`, label: "Done today" },
+        { filter: "week", value: `${weekDone}/${weekAssigned}`, label: "Sessions, 7 days" },
+        { filter: "attention", value: rows.filter(trainingNeedsAttention).length, label: "Need attention" },
+      ]}
       filter={filter}
       setFilter={setFilter}
-      sort={sort}
-      setSort={setSort}
-      sortOptions={TRAINING_SORTS}
-      rows={sorted}
+      filters={TRAINING_FILTERS}
+      rows={rows}
       ready={ready}
-      emptyText="No clients match this filter."
-      renderRow={(r) => {
-        const weekTone = r.week.assigned === 0 ? "muted" : r.missed.length ? "red" : r.week.done === r.week.assigned ? "green" : "blue";
-        const weekText =
-          r.week.assigned === 0
-            ? "Nothing scheduled"
-            : r.missed.length
-              ? `${r.missed.length} missed${r.week.due ? ` · ${r.week.due} to do` : ""}`
-              : r.week.due
-                ? `${r.week.due} still to do`
-                : "All sessions done";
-        const prog = r.program;
-        const programMeasure = prog
-          ? {
-              label: "Program",
-              actual: `Wk ${prog.week}`,
-              target: prog.weeks ? prog.weeks : null,
-              unit: "",
-              diffText: `${prog.name}${prog.sessionsTotal ? ` · ${prog.sessionsDone}/${prog.sessionsTotal} sessions` : ""}`,
-              tone: "blue",
-              pct: prog.pct ?? 0,
-            }
-          : { label: "Program", actual: "–", target: null, unit: "", diffText: "No current phase", tone: "muted", pct: 0 };
-        const last = r.lastLog ? `Last: ${r.lastLog.dayLabel || "Workout"} ${daysAgoLabel(r.daysSinceLast)}` : "No sessions logged yet";
-        const next = r.next ? `Next: ${r.next.label || "Session"} ${r.next.date === todayKey ? "today" : shortDate(r.next.date)}` : "Nothing upcoming";
-        const rate = r.rate !== null ? ` · ${r.rate}% over 4 wks${r.consistent ? " ✓" : ""}` : "";
-        return (
-          <ClientRow
-            key={r.client.id}
-            row={r}
-            table={TRAINING_STATUS}
-            testId={`cc-training-row-${r.client.id}`}
-            onOpen={() => onOpenClient(r.client.id)}
-            measures={[
-              { label: "This week", actual: `${r.week.done}`, target: r.week.assigned || null, unit: r.week.assigned ? "" : " sessions", diffText: weekText, tone: weekTone, pct: r.week.assigned ? (r.week.done / r.week.assigned) * 100 : 0 },
-              programMeasure,
-            ]}
-            detail={`${last} · ${next}${rate}`}
-            actions={[
-              { icon: MessageSquare, label: "Message", testId: "cc-action-message", onClick: () => onMessage({ kind: "training", client: r.client, suggestions: trainingSuggestions(r) }) },
-              { icon: History, label: "History", testId: "cc-action-history", onClick: () => onOpenClient(r.client.id, { tab: "program" }) },
-              { icon: ChevronRight, label: "Profile", testId: "cc-action-profile", onClick: () => onOpenClient(r.client.id) },
-            ]}
-          />
-        );
+      onOpen={open}
+      renderLine={(r) => {
+        const next = r.next ? `Next ${r.next.label || "session"} ${r.next.date === todayKey ? "today" : weekday(r.next.date)}` : "Nothing upcoming";
+        return r.week.assigned ? `${r.week.done}/${r.week.assigned} done · ${next}` : next;
       }}
     />
   );
 }
 
-// ---- The two panels together, as placed on Overview ------------------------
+// ---- The two sections together, as placed on Overview ----------------------
 export default function CommandCentre({ clients, db, todayKey, ready, onOpenClient, showToast }) {
-  const [messageTarget, setMessageTarget] = useState(null);
-  const open = (id, action) => onOpenClient?.(id, action);
-  const onMessage = (t) => setMessageTarget({ ...t, onSent: showToast });
+  const [target, setTarget] = useState(null);
   return (
-    <div className="relative mx-3.5 md:mx-0 mb-7" data-testid="command-centre">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 xl:gap-4 items-start">
-        <TrainingOverview clients={clients} db={db} todayKey={todayKey} ready={ready} onOpenClient={open} onMessage={onMessage} />
-        <NutritionOverview clients={clients} db={db} todayKey={todayKey} ready={ready} onOpenClient={open} onMessage={onMessage} />
+    <div className="relative mx-4 md:mx-0 mb-8" data-testid="command-centre">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 xl:gap-10 items-start">
+        <TrainingOverview clients={clients} db={db} todayKey={todayKey} ready={ready} onOpen={setTarget} />
+        <NutritionOverview clients={clients} db={db} todayKey={todayKey} ready={ready} onOpen={setTarget} />
       </div>
-      <MessageSheet
-        target={messageTarget}
-        onClose={() => setMessageTarget(null)}
-        onOpenChat={(id) => {
-          setMessageTarget(null);
-          open(id, { messages: true });
-        }}
-      />
+      <ClientSheet target={target} onClose={() => setTarget(null)} onOpenClient={(id, action) => onOpenClient?.(id, action)} showToast={showToast} />
     </div>
   );
 }
