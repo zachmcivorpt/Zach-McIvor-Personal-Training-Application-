@@ -2182,7 +2182,8 @@ export const INSTA_MEALS_AU = [
     "cals": 434,
     "protein": 30.5,
     "carbs": 48.8,
-    "fat": 12.3
+    "fat": 12.3,
+    "photoUrl": "https://images.unsplash.com/photo-1741117126628-5ff5fdcfb7e4?w=900&q=80&fm=jpg&fit=crop"
   },
   {
     "id": "au_insta_030",
@@ -2758,7 +2759,8 @@ export const INSTA_MEALS_AU = [
     "cals": 538,
     "protein": 60.8,
     "carbs": 47.9,
-    "fat": 10.6
+    "fat": 10.6,
+    "photoUrl": "https://images.unsplash.com/photo-1552204081-7a832e4ee470?w=900&q=80&fm=jpg&fit=crop"
   },
   {
     "id": "au_insta_037",
@@ -3061,7 +3063,8 @@ export const INSTA_MEALS_AU = [
     "cals": 498,
     "protein": 51.2,
     "carbs": 38.7,
-    "fat": 14.2
+    "fat": 14.2,
+    "photoUrl": "https://images.unsplash.com/photo-1766706519060-d44bd9dc50f7?w=900&q=80&fm=jpg&fit=crop"
   },
   {
     "id": "au_insta_040",
@@ -7982,7 +7985,8 @@ export const INSTA_MEALS_AU = [
     "cals": 532,
     "protein": 62.5,
     "carbs": 40.9,
-    "fat": 12.7
+    "fat": 12.7,
+    "photoUrl": "https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=900&q=80&fm=jpg&fit=crop"
   },
   {
     "id": "au_insta_092",

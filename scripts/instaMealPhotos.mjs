@@ -43,4 +43,8 @@ export const INSTA_MEAL_PHOTOS = {
   "Sticky Sesame Chicken": "https://images.unsplash.com/photo-1788090485550-ca71c6d578fb?w=900&q=80&fm=jpg&fit=crop",
   "Healthy Shepherd's Pie": "https://images.unsplash.com/photo-1696935257293-9ec4f03074a1?w=900&q=80&fm=jpg&fit=crop",
   "Garlic Butter Steak Bites with Potatoes": "https://images.unsplash.com/photo-1682334005004-b8020b71fdf2?w=900&q=80&fm=jpg&fit=crop",
+  "Breakfast Quesadilla": "https://images.unsplash.com/photo-1741117126628-5ff5fdcfb7e4?w=900&q=80&fm=jpg&fit=crop",
+  "Greek Yoghurt & Dijon Potato Salad with Chicken": "https://images.unsplash.com/photo-1552204081-7a832e4ee470?w=900&q=80&fm=jpg&fit=crop",
+  "Crunchy Chicken Pesto Pasta Salad": "https://images.unsplash.com/photo-1766706519060-d44bd9dc50f7?w=900&q=80&fm=jpg&fit=crop",
+  "Light Cajun Chicken Alfredo": "https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=900&q=80&fm=jpg&fit=crop",
 };
