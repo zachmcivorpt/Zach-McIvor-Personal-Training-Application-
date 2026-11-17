@@ -161,6 +161,23 @@ function fulfilledKeys(logs) {
   return set;
 }
 
+// Only scheduled TRAINING counts on Overview (#269, owner: "not cardio or
+// habits"): a scheduled entry whose exercises are ALL cardio (library
+// category "Cardio"), warm-up / cool-down or rest markers is not training
+// and never counts toward "x/y done" or a miss. Habits never were in the
+// schedule. An entry with no exercise list, or an exercise missing from
+// the library, is treated as training (we can't tell otherwise).
+const NOT_TRAINING_CATEGORIES = new Set(["Cardio", "Warm-up", "Cool-down"]);
+export function isTrainingSession(w, exercisesById) {
+  const all = w?.exercises || [];
+  if (all.length === 0) return true;
+  const list = all.filter((e) => e && !e.isRest);
+  return list.some((e) => {
+    const ex = exercisesById?.[e.exerciseId];
+    return !ex || !NOT_TRAINING_CATEGORIES.has(ex.category);
+  });
+}
+
 export const TRAINING_STATUS = {
   doneToday: { label: "Done today", tone: "green", rank: 5 },
   dueToday: { label: "Due today", tone: "blue", rank: 3 },
@@ -170,9 +187,9 @@ export const TRAINING_STATUS = {
   noSchedule: { label: "Nothing scheduled", tone: "muted", rank: 6 },
 };
 
-export function trainingSummary(client, { workoutLogs, scheduledWorkouts, phases }, todayKey) {
+export function trainingSummary(client, { workoutLogs, scheduledWorkouts, phases, exercisesById }, todayKey) {
   const logs = (workoutLogs || []).filter(isStrength).slice().sort((a, b) => b.date - a.date);
-  const scheduled = (scheduledWorkouts || []).filter((w) => w && w.date).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const scheduled = (scheduledWorkouts || []).filter((w) => w && w.date && isTrainingSession(w, exercisesById)).slice().sort((a, b) => a.date.localeCompare(b.date));
   const done = fulfilledKeys(logs);
   const weekStart = mondayKey(todayKey);
   const weekEnd = addDaysKey(weekStart, 6);

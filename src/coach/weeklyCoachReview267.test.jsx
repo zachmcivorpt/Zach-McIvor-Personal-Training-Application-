@@ -64,6 +64,15 @@ describe("Weekly Coach Review maths (#267)", () => {
   it("nutrition counts days with food, not water-only days", () => {
     expect(r.nutrition).toEqual({ daysLogged: 2, pct: 29 });
   });
+  it("a cardio-only scheduled session isn't a scheduled training session (#269)", () => {
+    const withRun = weeklyCoachReview({
+      workoutLogs, nutritionLogs, habits, habitLog, todayKey: TODAY,
+      scheduledWorkouts: [...scheduledWorkouts, { id: "z", date: "2026-11-11", label: "Zone 2", exercises: [{ exerciseId: "run" }] }],
+      exercisesById: { run: { id: "run", category: "Cardio" } },
+    });
+    expect(withRun.sessions).toEqual({ planned: 4, done: 3, logged: 3 });
+  });
+
   it("nothing logged → zeros and no habit figure, never a crash", () => {
     const empty = weeklyCoachReview({ todayKey: TODAY });
     expect(empty.sessions).toEqual({ planned: 0, done: 0, logged: 0 });

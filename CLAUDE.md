@@ -120,7 +120,10 @@ rather than inventing new colors per screen:
   starts fresh every Monday (#268, owner): "x/y done", missed, falling
   behind (2+ misses) are Monday–Sunday of today only (`mondayKey`), never a
   rolling 7 days, and the 4-week rate is context in the sheet, never a
-  status. Training counts a
+  status. Only scheduled TRAINING counts (#269, owner: "not cardio or
+  habits"): `isTrainingSession` drops a scheduled entry whose exercises are
+  all Cardio / Warm-up / Cool-down / rest; Weekly Coach Review uses the same
+  rule. Training counts a
   session missed only when one was scheduled (a log's `scheduledDate`
   first, else its day; cardio doesn't count). Message suggestions quote
   only the client's own figures, are edited in the sheet, and go through

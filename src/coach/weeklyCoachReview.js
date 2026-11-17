@@ -11,7 +11,7 @@
 import { localDateKey } from "../lib/dateKey";
 import { hasFoodLogged } from "../lib/nutritionLog";
 import { logVolume } from "./videoFeedback/clientSnapshot";
-import { addDaysKey } from "./commandCentre";
+import { addDaysKey, isTrainingSession } from "./commandCentre";
 
 const isStrength = (l) => l && !l.cardio;
 const logDay = (l) => localDateKey(new Date(l.date));
@@ -22,7 +22,7 @@ function windowKeys(todayKey, fromDaysAgo, toDaysAgo) {
   return keys;
 }
 
-export function weeklyCoachReview({ workoutLogs, scheduledWorkouts, nutritionLogs, habits, habitLog, todayKey }) {
+export function weeklyCoachReview({ workoutLogs, scheduledWorkouts, nutritionLogs, habits, habitLog, todayKey, exercisesById }) {
   const days = windowKeys(todayKey, 7, 1);
   const prevDays = windowKeys(todayKey, 14, 8);
   const inWeek = new Set(days);
@@ -36,7 +36,7 @@ export function weeklyCoachReview({ workoutLogs, scheduledWorkouts, nutritionLog
   // rule, ClientApp logFulfillsDate).
   const doneDays = new Set();
   strength.forEach((l) => doneDays.add(l.scheduledDate || logDay(l)));
-  const plannedDays = [...new Set((scheduledWorkouts || []).filter((w) => w && inWeek.has(w.date)).map((w) => w.date))];
+  const plannedDays = [...new Set((scheduledWorkouts || []).filter((w) => w && inWeek.has(w.date) && isTrainingSession(w, exercisesById)).map((w) => w.date))];
   const sessions = {
     planned: plannedDays.length,
     done: plannedDays.filter((k) => doneDays.has(k)).length,

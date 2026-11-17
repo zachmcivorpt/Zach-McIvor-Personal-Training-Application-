@@ -114,6 +114,27 @@ describe("training maths (#265, week from Monday #268)", () => {
     expect(trainingSummary({ name: "Sam" }, { workoutLogs: [], scheduledWorkouts }, "2026-11-15").status).toBe("behind");
   });
 
+  it("only scheduled TRAINING counts: cardio-only sessions are left out (#269)", () => {
+    const exercisesById = {
+      run: { id: "run", category: "Cardio" },
+      row: { id: "row", category: "Cardio" },
+      warm: { id: "warm", category: "Warm-up" },
+      bench: { id: "bench", category: "Chest" },
+    };
+    const scheduledWorkouts = [
+      { id: "a", date: "2026-11-16", label: "Upper A", exercises: [{ exerciseId: "warm" }, { exerciseId: "bench" }] }, // training
+      { id: "b", date: "2026-11-17", label: "Zone 2 Run", exercises: [{ exerciseId: "run" }] }, // cardio — out
+      { id: "c", date: "2026-11-18", label: "Conditioning", exercises: [{ exerciseId: "row" }, { exerciseId: "warm" }, { isRest: true }] }, // cardio — out
+      { id: "d", date: "2026-11-19", label: "Lower A", exercises: [{ exerciseId: "squat-not-in-library" }] }, // unknown → training
+      { id: "e", date: "2026-11-21", label: "Steps", exercises: [{ exerciseId: "run" }] }, // cardio — out
+    ];
+    const r = trainingSummary({ name: "Sam" }, { workoutLogs: [log("2026-11-16", "Upper A")], scheduledWorkouts, exercisesById }, FRI);
+    expect(r.week).toMatchObject({ assigned: 2, done: 1, due: 0 });
+    expect(r.missed.map((m) => m.label)).toEqual(["Lower A"]); // the runs on the 17th/18th are not misses
+    expect(r.status).toBe("missed");
+    expect(r.next).toBeNull(); // Saturday's run isn't "next"
+  });
+
   it("a missed day finished late (scheduledDate) counts as done; cardio doesn't count", () => {
     const scheduledWorkouts = [sched("2026-11-17", "Lower A"), sched("2026-11-18", "Upper A")];
     const logs = [log("2026-11-19", "Lower A", { scheduledDate: "2026-11-17" }), log("2026-11-18", "Run", { cardio: { activityLabel: "Run" } })];

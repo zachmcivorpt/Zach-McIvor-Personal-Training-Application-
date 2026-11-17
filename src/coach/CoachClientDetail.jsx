@@ -5015,12 +5015,13 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   const habitLog = ((db.habitLog || {})[client.id]) || {};
   const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
   const today = localDateKey();
+  const exercisesByIdForReview = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
 
   // One window for every figure: the last 7 full days, ending yesterday
   // (#267, weeklyCoachReview.js) — today is still in progress.
   const review = useMemo(
-    () => weeklyCoachReview({ workoutLogs: logs, scheduledWorkouts, nutritionLogs, habits, habitLog, todayKey: today }),
-    [logs, scheduledWorkouts, nutritionLogs, habits, habitLog, today]
+    () => weeklyCoachReview({ workoutLogs: logs, scheduledWorkouts, nutritionLogs, habits, habitLog, todayKey: today, exercisesById: exercisesByIdForReview }),
+    [logs, scheduledWorkouts, nutritionLogs, habits, habitLog, today, exercisesByIdForReview]
   );
   const sessionsThisWeek = review.sessions.logged;
   const nutritionAdherencePct = review.nutrition.pct;

@@ -3802,6 +3802,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix** (`src/coach/commandCentre.js` `trainingSummary`): the week is Monday–Sunday of today (`mondayKey`, from `src/lib/weeklyReview.js`): "x/y done" is this week's scheduled sessions (the whole week, so "1/4" with three still to come), missed is a scheduled day earlier this week that wasn't done, Falling behind is 2+ of those, and nothing from last week counts. The 4-week completion rate stays only as context in the client sheet. The section's heading reads "This week · from Mon 16 Nov" and the sheet's figure is "This week".
 - **Tests**: `src/coach/commandCentre265.test.jsx` (training maths pinned to Fri 20 Nov: this week's 4 scheduled sessions with 1 done / 1 missed / 2 to come, last week's ignored; a client who missed all 8 sessions of the previous fortnight is "Due today" on Monday, not "Falling behind", and was "Falling behind" on the Sunday before; the Overview render tests now pin the clock). Both new training tests fail on the old rolling-7-day code (checked by restoring it).
 
+### 269. Overview Training counts scheduled training only, not cardio (owner, 2026-11-18)
+
+- **Problem**: Overview's Training section counted every scheduled entry as a session, so a client with cardio sessions on their calendar (a Zone 2 run, a conditioning day) showed them in "x/y done" and as missed sessions, and could be "Falling behind" for skipping a run. The owner wants scheduled training only — not cardio or habits (habits were never in the schedule).
+- **Fix**: `isTrainingSession` (`src/coach/commandCentre.js`): a scheduled entry counts only if at least one of its exercises isn't a rest marker or a library exercise in the Cardio, Warm-up or Cool-down category. An entry with no exercise list, or an exercise missing from the library, still counts (it can't be told apart). `trainingSummary` (Overview: x/y done, missed, falling behind, next) and `weeklyCoachReview` (the client page's Sessions figure) both use it; the Overview passes the coach's exercise library.
+- **Tests**: `commandCentre265.test.jsx` (a week with Upper A done, a run and a rowing/warm-up conditioning day, Lower A missed, a Saturday run: 1/2 done, only Lower A missed, no "next" run) and `weeklyCoachReview267.test.jsx` (an added cardio-only day leaves Sessions at 3 of 4). Both fail on the code before this fix (checked by restoring it).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

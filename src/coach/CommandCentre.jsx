@@ -324,14 +324,15 @@ export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
 
 // ---- Training --------------------------------------------------------------
 export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
+  const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
   const rows = useMemo(
     () =>
       sortRows(
-        clients.map((c) => trainingSummary(c, { workoutLogs: db.workoutLogs?.[c.id], scheduledWorkouts: db.scheduledWorkouts?.[c.id], phases: db.clientPhases?.[c.id] }, todayKey)),
+        clients.map((c) => trainingSummary(c, { workoutLogs: db.workoutLogs?.[c.id], scheduledWorkouts: db.scheduledWorkouts?.[c.id], phases: db.clientPhases?.[c.id], exercisesById }, todayKey)),
         "priority",
         TRAINING_STATUS
       ),
-    [clients, db.workoutLogs, db.scheduledWorkouts, db.clientPhases, todayKey]
+    [clients, db.workoutLogs, db.scheduledWorkouts, db.clientPhases, exercisesById, todayKey]
   );
   const nextText = (r) => (r.next ? `Next: ${r.next.label || "Session"} ${r.next.date === todayKey ? "today" : shortDate(r.next.date)}` : "Nothing upcoming");
 
