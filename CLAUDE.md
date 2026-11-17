@@ -105,7 +105,8 @@ rather than inventing new colors per screen:
   `commandCentre.js`), side by side from `xl`, stacked below. Kept quiet
   (owner: "way too much going on"): no boxes, chips, sort menu or row
   buttons — a title, large figures (each a filter; Training: Done today, Need
-  attention — no sessions-this-week count, owner), then one row per
+  attention; Nutrition: Hit calories, Hit protein, Need attention — no
+  sessions-this-week or meals-logged counts, owner), then one row per
   client (name, one short line, a status dot). A row opens the client sheet
   (figures with exact gaps + bars; Message / Diary or History / Profile). Nutrition is the DAY (Today, or Yesterday as a finished day),
   never a weekly summary: today's shortfall is "to go" / "Under so far",

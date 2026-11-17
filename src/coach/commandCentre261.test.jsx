@@ -157,7 +157,7 @@ describe("Overview command centre (#261)", () => {
     expect(pat.textContent).toMatch(/115\/160g P · 1,850\/2,200 kcal/);
     expect(within(nut).getByTestId("cc-nutrition-row-p2").textContent).toMatch(/Goal completed/);
     expect(within(nut).getByTestId("cc-nutrition-row-p3").textContent).toMatch(/No meals logged/);
-    expect(within(nut).getByTestId("cc-nutrition-stat-logged").textContent).toMatch(/2\/3/);
+    expect(within(nut).getByTestId("cc-nutrition-stat-calories").textContent).toMatch(/^1/);
 
     const tr = screen.getByTestId("cc-training");
     expect(within(tr).getByTestId("cc-training-row-p1").textContent).toMatch(/Falling behind/);
@@ -196,7 +196,7 @@ describe("Overview command centre (#261)", () => {
     fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention"));
     expect(within(list).getByTestId("cc-nutrition-row-p2")).toBeTruthy();
     fireEvent.click(within(nut).getByTestId("cc-nutrition-day-yesterday"));
-    expect(within(nut).getByTestId("cc-nutrition-stat-logged").textContent).toMatch(/0\/3/);
+    expect(within(nut).getByTestId("cc-nutrition-stat-calories").textContent).toMatch(/^0/);
   });
 
   it("Message: suggestion from real data → edit → send through the chat", async () => {

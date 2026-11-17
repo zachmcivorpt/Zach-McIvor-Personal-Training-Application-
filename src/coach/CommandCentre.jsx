@@ -263,8 +263,8 @@ function ClientSheet({ target, onClose, onOpenClient, showToast }) {
 
 // ---- Nutrition -------------------------------------------------------------
 const NUTRITION_FILTERS = {
-  logged: (r) => r.logged,
-  protein: (r) => r.protein.state === "hit" || r.protein.state === "over",
+  calories: (r) => r.logged && r.assigned && r.calories.state === "hit",
+  protein: (r) => r.logged && r.assigned && r.protein.state !== "under",
   attention: nutritionNeedsAttention,
 };
 
@@ -319,7 +319,7 @@ export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
         </div>
       }
       figures={[
-        { filter: "logged", value: `${rows.filter((r) => r.logged).length}/${rows.length}`, label: "Logged meals" },
+        { filter: "calories", value: withTargets.filter((r) => r.calories.state === "hit").length, label: "Hit calories" },
         { filter: "protein", value: withTargets.filter((r) => r.protein.state !== "under").length, label: "Hit protein" },
         { filter: "attention", value: rows.filter(nutritionNeedsAttention).length, label: "Need attention" },
       ]}
