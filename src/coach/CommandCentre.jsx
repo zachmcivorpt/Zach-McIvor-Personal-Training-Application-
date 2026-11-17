@@ -1,8 +1,8 @@
 // Coach Overview → Training and Nutrition command centre (#261, owner).
 //
 // Two matching open sections (no boxes, owner: "way too much going on"):
-// a title, three large figures (each one a filter — tap again to clear),
-// then one quiet row per client: name, one line of figures, a status dot.
+// a title, then one quiet row per client (no boxed figures, owner), most
+// in need first: name, one line of figures, a status dot.
 // Tapping a row opens the client sheet with the measured figures (exact
 // differences + thin bars) and the actions: Message (suggestions written
 // from the client's own figures, edited, sent through sendMessage),
@@ -15,10 +15,8 @@ import { GLASS_BLUE, GlassButton, SHEET_GLASS } from "./darkUI";
 import {
   nutritionDay,
   nutritionTrend,
-  nutritionNeedsAttention,
   nutritionSuggestions,
   trainingSummary,
-  trainingNeedsAttention,
   trainingSuggestions,
   sortRows,
   addDaysKey,
@@ -85,53 +83,17 @@ function StatusText({ status, table }) {
   );
 }
 
-// A large figure on a glass tile that doubles as a filter (tap again to clear).
-function Figure({ value, label, tone, active, onClick, testId }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      data-testid={testId}
-      className="text-left min-w-0 rounded-xl px-3.5 py-3 active:scale-[0.97] transition-[transform,background] duration-150"
-      style={active ? GLASS_BLUE : TILE}
-    >
-      <span className="block text-[26px] sm:text-[30px] font-semibold tracking-[-0.04em] leading-none tabular-nums" style={{ color: tone ? TONE[tone] : "#fff" }}>
-        {value}
-      </span>
-      <span className={`block text-[11.5px] leading-tight mt-1.5 ${active ? "text-white font-semibold" : "text-white/60"}`}>{label}</span>
-    </button>
-  );
-}
-
-function Section({ id, title, meta, headerRight, figures, filter, setFilter, rows, filters, ready, renderLine, onOpen, table }) {
+function Section({ id, title, meta, headerRight, rows, ready, renderLine, onOpen, table }) {
   const [showAll, setShowAll] = useState(false);
-  const test = filters[filter] || (() => true);
-  const visible = rows.filter(test);
+  const visible = rows;
   const shown = showAll ? visible : visible.slice(0, PREVIEW_ROWS);
-  const activeFigure = figures.find((f) => f.filter === filter);
   return (
     <section className="min-w-0 rounded-[22px] overflow-hidden" style={PANE} data-testid={`cc-${id}`} aria-label={`${title} overview`}>
       <div className="px-4 pt-4 pb-3">
-        <div className="flex items-center justify-between gap-3 mb-3 min-h-[32px]">
+        <div className="flex items-center justify-between gap-3 min-h-[32px]">
           <h2 className="text-white text-[17px] font-semibold tracking-[-0.01em]">{title}</h2>
           {headerRight || <span className="text-white/50 text-[12.5px] truncate">{meta}</span>}
         </div>
-        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${figures.length}, minmax(0, 1fr))` }}>
-          {figures.map((f) => (
-            <Figure key={f.filter} {...f} value={ready ? f.value : "–"} active={filter === f.filter} onClick={() => setFilter(filter === f.filter ? "all" : f.filter)} testId={`cc-${id}-stat-${f.filter}`} />
-          ))}
-        </div>
-        {activeFigure && (
-          <div className="flex items-center justify-between mt-2.5 text-[12px]">
-            <span className="text-white/60">
-              Showing <span className="text-white font-semibold">{activeFigure.label.toLowerCase()}</span> · {visible.length}
-            </span>
-            <button type="button" onClick={() => setFilter("all")} className="font-semibold px-2 py-1 -my-1" style={{ color: MEASURE_BLUE }} data-testid={`cc-${id}-clear`}>
-              Show everyone
-            </button>
-          </div>
-        )}
       </div>
       <div className="border-t" style={{ borderColor: "rgba(255,255,255,0.10)" }} data-testid={`cc-${id}-list`}>
         {!ready ? (
@@ -333,12 +295,6 @@ function ClientSheet({ target, onClose, onOpenClient, showToast }) {
 }
 
 // ---- Nutrition -------------------------------------------------------------
-const NUTRITION_FILTERS = {
-  calories: (r) => r.logged && r.assigned && r.calories.state === "hit",
-  protein: (r) => r.logged && r.assigned && r.protein.state !== "under",
-  attention: nutritionNeedsAttention,
-};
-
 function measureFromCompare(cmp, label, unit, inProgress) {
   const kcal = unit === "kcal";
   if (cmp.target == null) return { label, actual: kcal ? fmt(cmp.actual) : `${cmp.actual}g`, target: null, unit: kcal ? " kcal" : "", diffText: "No target assigned", tone: "muted", pct: 0 };
@@ -351,11 +307,9 @@ function measureFromCompare(cmp, label, unit, inProgress) {
 
 export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
   const [day, setDay] = useState("today");
-  const [filter, setFilter] = useState("all");
   const dateKey = day === "today" ? todayKey : addDaysKey(todayKey, -1);
   const final = day !== "today";
   const rows = useMemo(() => sortRows(clients.map((c) => nutritionDay(c, db.nutritionLogs?.[c.id], dateKey, { final })), "priority", NUTRITION_STATUS), [clients, db.nutritionLogs, dateKey, final]);
-  const withTargets = rows.filter((r) => r.logged && r.assigned);
 
   const open = (r, opts) => {
     const inProgress = !final;
@@ -390,14 +344,6 @@ export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
           ))}
         </div>
       }
-      figures={[
-        { filter: "calories", value: withTargets.filter((r) => r.calories.state === "hit").length, label: "Hit calories" },
-        { filter: "protein", value: withTargets.filter((r) => r.protein.state !== "under").length, label: "Hit protein" },
-        { filter: "attention", value: rows.filter(nutritionNeedsAttention).length, label: "Need attention" },
-      ]}
-      filter={filter}
-      setFilter={setFilter}
-      filters={NUTRITION_FILTERS}
       rows={rows}
       ready={ready}
       onOpen={open}
@@ -413,13 +359,7 @@ export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
 }
 
 // ---- Training --------------------------------------------------------------
-const TRAINING_FILTERS = {
-  doneToday: (r) => !!r.today,
-  attention: trainingNeedsAttention,
-};
-
 export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
-  const [filter, setFilter] = useState("all");
   const rows = useMemo(
     () =>
       sortRows(
@@ -429,7 +369,6 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
       ),
     [clients, db.workoutLogs, db.scheduledWorkouts, db.clientPhases, todayKey]
   );
-  const dueToday = rows.filter((r) => r.today);
   const nextText = (r) => (r.next ? `Next: ${r.next.label || "Session"} ${r.next.date === todayKey ? "today" : shortDate(r.next.date)}` : "Nothing upcoming");
 
   const open = (r, opts) => {
@@ -459,13 +398,6 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
       title="Training"
       meta={`Today · ${shortDate(todayKey)}`}
       table={TRAINING_STATUS}
-      figures={[
-        { filter: "doneToday", value: `${dueToday.filter((r) => r.today.done).length}/${dueToday.length}`, label: "Done today" },
-        { filter: "attention", value: rows.filter(trainingNeedsAttention).length, label: "Need attention" },
-      ]}
-      filter={filter}
-      setFilter={setFilter}
-      filters={TRAINING_FILTERS}
       rows={rows}
       ready={ready}
       onOpen={open}

@@ -157,13 +157,11 @@ describe("Overview command centre (#261)", () => {
     expect(pat.textContent).toMatch(/115\/160g P · 1,850\/2,200 kcal/);
     expect(within(nut).getByTestId("cc-nutrition-row-p2").textContent).toMatch(/Goal completed/);
     expect(within(nut).getByTestId("cc-nutrition-row-p3").textContent).toMatch(/No meals logged/);
-    expect(within(nut).getByTestId("cc-nutrition-stat-calories").textContent).toMatch(/^1/);
 
     const tr = screen.getByTestId("cc-training");
     expect(within(tr).getByTestId("cc-training-row-p1").textContent).toMatch(/Falling behind/);
     expect(within(tr).getByTestId("cc-training-row-p2").textContent).toMatch(/Done today/);
     expect(within(tr).getByTestId("cc-training-row-p3").textContent).toMatch(/Nothing scheduled/);
-    expect(within(tr).getByTestId("cc-training-stat-doneToday").textContent).toMatch(/1\/1/);
   });
 
   it("a row opens the client sheet with exact gaps; its actions open the right place", async () => {
@@ -186,20 +184,14 @@ describe("Overview command centre (#261)", () => {
     expect(onOpenClient).toHaveBeenLastCalledWith("p2", undefined);
   });
 
-  it("figures filter the list (tap again to clear) and Yesterday switches the day", async () => {
+  it("no boxed figures; most in need first; Yesterday switches the day", async () => {
     await renderOverview();
     const nut = screen.getByTestId("cc-nutrition");
-    const list = within(nut).getByTestId("cc-nutrition-list");
-    fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention"));
-    expect(within(list).queryByTestId("cc-nutrition-row-p2")).toBeNull();
-    expect(within(list).getByTestId("cc-nutrition-row-p3")).toBeTruthy();
-    fireEvent.click(within(nut).getByTestId("cc-nutrition-clear"));
-    expect(within(list).getByTestId("cc-nutrition-row-p2")).toBeTruthy();
-    fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention"));
-    fireEvent.click(within(nut).getByTestId("cc-nutrition-stat-attention")); // tap again clears too
-    expect(within(list).getByTestId("cc-nutrition-row-p2")).toBeTruthy();
+    expect(within(nut).queryByTestId(/cc-nutrition-stat-/)).toBeNull();
+    const order = () => within(nut).getAllByTestId(/cc-nutrition-row-/).map((r) => r.dataset.testid);
+    expect(order()[0]).toBe("cc-nutrition-row-p3"); // no meals logged first
     fireEvent.click(within(nut).getByTestId("cc-nutrition-day-yesterday"));
-    expect(within(nut).getByTestId("cc-nutrition-stat-calories").textContent).toMatch(/^0/);
+    expect(within(nut).getByTestId("cc-nutrition-row-p2").textContent).toMatch(/No meals logged/);
   });
 
   it("the row's message button opens the composer in one tap", async () => {

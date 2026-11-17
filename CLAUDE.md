@@ -106,10 +106,8 @@ rather than inventing new colors per screen:
   under the tiles (`src/coach/CommandCentre.jsx`, maths in
   `commandCentre.js`), side by side from `xl`, stacked below. Kept quiet
   (owner: "way too much going on", then "more glassy, easier to operate"):
-  no chips or sort menu — a title, large figures on glass tiles (each a filter; Training: Done today, Need
-  attention; Nutrition: Hit calories, Hit protein, Need attention — no
-  sessions-this-week or meals-logged counts, owner), a "Showing … · Show
-  everyone" line while filtered, then one row per client (name, status
+  no chips, sort menu or boxed figures (owner: "they don't help me") —
+  a title, then one row per client (name, status
   pill, one short line, a round message button that opens the composer
   with the first suggestion already filled in). A row opens the client sheet
   (figures with exact gaps + bars; Message / Diary or History / Profile). Nutrition is the DAY (Today, or Yesterday as a finished day),
