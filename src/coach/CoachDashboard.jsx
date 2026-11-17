@@ -676,7 +676,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           a bevelled frosted-glass APEX mark in the background to the right
           and the greeting + count in matching glass type. Every number is a
           button to the same place its old stat tile went. */}
-      <div className="relative overflow-x-clip px-5 pt-4 pb-1 sm:px-7 sm:pt-7 min-h-[124px] sm:min-h-[220px]" data-testid="overview-hero">
+      <div className="relative overflow-x-clip px-4 md:px-0 pt-4 pb-1 sm:pt-7 min-h-[124px] sm:min-h-[220px]" data-testid="overview-hero">
         <div className="absolute pointer-events-none right-0 -top-4 sm:right-6 sm:-top-14" role="img" aria-label="APEX" data-testid="overview-mark">
           <span className="sm:hidden">
             <BevelGlassMark size={130} />

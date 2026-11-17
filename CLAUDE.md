@@ -80,6 +80,8 @@ rather than inventing new colors per screen:
   owner's pick "H": 300px iPad/desktop, 160px iPhone) in the background
   to the right. The greeting and the count use the matching glass type
   (`GLASS_HEADING_STYLE`: white-to-steel gradient text, faint blue glow).
+  The greeting lines up with the sections' left edge (px-4 on phones,
+  none from md — it sat indented on iPad, #261).
   On phones the heading is smaller (greeting 20px, count 44px, mark 130px;
   30/56/300 from `sm`). Coach's notes sit directly under the tiles, above Needs attention
   (then Training / Nutrition, #261),
