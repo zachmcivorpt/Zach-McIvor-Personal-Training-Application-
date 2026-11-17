@@ -11,6 +11,7 @@ import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED 
 import { DarkPage, DarkPanel, SHEET_GLASS } from "./darkUI";
 import { phaseAlert, mealPlanAlert, recentMissedSession, daysBetweenKeys, NEEDS_ATTENTION_MAX_AGE_DAYS } from "./endingSoon";
 import { BevelGlassMark, GLASS_HEADING_STYLE } from "../components/GlassMark";
+import CommandCentre from "./CommandCentre";
 
 import {
   CalendarClock,
@@ -727,6 +728,11 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         />
         <GlassTile value={dbReady ? awaitingReply : "–"} label="Messages to reply" onClick={() => onNavigate("messages")} />
       </div>
+
+      {/* Training and Nutrition command centre (#261, owner): every active
+          client's training and today's nutrition, side by side on wide
+          screens, stacked on phones. */}
+      <CommandCentre clients={active} db={db} todayKey={todayKey} ready={dbReady && usersReady} onOpenClient={onOpenClient} showToast={showToast} />
 
       {/* Coach's notes sit above Needs attention (#227, owner). */}
       <div className="relative mx-4 md:mx-0 mb-7" data-testid="coach-notes">

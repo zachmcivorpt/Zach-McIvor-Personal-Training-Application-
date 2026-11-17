@@ -100,6 +100,20 @@ rather than inventing new colors per screen:
   Check-ins, Messages) and open sections under thin rules. Every number
   keeps its old destination (#115).
 - **No Segments section on Overview** (#232, owner): removed for good; don't bring it back.
+- **Training and Nutrition command centre** (#261, owner): two matching
+  glass panels under the tiles (`src/coach/CommandCentre.jsx`, maths in
+  `commandCentre.js`), side by side from `xl`, stacked below. Same frame for
+  both: four figures (each one a filter), status chips + sort, client rows
+  with two measured figures + thin bars, Message / Diary or History /
+  Profile. Nutrition is the DAY (Today, or Yesterday as a finished day),
+  never a weekly summary: today's shortfall is "to go" / "Under so far",
+  never a miss; a partly logged day is "Diary incomplete"; no coach-set
+  `nutritionTargets.calories` = "No assigned target" (the app default is
+  not the coach's target); protein over is never red. Training counts a
+  session missed only when one was scheduled (a log's `scheduledDate`
+  first, else its day; cardio doesn't count). Message suggestions quote
+  only the client's own figures, are edited in the sheet, and go through
+  `sendMessage`. No amber here (green / blue / red only).
 - The coach console is otherwise still dark-only, glass on near-black (#212).
 
 ### Train Solo (self-guided app, `src/solo/`) design rules
