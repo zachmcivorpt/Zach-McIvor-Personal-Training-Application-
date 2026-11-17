@@ -1,4 +1,4 @@
-// Coach Overview → Training and Nutrition command centre (#261).
+// Coach Overview → Training and Nutrition command centre (#265).
 //
 // Pure functions (no hooks, no JSX) that turn the data the console already
 // has loaded — db.nutritionLogs, db.workoutLogs, db.scheduledWorkouts,

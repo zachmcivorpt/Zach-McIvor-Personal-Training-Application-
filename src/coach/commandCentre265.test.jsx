@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// #261 (owner): Coach Overview's Training and Nutrition command centre —
+// #265 (owner): Coach Overview's Training and Nutrition command centre —
 // daily nutrition vs the client's own targets (exact differences), training
 // completion from the schedule and logs, and working actions (open profile /
 // diary / history, message suggestions that are edited then sent through
@@ -23,7 +23,7 @@ const day = (date, calories, protein, mealCount = 3, ms = at(date, 12, 40)) => (
   meals: Object.fromEntries(["Breakfast", "Lunch", "Dinner", "Snacks"].slice(0, mealCount).map((k, i) => [k, [{ id: entryId(ms - i * 3600000), name: "Food" }]])),
 });
 
-describe("nutrition maths (#261)", () => {
+describe("nutrition maths (#265)", () => {
   it("shows actual vs target and the exact gap", () => {
     expect(compareToTarget(160, 160, 0.03)).toEqual({ actual: 160, target: 160, diff: 0, state: "hit" });
     expect(compareToTarget(115, 160, 0.03)).toMatchObject({ diff: -45, state: "under" });
@@ -70,7 +70,7 @@ describe("nutrition maths (#261)", () => {
   });
 });
 
-describe("training maths (#261)", () => {
+describe("training maths (#265)", () => {
   const sched = (date, label) => ({ id: date, date, label });
   const log = (key, label, extra = {}) => ({ id: "l" + key, date: at(key, 7), dayLabel: label, entries: [], ...extra });
 
@@ -148,7 +148,7 @@ async function renderOverview() {
   return { onOpenClient, showToast };
 }
 
-describe("Overview command centre (#261)", () => {
+describe("Overview command centre (#265)", () => {
   it("shows both sections with real figures and statuses", async () => {
     await renderOverview();
     const nut = screen.getByTestId("cc-nutrition");

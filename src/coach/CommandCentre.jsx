@@ -1,4 +1,4 @@
-// Coach Overview → Training and Nutrition command centre (#261, owner).
+// Coach Overview → Training and Nutrition command centre (#265, owner).
 //
 // Two matching open sections (no boxes, owner: "way too much going on"):
 // a title, then one quiet row per client (no boxed figures, owner), most

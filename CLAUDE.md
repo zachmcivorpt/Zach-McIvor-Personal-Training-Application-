@@ -81,10 +81,10 @@ rather than inventing new colors per screen:
   to the right. The greeting and the count use the matching glass type
   (`GLASS_HEADING_STYLE`: white-to-steel gradient text, faint blue glow).
   The greeting lines up with the sections' left edge (px-4 on phones,
-  none from md — it sat indented on iPad, #261).
+  none from md — it sat indented on iPad, #265).
   On phones the heading is smaller (greeting 20px, count 44px, mark 130px;
   30/56/300 from `sm`). Coach's notes sit directly under the tiles, above Needs attention
-  (then Training / Nutrition, #261),
+  (then Training / Nutrition, #265),
   in a frosted-glass box like the tiles, never a solid charcoal one (#227).
   Needs attention (#228): a program phase or meal guide ending within 4
   days (`ENDING_SOON_DAYS`, `src/coach/endingSoon.js`), or ended with
@@ -103,7 +103,7 @@ rather than inventing new colors per screen:
   Check-ins, Messages) and open sections under thin rules. Every number
   keeps its old destination (#115).
 - **No Segments section on Overview** (#232, owner): removed for good; don't bring it back.
-- **Training and Nutrition command centre** (#261, owner): two matching
+- **Training and Nutrition command centre** (#265, owner): two matching
   sections under Needs attention (`src/coach/CommandCentre.jsx`, maths in
   `commandCentre.js`), side by side from `xl`, stacked below. Built exactly
   like Overview's own Needs attention / Recent activity (owner: "design must
