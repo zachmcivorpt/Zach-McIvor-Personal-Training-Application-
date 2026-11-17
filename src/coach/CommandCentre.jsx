@@ -9,6 +9,7 @@
 // Diary / History, and Profile. Every figure comes from commandCentre.js.
 import React, { useEffect, useMemo, useState } from "react";
 import { useApp } from "../lib/AppContext";
+import { mondayKey } from "../lib/weeklyReview";
 import { Avatar, BottomSheet } from "../components/ui";
 import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, CLIENT_DARK_BORDER } from "../theme";
 import { GLASS_BLUE, GlassButton, SHEET_GLASS } from "./darkUI";
@@ -345,7 +346,7 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
       row: r,
       table: TRAINING_STATUS,
       measures: [
-        { label: "Last 7 days", actual: `${r.week.done}`, target: r.week.assigned || null, unit: r.week.assigned ? "" : " sessions", diffText: weekText, tone: weekTone, pct: r.week.assigned ? (r.week.done / r.week.assigned) * 100 : 0 },
+        { label: "This week", actual: `${r.week.done}`, target: r.week.assigned || null, unit: r.week.assigned ? "" : " sessions", diffText: weekText, tone: weekTone, pct: r.week.assigned ? (r.week.done / r.week.assigned) * 100 : 0 },
         prog
           ? { label: "Program", actual: `Wk ${prog.week}`, target: prog.weeks || null, unit: "", diffText: `${prog.name}${prog.sessionsTotal ? ` · ${prog.sessionsDone}/${prog.sessionsTotal} sessions` : ""}`, tone: "blue", pct: prog.pct ?? 0 }
           : { label: "Program", actual: "–", target: null, unit: "", diffText: "No current phase", tone: "muted", pct: 0 },
@@ -359,7 +360,7 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
     <Section
       id="training"
       title="Training"
-      meta={`Today · ${shortDate(todayKey)}`}
+      meta={`This week · from ${shortDate(mondayKey(todayKey))}`}
       table={TRAINING_STATUS}
       rows={rows}
       ready={ready}

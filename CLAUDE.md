@@ -116,7 +116,11 @@ rather than inventing new colors per screen:
   Yesterday view, owner), never a weekly summary: today's shortfall is "to go" / "Under so far",
   never a miss; a partly logged day is "Diary incomplete"; no coach-set
   `nutritionTargets.calories` = "No assigned target" (the app default is
-  not the coach's target); protein over is never red. Training counts a
+  not the coach's target); protein over is never red. Training's week
+  starts fresh every Monday (#268, owner): "x/y done", missed, falling
+  behind (2+ misses) are Monday–Sunday of today only (`mondayKey`), never a
+  rolling 7 days, and the 4-week rate is context in the sheet, never a
+  status. Training counts a
   session missed only when one was scheduled (a log's `scheduledDate`
   first, else its day; cardio doesn't count). Message suggestions quote
   only the client's own figures, are edited in the sheet, and go through

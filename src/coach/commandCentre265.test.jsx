@@ -70,52 +70,79 @@ describe("nutrition maths (#265)", () => {
   });
 });
 
-describe("training maths (#265)", () => {
+describe("training maths (#265, week from Monday #268)", () => {
+  // Friday 20 Nov 2026: this week is Mon 16 – Sun 22 Nov.
+  const FRI = "2026-11-20";
   const sched = (date, label) => ({ id: date, date, label });
   const log = (key, label, extra = {}) => ({ id: "l" + key, date: at(key, 7), dayLabel: label, entries: [], ...extra });
 
-  it("done / due / missed come from the schedule and logs, never from an empty schedule", () => {
+  it("done / due / missed come from this week's schedule and logs, never from an empty schedule", () => {
     const base = { name: "Sam" };
-    const scheduledWorkouts = [sched("2026-11-12", "Upper A"), sched("2026-11-14", "Lower A"), sched("2026-11-16", "Upper B"), sched(TODAY, "Lower B"), sched("2026-11-19", "Upper A")];
-    const r = trainingSummary(base, { workoutLogs: [log("2026-11-12", "Upper A"), log("2026-11-16", "Upper B")], scheduledWorkouts }, TODAY);
-    expect(r.week).toEqual({ assigned: 4, done: 2, due: 1 });
+    const scheduledWorkouts = [
+      sched("2026-11-13", "Old"), // last week — not counted
+      sched("2026-11-16", "Upper A"), // done
+      sched("2026-11-18", "Lower A"), // missed
+      sched(FRI, "Upper B"), // today, not done yet
+      sched("2026-11-22", "Lower B"), // Sunday, still to come
+    ];
+    const r = trainingSummary(base, { workoutLogs: [log("2026-11-16", "Upper A")], scheduledWorkouts }, FRI);
+    expect(r.week).toMatchObject({ from: "2026-11-16", to: "2026-11-22", assigned: 4, done: 1, due: 2 });
     expect(r.missed.map((m) => m.label)).toEqual(["Lower A"]);
     expect(r.status).toBe("missed");
     expect(r.today).toMatchObject({ done: false });
-    expect(r.next.label).toBe("Lower B"); // today's, not done yet
-    expect(r.lastLog.dayLabel).toBe("Upper B");
+    expect(r.next.label).toBe("Upper B"); // today's, not done yet
+    expect(r.lastLog.dayLabel).toBe("Upper A");
 
     // Nothing scheduled → never "missed"
-    const none = trainingSummary(base, { workoutLogs: [log("2026-11-16", "Own")], scheduledWorkouts: [] }, TODAY);
+    const none = trainingSummary(base, { workoutLogs: [log("2026-11-16", "Own")], scheduledWorkouts: [] }, FRI);
     expect(none.status).toBe("noSchedule");
     expect(none.missed).toEqual([]);
   });
 
+  it("starts fresh every Monday: last week's misses and a poor 4-week rate don't carry over", () => {
+    const scheduledWorkouts = [
+      sched("2026-10-26", "A"), sched("2026-10-28", "B"), sched("2026-11-02", "C"), sched("2026-11-04", "D"),
+      sched("2026-11-09", "E"), sched("2026-11-11", "F"), sched("2026-11-13", "G"), sched("2026-11-15", "H"), // all missed
+      sched("2026-11-16", "I"), // Monday
+    ];
+    const mon = trainingSummary({ name: "Sam" }, { workoutLogs: [], scheduledWorkouts }, "2026-11-16");
+    expect(mon.week).toMatchObject({ assigned: 1, done: 0, due: 1 });
+    expect(mon.missed).toEqual([]);
+    expect(mon.status).toBe("dueToday"); // was "Falling behind" from the 4-week rate
+    expect(mon.rate).toBe(0); // still there as context in the sheet
+    // the Sunday before, the same client WAS behind on that week
+    expect(trainingSummary({ name: "Sam" }, { workoutLogs: [], scheduledWorkouts }, "2026-11-15").status).toBe("behind");
+  });
+
   it("a missed day finished late (scheduledDate) counts as done; cardio doesn't count", () => {
-    const scheduledWorkouts = [sched("2026-11-14", "Lower A"), sched("2026-11-15", "Upper A")];
-    const logs = [log("2026-11-16", "Lower A", { scheduledDate: "2026-11-14" }), log("2026-11-15", "Run", { cardio: { activityLabel: "Run" } })];
-    const r = trainingSummary({ name: "Sam" }, { workoutLogs: logs, scheduledWorkouts }, TODAY);
+    const scheduledWorkouts = [sched("2026-11-17", "Lower A"), sched("2026-11-18", "Upper A")];
+    const logs = [log("2026-11-19", "Lower A", { scheduledDate: "2026-11-17" }), log("2026-11-18", "Run", { cardio: { activityLabel: "Run" } })];
+    const r = trainingSummary({ name: "Sam" }, { workoutLogs: logs, scheduledWorkouts }, FRI);
     expect(r.missed.map((m) => m.label)).toEqual(["Upper A"]);
     // the late finish doesn't also fill the day it was done on (#267)
-    const r2 = trainingSummary({ name: "Sam" }, { workoutLogs: [log("2026-11-16", "Lower A", { scheduledDate: "2026-11-14" })], scheduledWorkouts: [sched("2026-11-14", "Lower A"), sched("2026-11-16", "Upper A")] }, TODAY);
+    const r2 = trainingSummary({ name: "Sam" }, { workoutLogs: [log("2026-11-19", "Lower A", { scheduledDate: "2026-11-17" })], scheduledWorkouts: [sched("2026-11-17", "Lower A"), sched("2026-11-19", "Upper A")] }, FRI);
     expect(r2.missed.map((m) => m.label)).toEqual(["Upper A"]);
   });
 
   it("two misses this week = falling behind; done today; program week and progress", () => {
-    const scheduledWorkouts = [sched("2026-11-13", "A"), sched("2026-11-15", "B"), sched(TODAY, "C")];
+    const scheduledWorkouts = [sched("2026-11-16", "A"), sched("2026-11-18", "B"), sched(FRI, "C")];
     const phases = [{ name: "Hypertrophy", startDate: "2026-11-03", endDate: "2026-11-30" }];
-    const behind = trainingSummary({ name: "Sam" }, { workoutLogs: [], scheduledWorkouts, phases }, TODAY);
+    const behind = trainingSummary({ name: "Sam" }, { workoutLogs: [], scheduledWorkouts, phases }, FRI);
     expect(behind.status).toBe("behind");
     expect(trainingSuggestions(behind)[0]).toMatch(/missed 2 scheduled sessions this week/);
-    // 3 Nov → 17 Nov is day 15 of 28 → week 3 of 4, 54%
-    expect(behind.program).toMatchObject({ name: "Hypertrophy", week: 3, weeks: 4, pct: 54, sessionsDone: 0, sessionsTotal: 3 });
-    const done = trainingSummary({ name: "Sam" }, { workoutLogs: [log("2026-11-13", "A"), log("2026-11-15", "B"), log(TODAY, "C")], scheduledWorkouts, phases }, TODAY);
+    // 3 Nov → 20 Nov is day 18 of 28 → week 3 of 4, 64%
+    expect(behind.program).toMatchObject({ name: "Hypertrophy", week: 3, weeks: 4, pct: 64, sessionsDone: 0, sessionsTotal: 3 });
+    const done = trainingSummary({ name: "Sam" }, { workoutLogs: [log("2026-11-16", "A"), log("2026-11-18", "B"), log(FRI, "C")], scheduledWorkouts, phases }, FRI);
     expect(done.status).toBe("doneToday");
-    expect(done.week).toEqual({ assigned: 3, done: 3, due: 0 });
+    expect(done.week).toMatchObject({ assigned: 3, done: 3, due: 0 });
   });
 });
 
 // ---- the real Overview -----------------------------------------------------
+// Pinned to Friday 20 Nov 2026 (only the clock), so "this week" is Mon 16 –
+// Sun 22 whatever day the suite runs (#268).
+vi.useFakeTimers({ toFake: ["Date"] });
+vi.setSystemTime(new Date(2026, 10, 20, 12));
 const sendMessage = vi.fn();
 const now = new Date();
 const key = (n) => {

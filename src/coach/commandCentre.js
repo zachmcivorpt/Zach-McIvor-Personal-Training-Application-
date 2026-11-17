@@ -11,6 +11,7 @@ import { localDateKey } from "../lib/dateKey";
 import { hasFoodLogged } from "../lib/nutritionLog";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { daysBetweenKeys } from "./endingSoon";
+import { mondayKey } from "../lib/weeklyReview";
 
 const DAY = 86400000;
 
@@ -137,10 +138,13 @@ export function nutritionNeedsAttention(row) {
 }
 
 // ---- Training --------------------------------------------------------------
-export const TRAINING_WINDOW_DAYS = 7; // "this week" = the last 7 days incl. today
+// Training's week starts fresh every Monday (#268, owner): this week is
+// Monday–Sunday of `todayKey`, and the status is about this week only. The
+// 4-week completion rate is shown as context in the client sheet, never as
+// a status (it kept clients "Falling behind" whatever they did this week).
 export const CONSISTENT_WINDOW_DAYS = 28;
 export const CONSISTENT_RATE = 0.8;
-export const BEHIND_RATE = 0.6;
+export const BEHIND_MISSES = 2;
 
 const isStrength = (l) => l && !l.cardio;
 
@@ -170,7 +174,8 @@ export function trainingSummary(client, { workoutLogs, scheduledWorkouts, phases
   const logs = (workoutLogs || []).filter(isStrength).slice().sort((a, b) => b.date - a.date);
   const scheduled = (scheduledWorkouts || []).filter((w) => w && w.date).slice().sort((a, b) => a.date.localeCompare(b.date));
   const done = fulfilledKeys(logs);
-  const weekStart = addDaysKey(todayKey, -(TRAINING_WINDOW_DAYS - 1));
+  const weekStart = mondayKey(todayKey);
+  const weekEnd = addDaysKey(weekStart, 6);
   const consistentStart = addDaysKey(todayKey, -(CONSISTENT_WINDOW_DAYS - 1));
 
   const todays = scheduled.filter((w) => w.date === todayKey);
@@ -179,7 +184,7 @@ export function trainingSummary(client, { workoutLogs, scheduledWorkouts, phases
   // Past = before today; today's session isn't missed until the day ends.
   const inRange = (from, to) => scheduled.filter((w) => w.date >= from && w.date <= to);
   const uniqueDates = (list) => [...new Set(list.map((w) => w.date))];
-  const weekDates = uniqueDates(inRange(weekStart, todayKey));
+  const weekDates = uniqueDates(inRange(weekStart, weekEnd));
   const weekPast = weekDates.filter((k) => k < todayKey);
   const weekDone = weekDates.filter((k) => done.has(k));
   const missedDates = weekPast.filter((k) => !done.has(k)).sort().reverse();
@@ -210,10 +215,10 @@ export function trainingSummary(client, { workoutLogs, scheduledWorkouts, phases
     };
   }
 
-  const hasSchedule = longPast.length > 0 || weekDates.length > 0 || !!next;
+  const hasSchedule = weekDates.length > 0 || !!next;
   let status;
   if (!hasSchedule) status = "noSchedule";
-  else if (missed.length >= 2 || (rate !== null && longPast.length >= 4 && rate < BEHIND_RATE)) status = "behind";
+  else if (missed.length >= BEHIND_MISSES) status = "behind";
   else if (missed.length === 1) status = "missed";
   else if (today && today.done) status = "doneToday";
   else if (today) status = "dueToday";
@@ -226,7 +231,7 @@ export function trainingSummary(client, { workoutLogs, scheduledWorkouts, phases
     client,
     status,
     today,
-    week: { assigned: weekDates.length, done: weekDone.length, due: weekDates.filter((k) => k >= todayKey && !done.has(k)).length },
+    week: { from: weekStart, to: weekEnd, assigned: weekDates.length, done: weekDone.length, due: weekDates.filter((k) => k >= todayKey && !done.has(k)).length },
     missed,
     rate: rate === null ? null : Math.round(rate * 100),
     ratePlanned: longPast.length,
@@ -297,9 +302,6 @@ export function trainingSuggestions(row) {
   } else if (row.missed.length === 1) {
     const label = row.missed[0]?.label;
     out.push(`Hey ${n}, I saw ${label ? `${label}` : "your last session"} didn't get logged. All good? If the week got busy we can move it.`);
-  }
-  if (row.status === "behind" && row.rate !== null && row.missed.length < 2) {
-    out.push(`Hey ${n}, you've completed ${row.rate}% of your sessions over the last four weeks. Let's chat about what would make your schedule easier to stick to.`);
   }
   if (row.today && !row.today.done) {
     out.push(`Hey ${n}, ${row.today.workout.label || "your session"} is on for today — let me know how it goes!`);
