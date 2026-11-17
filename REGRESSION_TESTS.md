@@ -3757,6 +3757,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Needs**: the App ID `com.apexcoaching.platform.watchkitapp` and an App Store profile for it in Codemagic, or the build fails at signing.
 - **Tests**: `src/lib/watchBuild261.test.js` checks the switch is on and all four version fields read 1.0.5; both fail without the change.
 
+### 262. Apple Watch records an Apple Health workout (owner, 2026-11-17)
+
+- **Change**: while a coached workout runs on the iPhone, the Watch runs a strength-training `HKWorkoutSession` (`ios/ApexWatch/WorkoutSessionManager.swift`): live heart rate and elapsed time on the Watch (no calorie figure), the app stays on screen, and the workout is saved to Apple Health after Finish so it counts toward the Activity rings; Discard throws it away (`clearWatchWorkout("finished" | "discarded")` → WatchBridge `ended` → the Watch). The phone opens the Watch app once per workout (`startWatchApp`); the Watch also starts one when the workout arrives. A session the phone never ends stops after 4 h; one under a minute isn't saved. Health usage text and the privacy policy now say APEX on Apple Watch saves workouts.
+- **Needs**: HealthKit ticked on the `com.apexcoaching.platform.watchkitapp` App ID, its App Store profile regenerated and re-fetched in Codemagic.
+- **Tests**: `src/lib/watchHealth262.test.js` (the reason sent on Finish/Discard, the Watch's entitlement/background mode/usage text, save-unless-discarded on the Watch, no calorie figure); all 5 fail without the change.
+- **Manual (TestFlight, real Watch)**: start a workout on the phone → the Watch app opens with time + heart rate; wrist down for a minute → still running; Finish → a Traditional Strength Training workout in the Fitness app / rings; start and Discard → nothing saved.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

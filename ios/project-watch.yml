@@ -2,7 +2,7 @@
 # Codemagic generates from this file when the APEX_WATCH variable is "true"
 # (codemagic.yaml), otherwise from project.yml alone, so builds keep working
 # until the Watch App ID and its App Store profile exist:
-#   App ID: com.apexcoaching.platform.watchkitapp (no capabilities needed)
+#   App ID: com.apexcoaching.platform.watchkitapp with HealthKit ticked (#262)
 #   Profile: App Store, for that App ID, available to Codemagic.
 # Keep the Watch app's version in step with the iPhone app's (project.yml).
 include:
@@ -16,7 +16,11 @@ targets:
     platform: watchOS
     deploymentTarget: "9.0"
     sources:
-      - ApexWatch
+      - path: ApexWatch
+        excludes:
+          - "*.entitlements"
+    dependencies:
+      - sdk: HealthKit.framework
     info:
       path: ApexWatch-Info.plist
       properties:
@@ -26,6 +30,11 @@ targets:
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.apexcoaching.platform
         ITSAppUsesNonExemptEncryption: false
+        # Apple Health workout while a workout runs on the iPhone (#262).
+        WKBackgroundModes:
+          - workout-processing
+        NSHealthShareUsageDescription: "APEX reads your heart rate and active energy during a workout to show your live heart rate on your Apple Watch."
+        NSHealthUpdateUsageDescription: "APEX saves your strength workouts, with the heart rate and active energy your Apple Watch measures, to Apple Health so they count toward your Activity rings."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.apexcoaching.platform.watchkitapp
@@ -36,3 +45,4 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: false
         SKIP_INSTALL: YES
+        CODE_SIGN_ENTITLEMENTS: ApexWatch/ApexWatch.entitlements

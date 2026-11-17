@@ -1,5 +1,6 @@
 import SwiftUI
 import WatchKit
+import HealthKit
 
 // APEX on Apple Watch (REGRESSION_TESTS.md #189): log the sets of the
 // workout that's running in the APEX iPhone app. Black, one accent
@@ -7,9 +8,24 @@ import WatchKit
 
 let measureBlue = Color(red: 0x2F / 255.0, green: 0x8F / 255.0, blue: 0xFF / 255.0) // MEASURE_BLUE #2F8FFF
 
+// The iPhone starts the Watch app when a workout begins (HKHealthStore
+// startWatchApp, WatchBridge.swift) and watchOS hands over the workout here;
+// a session kept running after a relaunch is recovered (#262).
+final class ApexWatchDelegate: NSObject, WKApplicationDelegate {
+    func handle(_ workoutConfiguration: HKWorkoutConfiguration) {
+        WorkoutSessionManager.shared.start(apexSessionId: nil, configuration: workoutConfiguration)
+    }
+
+    func handleActiveWorkoutRecovery() {
+        WorkoutSessionManager.shared.recover()
+    }
+}
+
 @main
 struct ApexWatchApp: App {
+    @WKApplicationDelegateAdaptor(ApexWatchDelegate.self) private var delegate
     @StateObject private var store = WorkoutStore()
+    @StateObject private var health = WorkoutSessionManager.shared
 
     var body: some Scene {
         WindowGroup {
@@ -17,6 +33,7 @@ struct ApexWatchApp: App {
                 RootView()
             }
             .environmentObject(store)
+            .environmentObject(health)
         }
     }
 }
@@ -35,10 +52,14 @@ func setSummary(_ set: WatchSet, timed: Bool) -> String {
 
 struct RootView: View {
     @EnvironmentObject var store: WorkoutStore
+    @EnvironmentObject var health: WorkoutSessionManager
 
     var body: some View {
         if let workout = store.workout {
             List {
+                if health.running {
+                    LiveWorkoutRow()
+                }
                 if store.restEndsAt != nil {
                     RestBanner()
                 }
@@ -97,6 +118,46 @@ struct ExerciseRow: View {
     }
 }
 
+// Elapsed time and live heart rate from the Apple Health workout (#262).
+// No calorie figure: every number APEX shows is measured, and the rings
+// already show Apple's.
+struct LiveWorkoutRow: View {
+    @EnvironmentObject var health: WorkoutSessionManager
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let secs = max(0, Int(context.date.timeIntervalSince(health.startDate ?? context.date)))
+            HStack(alignment: .firstTextBaseline) {
+                Text(secs >= 3600
+                     ? String(format: "%d:%02d:%02d", secs / 3600, (secs % 3600) / 60, secs % 60)
+                     : String(format: "%d:%02d", secs / 60, secs % 60))
+                    .font(.system(size: 28, weight: .semibold).monospacedDigit())
+                Spacer()
+                if let bpm = health.heartRate {
+                    HeartRateLabel(bpm: bpm, size: 17)
+                }
+            }
+        }
+        .listRowBackground(Color.clear)
+    }
+}
+
+struct HeartRateLabel: View {
+    let bpm: Double
+    let size: CGFloat
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: size * 0.8))
+                .foregroundColor(measureBlue)
+            Text("\(Int(bpm.rounded()))")
+                .font(.system(size: size, weight: .semibold).monospacedDigit())
+        }
+        .accessibilityLabel("Heart rate \(Int(bpm.rounded())) beats per minute")
+    }
+}
+
 struct RestBanner: View {
     @EnvironmentObject var store: WorkoutStore
     @State private var alerted = false
@@ -130,6 +191,7 @@ struct RestBanner: View {
 
 struct ExerciseView: View {
     @EnvironmentObject var store: WorkoutStore
+    @EnvironmentObject var health: WorkoutSessionManager
     let exerciseId: String
 
     var body: some View {
@@ -138,11 +200,17 @@ struct ExerciseView: View {
                 if store.restEndsAt != nil {
                     RestBanner()
                 }
-                if !exercise.target.isEmpty {
-                    Text(exercise.target)
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
-                        .listRowBackground(Color.clear)
+                if !exercise.target.isEmpty || health.heartRate != nil {
+                    HStack {
+                        Text(exercise.target)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        if let bpm = health.heartRate {
+                            HeartRateLabel(bpm: bpm, size: 13)
+                        }
+                    }
+                    .listRowBackground(Color.clear)
                 }
                 ForEach(exercise.sets) { raw in
                     let set = store.display(exercise, raw)
