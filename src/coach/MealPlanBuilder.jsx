@@ -600,6 +600,28 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
     showToast(`Copied ${activeDay.label} — paste it into any other day`);
   }
 
+  // Empties every slot on the day being edited in one go, instead of
+  // removing meals one by one. Two taps (the first arms it for 3 seconds)
+  // so a stray tap can't wipe a day; nothing is saved until Publish.
+  // Armed for one specific day, so switching days disarms it.
+  const [confirmClearDayId, setConfirmClearDayId] = useState(null);
+  const confirmClear = confirmClearDayId === activeDay.id;
+  const clearTimerRef = useRef(null);
+  const dayMealCount = MEAL_SLOTS.reduce((n, s) => n + (activeDay.meals?.[s]?.length || 0), 0);
+  function clearDay() {
+    if (dayMealCount === 0) return;
+    if (!confirmClear) {
+      setConfirmClearDayId(activeDay.id);
+      clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = setTimeout(() => setConfirmClearDayId(null), 3000);
+      return;
+    }
+    clearTimeout(clearTimerRef.current);
+    setConfirmClearDayId(null);
+    updateActiveDay((d) => ({ ...d, meals: Object.fromEntries(MEAL_SLOTS.map((s) => [s, []])), autoSlots: {} }));
+    showToast(`Cleared ${activeDay.label}`);
+  }
+
   function pasteDay() {
     if (!clipboard) return;
     updateActiveDay((d) => ({ ...d, meals: JSON.parse(JSON.stringify(clipboard)), autoSlots: {} }));
@@ -768,6 +790,17 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-white hover:text-white disabled:opacity-30"
               >
                 <ClipboardPaste size={14} />
+              </button>
+              <button
+                onClick={clearDay}
+                disabled={dayMealCount === 0}
+                aria-label={confirmClear ? "Tap again to clear this day" : "Clear this day"}
+                title={confirmClear ? "Tap again to remove every meal from this day" : "Remove every meal from this day"}
+                className="h-8 px-2.5 flex items-center gap-1 justify-center rounded-lg text-white text-xs font-bold disabled:opacity-30 transition-colors"
+                style={{ backgroundColor: confirmClear ? OVER_RED : "rgba(255,255,255,0.05)" }}
+              >
+                <Trash2 size={14} />
+                {confirmClear ? "TAP TO CLEAR" : "CLEAR DAY"}
               </button>
               <button
                 onClick={() => setOptionsScope("day")}
