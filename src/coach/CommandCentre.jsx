@@ -343,7 +343,6 @@ export function NutritionOverview({ clients, db, todayKey, ready, onOpen }) {
 // ---- Training --------------------------------------------------------------
 const TRAINING_FILTERS = {
   doneToday: (r) => !!r.today,
-  week: (r) => r.week.assigned > 0,
   attention: trainingNeedsAttention,
 };
 
@@ -359,8 +358,6 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
     [clients, db.workoutLogs, db.scheduledWorkouts, db.clientPhases, todayKey]
   );
   const dueToday = rows.filter((r) => r.today);
-  const weekAssigned = rows.reduce((a, r) => a + r.week.assigned, 0);
-  const weekDone = rows.reduce((a, r) => a + r.week.done, 0);
   const nextText = (r) => (r.next ? `Next: ${r.next.label || "Session"} ${r.next.date === todayKey ? "today" : shortDate(r.next.date)}` : "Nothing upcoming");
 
   const open = (r) => {
@@ -391,7 +388,6 @@ export function TrainingOverview({ clients, db, todayKey, ready, onOpen }) {
       table={TRAINING_STATUS}
       figures={[
         { filter: "doneToday", value: `${dueToday.filter((r) => r.today.done).length}/${dueToday.length}`, label: "Done today" },
-        { filter: "week", value: `${weekDone}/${weekAssigned}`, label: "Sessions, 7 days" },
         { filter: "attention", value: rows.filter(trainingNeedsAttention).length, label: "Need attention" },
       ]}
       filter={filter}
