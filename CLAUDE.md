@@ -814,7 +814,7 @@ any Train Solo work from now on:
 
 ## A workout in progress survives reloads (#274)
 
-- The coached client's open workout lives on the phone (`clientActiveSession_<uid>`) and reopens after any reload. Whether a saved one is still current is decided ONLY by the day it was started (`startedOn`, `isPersistedSessionStale`), never by the workout's scheduled date: Program-tab workouts have no date, and catch-up sessions are for an earlier day. Any new way to start a workout must stamp `sessionStartedOnRef`.
+- The coached client's open workout lives on the phone (`clientActiveSession_<uid>`) and reopens after any reload. Whether a saved one is still current is decided ONLY by the day it was started (`startedOn`, `isPersistedSessionStale`), never by the workout's scheduled date: Program-tab workouts have no date, and catch-up sessions are for an earlier day. Any new way to start a workout must stamp `sessionStartedOnRef`. A snapshot saved in the last 6 hours (`savedAt`) is always kept, so a workout running past midnight survives (#275).
 - A new release never reloads the app by itself while a workout is open (`workoutInProgress` in `swUpdateCheck.js`: a coached session or a Train Solo draft). Keep both keys in step if they're renamed.
 
 ## Speed: local-first saves in the coached client app (#126)
