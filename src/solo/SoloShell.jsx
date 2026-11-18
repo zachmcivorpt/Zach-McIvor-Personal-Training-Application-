@@ -34,7 +34,9 @@ const TABS = [
 // (the first tab and the default).
 // The tab bar's height (10px padding + icon, label and gaps + 10px + the
 // home-indicator inset), reserved under the page content.
-const NAV_SPACE = "calc(64px + env(safe-area-inset-bottom,0px))";
+// #305 (owner): a shorter bar, close to the bottom — 50px + the home-bar
+// inset less 24px (min 4px), like the coached client's (#281).
+const NAV_SPACE = "calc(50px + max(4px, calc(env(safe-area-inset-bottom,0px) - 24px)))";
 
 export default function SoloShell() {
   const location = useLocation();
@@ -104,8 +106,8 @@ export default function SoloShell() {
         aria-label="Train Solo"
         className="fixed left-0 right-0 bottom-0 z-40 grid grid-cols-5 items-start backdrop-blur-xl"
         style={{
-          height: "calc(64px + env(safe-area-inset-bottom,0px))",
-          paddingBottom: "env(safe-area-inset-bottom,0px)",
+          height: NAV_SPACE,
+          paddingBottom: "max(4px, calc(env(safe-area-inset-bottom,0px) - 24px))",
           borderTop: `1px solid ${t.navBorder}`,
           backgroundColor: t.navBg,
         }}
@@ -124,10 +126,10 @@ export default function SoloShell() {
                 // rather than the default.
                 navigate(location.pathname, { replace: true, state: { soloTab: item.id } });
               }}
-              className="h-16 flex flex-col items-center justify-center gap-1"
+              className="h-[50px] flex flex-col items-center justify-center gap-[3px]"
             >
-              <Icon size={19} color={active ? t.text : t.textFaint} strokeWidth={active ? 2.2 : 1.8} style={active && dark ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.7))" } : undefined} />
-              <span className="text-[8.5px] font-bold uppercase tracking-[0.1em] leading-none" style={{ color: active ? t.text : t.textFaint }}>
+              <Icon size={18} color={active ? t.text : t.textFaint} strokeWidth={active ? 2.2 : 1.8} style={active && dark ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.7))" } : undefined} />
+              <span className="text-[8px] font-bold uppercase tracking-[0.1em] leading-none" style={{ color: active ? t.text : t.textFaint }}>
                 {item.label}
               </span>
               <span className="w-1 h-1 rounded-full" style={{ background: active ? "#2F8FFF" : "transparent", boxShadow: active ? "0 0 8px #2F8FFF" : "none" }} />

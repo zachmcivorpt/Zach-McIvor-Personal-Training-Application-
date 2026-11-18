@@ -4039,6 +4039,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `src/solo/soloLogo304.test.jsx` — in both themes the logo is 27px, not `mx-auto`, no filter, in a `px-2.5 pt-2` row; fails on the old header. `pageHeader174.test.js` updated to the new padding. Full suite passes.
 - **Date**: 2026-11-18
 
+### 305. Train Solo's tab bar: big gap under the labels (owner, 2026-11-18)
+
+- **Problem**: Train Solo's docked tab bar was 64px of buttons plus the FULL home-bar inset (~34pt) under them — about 98pt, with a large empty band between the labels and the home bar.
+- **Fix**: 50px buttons and the home-bar inset less 24px (never under 4px) — about 60pt on an iPhone, the same idea as the coached client's #281; still docked edge to edge (#197). Icons 18px, labels 8px. `NAV_SPACE` (SoloShell and SoloCalendarScreen) matches the new height so nothing hides under it.
+- **Test**: `src/solo/tabBarDocked197.test.js` — `max(4px, inset − 24px)` padding, 50px buttons, the pages' `NAV_SPACE` equal to the bar; fails on the old 64px + full inset (checked by reverting only the two screens). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
