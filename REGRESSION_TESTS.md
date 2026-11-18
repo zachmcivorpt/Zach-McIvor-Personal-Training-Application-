@@ -3878,6 +3878,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Checks**: in a real browser (Playwright, 390pt) every Home button was clicked and its result read back — bell → Notifications, profile → Profile, streak → Progress, a weekday → that day, swipe → next week, Start Workout / the card → the pre-workout screen, View Plan → Workout Preview, Today → Nutrition, +250ml / +500ml → logged, Log Workout → Training, Log Nutrition → Add Food, View Progress → Progress, Log Cardio → Log Activity, Focus → Nutrition, the notifications ✕ → hidden, all six tab-bar tabs; Training: Phases → Training Phases, a workout row / Up next row → Workout Preview, Log a cardio session → Log Activity. `clientLook279.test.jsx` now also checks a habit tap saves (`onToggleHabit("h1")`; fails if the row's tap is not wired). Full suite 1624 passed; build OK.
 - **Date**: 2026-11-18
 
+### 281. Client tab bar a bit lower (owner, 2026-11-18)
+
+- **Change**: the floating client tab bar sat 20pt above the bottom of an iPhone (home-bar inset 34pt less 14pt). It now sits 10pt above it: the inset less 24px, never under 4px (`ClientTabBar`, `src/client/ClientLook.jsx`).
+- **Test**: `clientTabBar278.test.jsx` checks `max(4px, … - 24px)` on the real ClientApp's bar; it fails on the old `max(6px, … - 14px)` (checked by reverting only ClientLook.jsx). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

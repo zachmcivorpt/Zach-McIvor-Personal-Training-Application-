@@ -60,7 +60,8 @@ describe("client tab bar sits close to the bottom of the phone (#278)", () => {
     render(<ClientApp />);
     const bar = await screen.findByTestId("client-tab-bar");
     expect(bar.className).not.toMatch(/\bpb-safe\b/);
-    expect(bar.parentElement.style.paddingBottom).toMatch(/^max\(6px,.*14px.*safe-area-inset-bottom|^max\(6px,.*safe-area-inset-bottom.*14px/);
+    // #281 (owner: "a bit lower"): the inset less 24px, never under 4px (was less 14px / 6px).
+    expect(bar.parentElement.style.paddingBottom).toMatch(/^max\(4px,.*24px.*safe-area-inset-bottom|^max\(4px,.*safe-area-inset-bottom.*24px/);
     const buttons = bar.querySelectorAll("button");
     expect(buttons.length).toBe(6);
     buttons.forEach((b) => {

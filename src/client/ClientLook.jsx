@@ -368,7 +368,7 @@ const TAB_ICONS = { home: HomeIcon, workouts: FlatDumbbell, nutrition: Apple, ca
 export function ClientTabBar({ dark, tabs, tab, onSelect, badgeFor }) {
   const L = clientLook(dark);
   return (
-    <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50 pointer-events-none" style={{ transform: "translateZ(0)", paddingBottom: "max(6px, calc(env(safe-area-inset-bottom, 0px) - 14px))" }}>
+    <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50 pointer-events-none" style={{ transform: "translateZ(0)", paddingBottom: "max(4px, calc(env(safe-area-inset-bottom, 0px) - 24px))" }}>
       <div className="pointer-events-auto w-full max-w-md mx-[7px] rounded-[24px] flex px-1" style={{ ...L.card, backgroundColor: dark ? "rgba(24,24,26,0.82)" : "rgba(255,255,255,0.8)" }} data-testid="client-tab-bar">
         {tabs.map((t) => {
           const Icon = TAB_ICONS[t.id] || t.icon;
