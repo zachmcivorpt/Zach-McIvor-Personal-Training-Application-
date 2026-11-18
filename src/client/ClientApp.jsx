@@ -9538,6 +9538,11 @@ export default function ClientApp() {
   // from inside an event handler without waiting for an effect to re-run.
   const sessionSnapshotRef = useRef(null);
   sessionSnapshotRef.current = { runningSession, activeLog, exerciseNotes, sessionNote, exerciseSwaps, extraExercises, sessionOpen, editingLogId };
+  // The day this workout was started (#274): what decides whether a saved
+  // session is still current after a reload — never the day it was
+  // scheduled for (a catch-up session, or one started from the Program
+  // tab, which has no date, was thrown away on every reload).
+  const sessionStartedOnRef = useRef(persistedSession ? persistedSession.startedOn || localDateKey() : null);
 
   function flushActiveSession() {
     try {
@@ -9545,7 +9550,7 @@ export default function ClientApp() {
       if (snap.runningSession && (snap.sessionOpen || snap.activeLog)) {
         localStorage.setItem(
           activeSessionKey(currentUser.id),
-          JSON.stringify({ ...snap, activeMs: sessionActiveMsRef.current })
+          JSON.stringify({ ...snap, activeMs: sessionActiveMsRef.current, startedOn: sessionStartedOnRef.current || localDateKey() })
         );
       } else {
         localStorage.removeItem(activeSessionKey(currentUser.id));
@@ -9895,6 +9900,7 @@ export default function ClientApp() {
     // exercises, so stale numbers would silently show up as already logged.
     if (session !== todaySession) setActiveLog(null);
     setEditingLogId(null);
+    sessionStartedOnRef.current = localDateKey();
     setRunningSession(session);
     setPreStartOpen(true);
   }
@@ -9925,6 +9931,7 @@ export default function ClientApp() {
     setExtraExercises([]);
     setEditingLogId(session.workoutLogId);
     sessionActiveMsRef.current = 0;
+    sessionStartedOnRef.current = localDateKey();
     setRunningSession(prescription);
     setSessionOpen(true);
   }

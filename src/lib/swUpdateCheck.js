@@ -18,6 +18,20 @@
 // see whether a fix that shipped while it was closed is there yet — the
 // existing hidden/blur/periodic checks never got a chance to run before
 // they started looking.
+// A workout is open on this phone: a coached client's saved session
+// (ClientApp `clientActiveSession_<uid>`) or a Train Solo workout draft
+// (`apexSoloWorkoutDraft:<uid>`, workoutDraft.js).
+export function workoutInProgress(storage = typeof localStorage !== "undefined" ? localStorage : null) {
+  try {
+    if (!storage) return false;
+    for (let i = 0; i < storage.length; i++) {
+      const k = storage.key(i) || "";
+      if (k.startsWith("clientActiveSession_") || k.startsWith("apexSoloWorkoutDraft:")) return true;
+    }
+  } catch {}
+  return false;
+}
+
 export function setupServiceWorkerUpdateChecks() {
   if (!('serviceWorker' in navigator)) return;
   // Defensive idempotency guard: this is only ever called once, from
@@ -61,17 +75,23 @@ export function setupServiceWorkerUpdateChecks() {
     document.body.appendChild(banner);
   }
 
+  // #274: never reload by itself while a workout is open (coached session or
+  // Train Solo draft on this phone). Locking the phone or switching to music
+  // between sets hides the app, and a reload there threw clients out of
+  // their session on a day with several releases. The reload waits for the
+  // first time the app is hidden with no workout open; the banner's Refresh
+  // is still the person's own choice.
+  const reloadWhenHidden = () => {
+    if (document.visibilityState !== "hidden" || workoutInProgress()) return;
+    document.removeEventListener("visibilitychange", reloadWhenHidden);
+    reloadNow();
+  };
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (document.visibilityState === "hidden") {
+    if (document.visibilityState === "hidden" && !workoutInProgress()) {
       reloadNow();
       return;
     }
-    showUpdateBanner();
-    const reloadWhenHidden = () => {
-      if (document.visibilityState !== "hidden") return;
-      document.removeEventListener("visibilitychange", reloadWhenHidden);
-      reloadNow();
-    };
+    if (document.visibilityState !== "hidden") showUpdateBanner();
     document.addEventListener("visibilitychange", reloadWhenHidden);
   });
 
