@@ -3919,6 +3919,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `clientLook279.test.jsx` — 0.25 → "0.25 / 3 L", 0.75 → "0.75 / 3 L"; fails on the old code (checked by reverting only ClientLook.jsx). Full suite passes.
 - **Date**: 2026-11-18
 
+### 287. Client calendar skipped days (owner, 2026-11-18)
+
+- **Problem**: the coached client's Calendar listed only days with something on them, so Thursday 19 jumped straight to Sunday 22 — it looked like days were missing, and a workout couldn't be dragged onto a free day (empty days weren't there to drop on).
+- **Fix**: `ClientCalendarScreen` lists every day in its range; a day with nothing on it shows "Rest day" (`calendar-rest-day`) and is a drop target like any other.
+- **Test**: `src/client/calendarEveryDay287.test.jsx` renders the real ClientCalendarScreen with workouts on Thu 19 and Sun 22: the list is 19, 20, 21, 22 with 20 and 21 as rest days. Fails on the old code ("19, 22"). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

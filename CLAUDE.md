@@ -88,6 +88,7 @@ rather than inventing new colors per screen:
 - **Training tab buttons and pop-ups** (#273): every Today / Program button is covered by `trainingButtons273.test.jsx`; keep it passing when that tab changes. "Up next" uses `TrainingUpNextRow` (same glass row as the phase list); the light backdrop's glows cover the whole page (`inset-0`, never a fixed height); every pop-up on the tab (Remove, Workout of the Day, Import, Log Activity) takes the client's `dark`.
 - **The top strip follows Appearance** (#277): the client app sets the iPhone's status-bar strip and `theme-color` from its own light/dark (`useClientStatusBar` in ClientApp.jsx); `NativeStatusBarSync` skips `/app` like `/solo`. Never let a route-level sync paint the client app's strip.
 - Nutrition's Today / My Meal Guide switch keeps a 12px gap (`mt-3`) below the logo (#260).
+- **The client Calendar lists EVERY day** (#287): an empty day shows "Rest day" and is a drop target; never skip days with nothing on them.
 - Daily Execution is open on the page; Nutrition is a solid card (no
   glass). Avoid a title that changes length over a backdrop-filter
   card: iOS WebKit can leave the new text half-drawn (#111).

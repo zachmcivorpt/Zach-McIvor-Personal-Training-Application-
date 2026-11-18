@@ -8788,7 +8788,7 @@ function AccessPausedScreen({ onMessageCoach, onLogout }) {
 // date header with a divider, closer to a real day-planner than a packed
 // month grid. Opens centered on today and grows further back/forward as the
 // client scrolls near either edge; a "Today" button jumps straight back.
-function ClientCalendarScreen({
+export function ClientCalendarScreen({
   scheduledWorkoutsListByDate,
   logsForClient,
   habits,
@@ -9037,7 +9037,9 @@ function ClientCalendarScreen({
       const checkinsToday = activeFormSchedules.filter((s) => s.dayOfWeek === d.getDay());
       const bodyStatsToday = (bodyStatsSchedules || []).some((b) => b.date === dateStr);
       const hasContent = scheduledList.length > 0 || dayLogs.length > 0 || dayHabits.length > 0 || checkinsToday.length > 0 || bodyStatsToday;
-      if (!hasContent && dateStr !== todayStr) continue;
+      // #287 (owner: "why does my calendar skip 3 days?"): every day is
+      // listed, an empty one as a rest day — it is also a drop target for
+      // dragging a workout onto a free day.
       list.push({ date: d, dateStr, scheduledList, dayLogs, dayHabits, checkinsToday, bodyStatsToday, hasContent });
     }
     return list;
@@ -9243,7 +9245,7 @@ function ClientCalendarScreen({
                   />
                 )}
                 {!hasContent && (
-                  <p className={dark ? "text-white/25 text-sm px-1" : "text-black/25 text-sm px-1"}>Nothing scheduled.</p>
+                  <p className={dark ? "text-white/35 text-[13px] px-1" : "text-black/35 text-[13px] px-1"} data-testid="calendar-rest-day">Rest day</p>
                 )}
               </div>
             </div>
