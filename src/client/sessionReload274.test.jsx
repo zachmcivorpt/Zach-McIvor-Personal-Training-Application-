@@ -86,13 +86,14 @@ describe("a workout survives a reload (#274)", () => {
     expect(localStorage.getItem("clientActiveSession_c1")).not.toBeNull();
   });
 
-  it("yesterday's leftover still isn't reopened today", async () => {
+  // #276 (owner): never taken out of a workout — yesterday's open one with
+  // sets reopens too (was dropped by #274's day rule).
+  it("yesterday's open workout with sets reopens today (#276)", async () => {
     setup();
     saveOnPhone({ runningSession: day({ id: "s1", date: "2026-11-17" }), startedOn: "2026-11-17" });
     const { default: ClientApp } = await import("./ClientApp");
     render(<ClientApp />);
-    await new Promise((r) => setTimeout(r, 50));
-    expect(screen.queryByText("Complete Workout")).toBeNull();
-    expect(localStorage.getItem("clientActiveSession_c1")).toBeNull();
+    expect(await screen.findByText("Complete Workout")).toBeTruthy();
+    expect(JSON.parse(localStorage.getItem("clientActiveSession_c1")).activeLog.bench[0]).toMatchObject({ reps: 8, weight: 60 });
   });
 });
