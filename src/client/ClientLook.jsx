@@ -76,7 +76,8 @@ export function HomeGreeting({ dark, greeting, firstName, streak, onStreak }) {
         <span className="shrink-0"><StreakFlame size={22} /></span>
         <span>
           <span className="block text-[19px] leading-none font-bold tabular-nums">{streak == null ? "–" : streak}</span>
-          <span className="block text-[8px] mt-0.5 whitespace-nowrap" style={{ color: L.muted }}>
+          {/* #293: two short lines so "sessions in a row" stays inside the card. */}
+          <span className="block text-[8px] leading-[1.2] mt-0.5 w-[40px]" style={{ color: L.muted }} data-testid="home-streak-label">
             {streak === 1 ? "session in a row" : "sessions in a row"}
           </span>
         </span>
