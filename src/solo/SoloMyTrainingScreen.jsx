@@ -1319,29 +1319,33 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, on
 // the session name large in capitals, and a lit ring to start it.
 export function SessionHero({ item, actionable, onStart, future, t }) {
   const exercises = (item.day?.exercises || []).filter((e) => !e.isRest).length;
-  const light = t.bg === "#FFFFFF";
-  const ink = light ? "#0A0A0B" : "#FFFFFF";
+  // #302 (owner): the coached client's session card — always the dark card
+  // with the dumbbell-rack photo on the right (no white fade in light mode),
+  // the same 158px height and lit glass rim. Content and buttons unchanged.
+  const light = false;
+  const ink = "#FFFFFF";
   return (
     <button
       type="button"
       onClick={() => actionable && onStart()}
       disabled={!actionable}
-      className="relative w-full overflow-hidden rounded-[26px] text-left disabled:cursor-default"
-      style={{ minHeight: 236, border: `1px solid ${item.done ? t.panelBorder : "rgba(47,143,255,0.45)"}`, color: ink }}
+      className="relative w-full overflow-hidden rounded-[22px] text-left disabled:cursor-default flex flex-col justify-end"
+      style={{ minHeight: 158, backgroundColor: "#111113", border: "1px solid rgba(255,255,255,0.16)", boxShadow: "0 22px 40px -24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.22)", color: ink }}
+      data-testid="solo-session-hero"
     >
       <img
-        src="/brand/gym-dark.jpg"
+        src="/brand/home-workout.jpg"
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ filter: light ? "grayscale(1) brightness(1.35) contrast(0.9)" : "grayscale(1) brightness(0.6) contrast(1.1)", opacity: light ? 0.55 : 1 }}
+        data-testid="solo-session-photo"
+        className="absolute inset-y-0 right-0 w-[56%] h-full object-cover object-left"
       />
       <span
         aria-hidden="true"
         className="absolute inset-0"
-        style={{ background: light ? "linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.92) 78%)" : "linear-gradient(180deg, rgba(5,5,6,0.15) 0%, rgba(5,5,6,0.92) 78%)" }}
+        style={{ background: "linear-gradient(90deg, #111113 0%, #111113 42%, rgba(17,17,19,0.55) 52%, rgba(17,17,19,0) 62%)" }}
       />
-      <span className="relative flex items-end justify-between gap-3 p-4 pt-24">
+      <span className="relative flex items-end justify-between gap-3 px-4 py-3.5">
         <span className="min-w-0">
           <span className="block text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: MEASURE_BLUE }}>
             {item.subtitle}
@@ -1353,7 +1357,7 @@ export function SessionHero({ item, actionable, onStart, future, t }) {
           </span>
         </span>
         {item.skipped && !item.done ? (
-          <span className="text-[11px] font-bold uppercase tracking-[0.12em] shrink-0" style={{ color: t.textFaint }}>
+          <span className="text-[11px] font-bold uppercase tracking-[0.12em] shrink-0" style={{ color: "rgba(255,255,255,0.5)" }}>
             Skipped
           </span>
         ) : item.done ? (
@@ -1373,7 +1377,7 @@ export function SessionHero({ item, actionable, onStart, future, t }) {
             <span className="text-[8px] font-bold uppercase tracking-[0.14em] mt-1">Start</span>
           </span>
         ) : (
-          <span className="flex items-center gap-1 text-[11px] font-semibold shrink-0" style={{ color: t.textFaint }}>
+          <span className="flex items-center gap-1 text-[11px] font-semibold shrink-0" style={{ color: "rgba(255,255,255,0.5)" }}>
             <Lock size={13} /> {future ? "On the day" : "Locked"}
           </span>
         )}

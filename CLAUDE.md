@@ -255,7 +255,7 @@ rather than inventing new colors per screen:
   of Progress, not in My Training.
 - **Interface style** (#196, owner-approved mock-up, ACG-inspired, blue not
   yellow): logo centred and lit, titles/labels in capitals, glass tab bar docked to the
-  bottom edge with a blue dot (#197: never floating above it), black-and-white gym photo on the day's session with a
+  bottom edge with a blue dot (#197: never floating above it), session card = the coached client's (#302): always dark, 158px, the dumbbell-rack `home-workout.jpg` on the right, no white fade in light mode, lit rim — with a
   lit ring Start, the rest timer as a blue ring (`SoloRestRing`), the
   suggested program full width with a blue glow, today ringed. Both themes.
 - **No visible page titles** (#203, owner): `SoloPageHeader` shows the logo only (title sr-only);

@@ -4019,6 +4019,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `src/solo/soloGlass301.test.jsx` — both themes' `soloGlass` has the fill, sheen, rim, shadow and blur (+ `-webkit-`), the CSS vars carry them, and the `.solo-glass-scope` rule applies them. Fails on the old code (3/3, checked by reverting only SoloThemeContext.jsx / index.css). Full suite passes.
 - **Date**: 2026-11-18
 
+### 302. Train Solo's session card uses the coached client's photo (owner, 2026-11-18)
+
+- **Change**: My Training's session card (`SessionHero`) is the coached client's session card (#279): the dumbbell-rack photo `public/brand/home-workout.jpg` on the right 56% of an always-dark card (#111113) with no white fade in light mode (owner: "faded in the white, I don't want that"), 158px tall, the same lit glass rim. Its content (program line, title, exercises, Start ring / Done / Skipped / Locked) is unchanged, now white on the dark card. The workout screen header and the share card keep their photos.
+- **Check**: Train Solo vs coached client side-by-side screenshots in light and dark sent to the owner.
+- **Test**: `src/solo/soloGlass301.test.jsx` — in LIGHT mode `SessionHero` renders `/brand/home-workout.jpg` on the right 56% with no opacity fade, on a #111113 card, 158px, with the white rim; fails on the old code. Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
