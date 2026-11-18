@@ -5467,6 +5467,7 @@ export function NutritionScreen({
   recentFoods,
   showToast,
   openAddFoodKey = 0,
+  onAddFoodOpened = () => {},
 }) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal, createFood } = useApp();
@@ -5577,9 +5578,13 @@ export function NutritionScreen({
     setSessionAdds([]);
     setAddPageOpen(true);
   }
-  // Home's "Log Nutrition" tile (#279): open Add Food on the meal for now.
+  // Home's "Log Nutrition" tile (#279): open Add Food on the meal for now —
+  // ONCE per tap. The request is cleared as soon as it's used (#285): this
+  // screen remounts on every visit to the tab, and a kept request reopened
+  // Add Food every time the client opened Nutrition.
   useEffect(() => {
     if (!openAddFoodKey) return;
+    onAddFoodOpened();
     const h = new Date().getHours();
     openAddPage(h < 11 ? "Breakfast" : h < 16 ? "Lunch" : h < 21 ? "Dinner" : "Snacks");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -10599,6 +10604,7 @@ export default function ClientApp() {
             recentFoods={recentFoods}
             showToast={showToast}
             openAddFoodKey={openAddFoodKey}
+            onAddFoodOpened={() => setOpenAddFoodKey(0)}
           />
         )}
         {tab === "checkins" && <CheckInsScreen userId={currentUser.id} showToast={showToast} openFeedbackId={openFeedbackId} onFeedbackOpened={clearOpenFeedback} />}

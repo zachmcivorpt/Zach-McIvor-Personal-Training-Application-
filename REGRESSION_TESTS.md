@@ -3905,6 +3905,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `clientLook279.test.jsx` (focus on yesterday and tomorrow), `cardioPastDay218.test.jsx` (no row on any day, the tile logs a past day, the future-day guard in the save) — 3 fail on the old code (checked by reverting only ClientApp.jsx / ClientLook.jsx). Browser check: Tuesday and Thursday show the focus and no stray row. Full suite passes.
 - **Date**: 2026-11-18
 
+### 285. Nutrition tab opened Add Food every time (owner, 2026-11-18)
+
+- **Problem**: Home's "Log Nutrition" tile (#279) asked the Nutrition screen to open Add Food with a counter kept in ClientApp. The screen remounts on every visit to the tab and saw the kept counter each time, so after one tap on the tile, every later open of Nutrition went straight to Add Food.
+- **Fix**: the request is used once: `NutritionScreen` calls `onAddFoodOpened()` as it opens Add Food, and ClientApp clears it (`setOpenAddFoodKey(0)`).
+- **Test**: `src/client/addFoodOnce285.test.jsx` renders the real ClientApp: the tile opens Add Food; Home → Nutrition and Progress → Nutrition afterwards do not. Fails on the old code (checked by reverting only ClientApp.jsx). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
