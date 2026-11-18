@@ -33,8 +33,9 @@ export function clientLook(dark) {
         pageImage:
           "radial-gradient(60% 30% at 0% 45%, rgba(160,160,170,0.2), transparent 70%), radial-gradient(60% 30% at 100% 75%, rgba(160,160,170,0.18), transparent 70%), radial-gradient(50% 22% at 20% 100%, rgba(160,160,170,0.14), transparent 70%)",
         // #299 frosted glass (owner's reference): soft grey glass with a white
-        // top-down sheen, a white rim and a wide soft shadow.
-        card: { backgroundColor: "rgba(236,236,240,0.62)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(246,246,249,0.32) 48%, rgba(228,228,233,0.5) 100%)", border: "1px solid rgba(255,255,255,0.95)", boxShadow: "0 0 0 0.5px rgba(10,10,11,0.07), 0 16px 32px -16px rgba(20,20,30,0.24), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(10,10,11,0.03)", backdropFilter: "blur(26px) saturate(180%)", WebkitBackdropFilter: "blur(26px) saturate(180%)" },
+        // top-down sheen, a white rim and a wide soft shadow. Card greys
+        // softened (#300, owner: "too much" on the big Nutrition cards).
+        card: { backgroundColor: "rgba(246,246,249,0.55)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(250,250,252,0.4) 50%, rgba(242,242,246,0.45) 100%)", border: "1px solid rgba(255,255,255,0.95)", boxShadow: "0 0 0 0.5px rgba(10,10,11,0.07), 0 16px 32px -16px rgba(20,20,30,0.24), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(10,10,11,0.03)", backdropFilter: "blur(26px) saturate(180%)", WebkitBackdropFilter: "blur(26px) saturate(180%)" },
         tile: { backgroundColor: "rgba(236,236,240,0.62)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(225,225,230,0.8) 100%)", border: "1px solid rgba(255,255,255,0.95)", boxShadow: "0 0 0 0.5px rgba(10,10,11,0.07), 0 12px 22px -12px rgba(20,20,30,0.3), inset 0 1px 0 rgba(255,255,255,1)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)" },
         ink: "#0A0A0B",
         onInk: "#FFFFFF",

@@ -4006,6 +4006,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `clientLook279.test.jsx` — card and tile tokens in both modes are see-through with the sheen, rim and blur (and `-webkit-`); the focus banner is glass with a lit rim. `trainingGlass271.test.jsx` updated to the new charcoal fill. Both new tests fail on the old code (checked by reverting only clientLook.js / ClientLook.jsx). Full suite passes.
 - **Date**: 2026-11-18
 
+### 300. Softer greys on the big Nutrition cards (owner, 2026-11-18)
+
+- **Change**: after #299 the light-mode card glass read too grey on the big Nutrition cards (Home's Nutrition card, the Nutrition tab's calorie card and meals). The light card token is lighter: fill rgba(246,246,249,0.55) (was 236,236,240 at 0.62) and a whiter sheen (bottom 242,242,246 at 0.45, was 228,228,233 at 0.5). Rim, shadow, blur, tiles and dark mode unchanged.
+- **Check**: before/after screenshots of Home and Nutrition (light) sent to the owner. `clientLook279.test.jsx`'s glass test still passes (see-through fill, sheen, rim, blur). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
