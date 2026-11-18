@@ -3814,6 +3814,19 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix** (`trainingSummary` → `week.soFar`, shown in the row and the client sheet as "x / y so far"): y counts this week's scheduled training days before today, plus today once it's done — today isn't owed until the day is over. `week.assigned` (whole week) and `week.due` (still to come) stay for the sheet's "N still to do". Before anything is due (Monday morning) the row shows only the next session, and the sheet says "Nothing due yet · N to do".
 - **Tests**: `commandCentre265.test.jsx` — Fri with Mon done, Wed missed, today and Sunday still to come: 1 of 2 so far; Monday morning: 0 so far; a full week done including today: 3 of 3; the real Overview rows read "0/2 done" and "1/1 done". The four training-maths tests fail on the #268 code (no `soFar`; checked by restoring it).
 
+### 271. Client Training tab (Today + Program) redesigned in glass (owner, 2026-11-18)
+
+- **Change**: the owner's approved mock-up (light mode is the main mode). Replaces Concept A's gym-photo header on the Training tab. Header is the APEX mark only, then a glass Today / Program switch. Today: this week Mon–Sun with today ringed in `MEASURE_BLUE`, today's workout on one glass card (status with a blue dot, name, muscle chips, exercises / est. time / the current phase's x/y, Start/Resume + View), then the open action rows (glass icon tiles). Program: the phase on a glass card (blue ring, name, dates, "x / y workouts" + "N to go", a bar per week with this week blue, Phases in the corner), then "Workouts in this phase" as numbered glass rows with today's outlined in blue + a TODAY tag. Light mode has soft grey glows behind the glass; dark mode is plain black (owner: no silver). Smaller type throughout, the app's own font.
+- **Unchanged**: a real client still sees only "Log a cardio session"; Edit / move, Remove, Create workout of the day, Add workout and Import stay View-as-Client only. Same taps, sheets, saves and figures (`computePhaseCompletion`, `estimateWorkoutMinutes`, `countExercises`). Up next and the phase description stay.
+- **Where**: `src/client/TrainingGlass.jsx` (components), `src/client/trainingGlass.js` (`weekDays`, `phaseWeeks`, `trainingGlass` surface; take the given today key), wired in `WorkoutsScreen` / `ClientProgramTab` (`ClientApp.jsx`). `TrainingPhotoHero` removed.
+- **Tests**: `trainingGlass271.test.jsx` renders the real `WorkoutsScreen` with real-shaped data on a pinned Wednesday: logo-only header, today ringed blue, the glass card's own figures, no gym photo; a real client gets only Log a cardio session while View as Client gets the coach rows; Program's phase card (5 week bars, week 3 "now"), today's workout row outlined and tagged, no Add/Import for a real client; glows in light only, plain glass in dark; `weekDays` / `phaseWeeks` maths. Four of the five fail on the code before this change (checked by restoring it). Full suite passes; the new screens were also rendered in headless Chrome in both themes.
+
+### 272. Progress goal test failed just after midnight (2026-11-18)
+
+- **Problem**: `clientLooksLikeSolo248.test.jsx` "shows the goal and its progress" used the real clock and logs 1–2 hours before "now"; run between midnight and 2am (CI did, at 00:19 UTC) two of the three logs fell on yesterday and the count read 1, failing CI on main and on #271's branch. The app was right; the test wasn't pinned.
+- **Fix**: the test pins the time to midday (`vi.setSystemTime`), as CLAUDE.md asks of date-dependent tests.
+- **Tests**: passes with `TZ=UTC` at any hour; failed before the fix at 00:19 UTC (checked on main).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
