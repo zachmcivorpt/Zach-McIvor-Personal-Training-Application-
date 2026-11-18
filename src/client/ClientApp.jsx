@@ -4190,7 +4190,7 @@ export function WorkoutsScreen({ runningSession = null, todaySession: scheduledT
         <p className="text-[9px] font-semibold tracking-[0.22em] uppercase" style={{ color: L.ink }}>
           Training
         </p>
-        <p className="text-[31px] leading-none py-[2px] font-extrabold tracking-[-0.03em]" style={{ color: L.ink }}>
+        <p className="text-[22px] leading-tight font-bold tracking-[-0.03em]" style={{ color: L.ink }}>
           Your Program
         </p>
       </div>

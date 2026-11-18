@@ -3871,6 +3871,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/client/clientLook279.test.jsx` (every Home button: bell, profile, streak → Progress, day / next week, Start / View Plan / card, Today → Nutrition, +250ml / +500ml, the four tiles incl. Log Cardio saving, focus banner, Daily Execution; streak and focus maths by hand) — all fail on the old Home (none of these parts existed). `trainingButtons273` / `trainingGlass271` now check Training opens on Your Program with no Today switch and every row still works; #248 / #252 / #256 / #277 / #278 updated to the new design (greeting back, 27px mark, blue outline, page colours #F4F4F6 / #070708, 51px tab buttons). Full suite: 1624 passed.
 - **Date**: 2026-11-18
 
+### 280. Client Home / Your Program headings too big; every Home and Training button checked (owner, 2026-11-18)
+
+- **Problem**: after #279 the Home name ("Zach", 31px extrabold) and the Training "Your Program" title (31px) were far bigger than every other tab's heading. The owner also asked for the APEX mark on the left everywhere and for every button on the two new pages to be checked.
+- **Fix**: both headings are 22px bold (the size of the other tabs' first headings). The client app's only logo is `ClientTopBar`'s, on the left of every tab (checked on all six).
+- **Checks**: in a real browser (Playwright, 390pt) every Home button was clicked and its result read back — bell → Notifications, profile → Profile, streak → Progress, a weekday → that day, swipe → next week, Start Workout / the card → the pre-workout screen, View Plan → Workout Preview, Today → Nutrition, +250ml / +500ml → logged, Log Workout → Training, Log Nutrition → Add Food, View Progress → Progress, Log Cardio → Log Activity, Focus → Nutrition, the notifications ✕ → hidden, all six tab-bar tabs; Training: Phases → Training Phases, a workout row / Up next row → Workout Preview, Log a cardio session → Log Activity. `clientLook279.test.jsx` now also checks a habit tap saves (`onToggleHabit("h1")`; fails if the row's tap is not wired). Full suite 1624 passed; build OK.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

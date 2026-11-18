@@ -123,13 +123,16 @@ describe("client Home (#279)", () => {
     expect(f.onLogCardio).toHaveBeenCalledTimes(1);
   });
 
-  it("focus banner opens the tab it's about; Daily Execution is one card with its habits", () => {
-    const f = home();
+  it("focus banner opens the tab it's about; Daily Execution is one card and tapping a habit saves it", () => {
+    const onToggleHabit = vi.fn(() => Promise.resolve());
+    const f = home({ onToggleHabit });
     fireEvent.click(screen.getByTestId("home-focus"));
     expect(f.onOpenTab).toHaveBeenLastCalledWith("nutrition");
     const de = screen.getByTestId("home-daily-execution");
     expect(de.textContent).toMatch(/Daily Execution/);
     expect(de.textContent).toMatch(/10k steps/);
+    fireEvent.click(within(de).getByText("10k steps"));
+    expect(onToggleHabit).toHaveBeenCalledWith("h1");
   });
 });
 

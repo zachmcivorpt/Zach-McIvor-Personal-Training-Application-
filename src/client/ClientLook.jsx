@@ -65,8 +65,8 @@ export function HomeGreeting({ dark, greeting, firstName, streak, onStreak }) {
           {greeting}
         </p>
         <p className="flex items-center gap-3 min-w-0" style={{ color: L.ink }}>
-          <span className="text-[31px] leading-none py-[2px] font-extrabold tracking-[-0.03em] truncate">{firstName}</span>
-          <span aria-hidden="true" className="w-px h-6 shrink-0" style={{ backgroundColor: L.faint }} />
+          <span className="text-[22px] leading-tight font-bold tracking-[-0.03em] truncate">{firstName}</span>
+          <span aria-hidden="true" className="w-px h-5 shrink-0" style={{ backgroundColor: L.faint }} />
         </p>
         <p className="text-[11px] leading-tight mt-1" style={{ color: L.muted }}>
           Stronger than yesterday.
