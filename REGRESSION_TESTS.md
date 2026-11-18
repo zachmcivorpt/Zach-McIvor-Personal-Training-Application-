@@ -3940,6 +3940,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Manual**: before listing every day again, test the calendar on a real iPhone (open, scroll up and down past the loaded range, drag a workout) — jsdom and desktop Chromium can't show this.
 - **Date**: 2026-11-18
 
+### 290. Home's streak wasn't accurate — one streak for the client app (owner, 2026-11-18)
+
+- **Problem**: Home's "day streak" (#279) counted days in a row with ANY log (a workout, cardio, or food) — a different figure from Progress's "Current Streak", which counted scheduled sessions in a row with its own looser rule (any log on the day, cardio included, the device clock). Two streaks, neither matching what the client was actually asked to do.
+- **Fix**: one function, `sessionStreak` (`src/client/clientLook.js`), used by Home's card AND Progress's Current Streak: scheduled TRAINING sessions done in a row, newest first. Cardio / warm-up-only days don't count (`isTrainingSession`, #269); a session is done by a non-cardio log for it (its `scheduledDate`, else the same day with the same name — Home's "Completed" rule); rest days never break it; today's session doesn't break it until the day is over; a missed past session ends it. Home's card reads "N sessions in a row" (it is not a day count). The old `dayStreak` and `computeWorkoutStreak` uses are gone from the client app.
+- **Test**: `clientLook279.test.jsx` — worked by hand: Wed 18 with today's Legs undone, Tue Pull ✓, Mon Push ✓, Sun cardio-only (skipped), Sat Legs caught up Sunday (scheduledDate) ✓, Thu Pull missed → 3; doing today's → 4; a different workout on Tue → 0; nothing scheduled → 0; future sessions ignored. Fails on the old code (no such function; Home showed the any-log day count). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

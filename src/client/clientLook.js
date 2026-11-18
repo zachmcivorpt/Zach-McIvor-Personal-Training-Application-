@@ -6,6 +6,7 @@
 // `todayKey` given (#210).
 import { localDateKey } from "../lib/dateKey";
 import { hasFoodLogged } from "../lib/nutritionLog";
+import { isTrainingSession } from "../coach/commandCentre";
 
 export function clientLook(dark) {
   return dark
@@ -51,22 +52,6 @@ function addDays(key, n) {
   return localDateKey(dt);
 }
 
-// Days in a row with something logged — a workout (any, cardio too) or
-// food. Counts back from today; if today has nothing yet the streak still
-// stands from yesterday (the day isn't over).
-export function dayStreak({ workoutLogs, nutritionLogs, todayKey }) {
-  const active = new Set();
-  (workoutLogs || []).forEach((l) => l?.date && active.add(localDateKey(new Date(l.date))));
-  (nutritionLogs || []).forEach((n) => hasFoodLogged(n) && active.add(n.date));
-  let k = active.has(todayKey) ? todayKey : addDays(todayKey, -1);
-  let n = 0;
-  while (active.has(k)) {
-    n += 1;
-    k = addDays(k, -1);
-  }
-  return { days: n, today: active.has(todayKey) };
-}
-
 // One focus line for the week, from the client's own week so far (Monday →
 // today): protein days missed with days still left, else training sessions
 // still to do. Null when there's nothing true to say.
@@ -87,4 +72,30 @@ export function weekFocus({ nutritionLogs, proteinTarget, scheduledKeys = [], do
   const left = [...new Set(scheduledKeys)].filter((k) => k >= todayKey && k <= sunday && !doneKeys.has(k)).length;
   if (left > 0) return { kind: "training", text: `${left} training session${left === 1 ? "" : "s"} left this week — keep it going.` };
   return null;
+}
+
+// #290 (owner: "the streak must be accurate"): ONE streak for the client
+// app — Home's card and Progress's "Current Streak" both use this. Scheduled
+// TRAINING sessions done in a row, newest first (cardio / warm-up only days
+// don't count, #269). A session is done when a non-cardio log is for it: the
+// log's scheduledDate, else the log's own day with the same name (the same
+// rule as Home's "Completed"). Rest days never break it; today's session
+// doesn't break it until the day is over; a missed past session ends it.
+export function sessionStreak({ logs = [], scheduled = [], exercisesById = {}, todayKey }) {
+  const byDate = {};
+  for (const w of scheduled || []) {
+    if (!w?.date || w.date > todayKey || !isTrainingSession(w, exercisesById)) continue;
+    (byDate[w.date] = byDate[w.date] || []).push(w);
+  }
+  const strength = (logs || []).filter((l) => l && !l.cardio);
+  const doneOn = (dateKey) =>
+    byDate[dateKey].some((w) =>
+      strength.some((l) => (l.scheduledDate ? l.scheduledDate === dateKey : localDateKey(new Date(l.date)) === dateKey && (!w.label || !l.dayLabel || l.dayLabel === w.label)))
+    );
+  let n = 0;
+  for (const dateKey of Object.keys(byDate).sort().reverse()) {
+    if (doneOn(dateKey)) n += 1;
+    else if (dateKey !== todayKey) break;
+  }
+  return n;
 }

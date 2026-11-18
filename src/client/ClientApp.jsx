@@ -139,7 +139,6 @@ import {
   computeE1RMHistory,
   computePersonalBests,
   computePRsInLastNDays,
-  computeWorkoutStreak,
   computeMonthlyConsistency,
   computePhaseCompletion,
   computeMonthlyVolume,
@@ -179,7 +178,7 @@ import { NutritionTargetsCard } from "../coach/NutritionTargetsCard";
 import { planPhaseSwap } from "./phaseSwap";
 import { SOLO_MARK_WHITE, SOLO_MARK_BLACK } from "../solo/soloMark";
 import { ClientChromeContext, ClientTopBar, ClientTabBar, HomeGreeting, HomeWeekStrip, HomeWorkoutCard, HomeNutritionCard, HomeQuickTiles, HomeFocusBanner } from "./ClientLook";
-import { clientLook, greetingFor, dayStreak, weekFocus } from "./clientLook";
+import { clientLook, greetingFor, sessionStreak, weekFocus } from "./clientLook";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet, NutritionPage } from "./NutritionFeatures";
 import { AddFoodPage } from "./AddFoodPage";
 import { TrainingBackdrop, TrainingPhaseCard, TrainingWorkoutRow, TrainingUpNextRow } from "./TrainingGlass";
@@ -7158,7 +7157,8 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
 
   const tiles = useMemo(() => {
     const workoutsSeries = computeWorkoutsSeries(logsForClient);
-    const streak = computeWorkoutStreak(logsForClient, scheduledWorkouts);
+    // #290: one streak for the app — the same figure as Home's card.
+    const streak = sessionStreak({ logs: logsForClient, scheduled: scheduledWorkouts, exercisesById, todayKey: localDateKey() });
     return [
       { key: "workouts", label: "Workouts Completed", unit: "", decimals: 0, series: workoutsSeries, latest: logsForClient.length, date: "all-time" },
       {
@@ -7190,7 +7190,7 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
           monthlyConsistency.pct != null ? `${monthlyConsistency.completed} of ${monthlyConsistency.expected} this month` : "this month",
       },
     ];
-  }, [logsForClient, scheduledWorkouts, monthlyConsistency]);
+  }, [logsForClient, scheduledWorkouts, monthlyConsistency, exercisesById]);
 
   const latestWeighIn = weighIns[weighIns.length - 1];
   const firstWeighIn = weighIns[0];
@@ -9786,9 +9786,10 @@ export default function ClientApp() {
   const todaySession = completedToday ? sessionForDate(todayDateKey, logsForClient) : scheduledToSession(scheduledWorkoutsByDate[todayDateKey]);
   const nutritionLogsForClient = db.nutritionLogs[currentUser.id] || EMPTY_LIST;
   // #279 Home: the day streak and this week's focus, from the client's own logs.
+  // #290: the same streak as Progress's "Current Streak" (sessionStreak).
   const homeStreak = useMemo(
-    () => (dbReady ? dayStreak({ workoutLogs: logsForClient, nutritionLogs: nutritionLogsForClient, todayKey: todayDateKey }).days : null),
-    [dbReady, logsForClient, nutritionLogsForClient, todayDateKey]
+    () => (dbReady ? sessionStreak({ logs: logsForClient, scheduled: scheduledWorkoutsForClient, exercisesById, todayKey: todayDateKey }) : null),
+    [dbReady, logsForClient, scheduledWorkoutsForClient, exercisesById, todayDateKey]
   );
   const nutritionByDateKey = useMemo(
     () => Object.fromEntries(nutritionLogsForClient.map((n) => [n.date, n])),

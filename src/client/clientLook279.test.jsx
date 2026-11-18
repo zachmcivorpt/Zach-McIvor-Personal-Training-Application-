@@ -12,7 +12,7 @@ import { localDateKey } from "../lib/dateKey";
 vi.mock("../lib/AppContext", async (orig) => ({ ...(await orig()), useApp: () => ({ db: { users: [], workoutLogs: {}, messages: {} } }) }));
 import { HomeScreen } from "./ClientApp";
 import { ClientChromeContext } from "./ClientLook";
-import { dayStreak, weekFocus, greetingFor } from "./clientLook";
+import { sessionStreak, weekFocus, greetingFor } from "./clientLook";
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
@@ -63,7 +63,7 @@ describe("client Home (#279)", () => {
     expect(screen.getByTestId("home-greeting-row").textContent).toMatch(/Zach/);
     expect(screen.getByTestId("home-greeting-row").textContent).toMatch(/Stronger than yesterday\./);
     expect(screen.getByTestId("home-greeting-row").textContent).not.toMatch(/💪/);
-    expect(screen.getByTestId("home-streak").textContent).toMatch(/12day streak/);
+    expect(screen.getByTestId("home-streak").textContent).toMatch(/12sessions in a row/);
     fireEvent.click(screen.getByTestId("home-streak"));
     expect(f.onOpenTab).toHaveBeenCalledWith("progress");
   });
@@ -160,13 +160,28 @@ describe("streak and focus maths (#279)", () => {
     expect(greetingFor(13)).toBe("Good afternoon");
     expect(greetingFor(19)).toBe("Good evening");
   });
-  it("dayStreak counts consecutive days with a workout or food, from yesterday when today is empty", () => {
-    const at = (k) => new Date(k + "T09:00:00").getTime();
-    const food = (date) => ({ date, meals: { Breakfast: [{ name: "Eggs", calories: 150 }] }, calories: 150 });
-    const s = dayStreak({ workoutLogs: [{ date: at("2026-11-17") }, { date: at("2026-11-15") }], nutritionLogs: [food("2026-11-16"), { date: "2026-11-14", water: 2 }], todayKey: "2026-11-18" });
-    expect(s).toEqual({ days: 3, today: false }); // 15, 16, 17 — water alone isn't logged
-    expect(dayStreak({ workoutLogs: [{ date: at("2026-11-18") }], nutritionLogs: [], todayKey: "2026-11-18" })).toEqual({ days: 1, today: true });
-    expect(dayStreak({ workoutLogs: [], nutritionLogs: [], todayKey: "2026-11-18" }).days).toBe(0);
+  it("#290 sessionStreak: scheduled training sessions done in a row — rest days and today's undone session don't break it, a missed one does", () => {
+    const at = (k, h = 9) => new Date(k + "T" + String(h).padStart(2, "0") + ":00:00").getTime();
+    const ex = { run: { id: "run", category: "Cardio" }, bench: { id: "bench", category: "Chest" } };
+    const sch = (date, label, exId = "bench") => ({ id: date, date, label, exercises: [{ exerciseId: exId }] });
+    const scheduled = [sch("2026-11-10", "Push"), sch("2026-11-12", "Pull"), sch("2026-11-14", "Legs"), sch("2026-11-15", "Easy run", "run"), sch("2026-11-16", "Push"), sch("2026-11-17", "Pull"), sch("2026-11-18", "Legs")];
+    const logs = [
+      { dayLabel: "Push", date: at("2026-11-16") },
+      { dayLabel: "Pull", date: at("2026-11-17") },
+      { dayLabel: "Legs", date: at("2026-11-15"), scheduledDate: "2026-11-14" }, // Saturday's session caught up on Sunday
+      { dayLabel: "Run", date: at("2026-11-15"), cardio: { activityId: "running" } }, // cardio never counts
+      { dayLabel: "Push", date: at("2026-11-10") },
+    ];
+    // Wed 18: today's Legs not done yet → doesn't break; 17 ✓, 16 ✓, 15 is cardio-only (not counted), 14 ✓ (scheduledDate), 12 missed → stop.
+    expect(sessionStreak({ logs, scheduled, exercisesById: ex, todayKey: "2026-11-18" })).toBe(3);
+    // Do today's session → 4.
+    expect(sessionStreak({ logs: [...logs, { dayLabel: "Legs", date: at("2026-11-18") }], scheduled, exercisesById: ex, todayKey: "2026-11-18" })).toBe(4);
+    // A different workout logged on Tue 17 doesn't complete Tue's Pull → streak stops at 17 (today undone, 17 missed).
+    const wrong = logs.map((l) => (l.dayLabel === "Pull" ? { ...l, dayLabel: "Arms" } : l));
+    expect(sessionStreak({ logs: wrong, scheduled, exercisesById: ex, todayKey: "2026-11-18" })).toBe(0);
+    // Nothing scheduled → 0; future sessions ignored.
+    expect(sessionStreak({ logs, scheduled: [], todayKey: "2026-11-18" })).toBe(0);
+    expect(sessionStreak({ logs, scheduled: [...scheduled, sch("2026-11-20", "Push")], exercisesById: ex, todayKey: "2026-11-18" })).toBe(3);
   });
   it("weekFocus: protein days left this week when protein was missed, else sessions left, else nothing", () => {
     const food = (date, protein) => ({ date, meals: { Lunch: [{ name: "x", calories: 100 }] }, calories: 100, protein });
