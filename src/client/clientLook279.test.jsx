@@ -138,6 +138,19 @@ describe("client Home (#279)", () => {
     expect(screen.getByTestId("home-water-amount").textContent).toBe("0.75 / 3 L");
   });
 
+  it("#294: over target the ring is red; carbs / fat bars red past 10% over, protein never", () => {
+    home({ dayNutrition: { calories: 2755, protein: 200, carbs: 306.7, fat: 74.5, water: 0 } });
+    const card = screen.getByTestId("home-nutrition");
+    const arcs = card.querySelectorAll("svg circle");
+    expect(arcs[1].getAttribute("stroke")).toMatch(/#EF4444/i);
+    expect(screen.getByTestId("home-macro-bar-fat").style.backgroundColor).toBe("rgb(239, 68, 68)");
+    expect(screen.getByTestId("home-macro-bar-carbs").style.backgroundColor).not.toBe("rgb(239, 68, 68)"); // 306.7 / 323: under
+    expect(screen.getByTestId("home-macro-bar-protein").style.backgroundColor).not.toBe("rgb(239, 68, 68)"); // 200 / 180: protein never red
+    cleanup();
+    home(); // 1,678 / 2,400: under → black ring
+    expect(screen.getByTestId("home-nutrition").querySelectorAll("svg circle")[1].getAttribute("stroke")).not.toMatch(/#EF4444/i);
+  });
+
   it("#284: the week's focus shows on other days too", () => {
     home({ dayOffset: 1, isToday: false });
     expect(screen.getByTestId("home-focus")).toBeTruthy();

@@ -225,7 +225,7 @@ export function HomeWorkoutCard({ session, minutes, exercises, label, started, d
   );
 }
 
-function Ring({ value, max, size = 128, stroke = 7, dark }) {
+function Ring({ value, max, size = 128, stroke = 7, dark, color }) {
   const L = clientLook(dark);
   const r = size / 2 - stroke;
   const c = 2 * Math.PI * r;
@@ -233,7 +233,7 @@ function Ring({ value, max, size = 128, stroke = 7, dark }) {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={L.track} strokeWidth={stroke} />
-      {pct > 0 && <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={L.ink} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${pct * c} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />}
+      {pct > 0 && <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color || L.ink} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${pct * c} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />}
     </svg>
   );
 }
@@ -245,9 +245,10 @@ export function HomeNutritionCard({ dark, nutrition, targets, dayLabel, isToday,
   const over = targets.calories > 0 && cal > targets.calories;
   const r1 = (n) => Math.round((Number(n) || 0) * 10) / 10;
   const macros = [
-    { label: "Protein", value: r1(nutrition.protein), target: targets.protein },
-    { label: "Carbs", value: r1(nutrition.carbs), target: targets.carbs },
-    { label: "Fat", value: r1(nutrition.fat), target: targets.fat },
+    // #294: carbs / fat bars red past 10% over (#114's rule); protein never.
+    { label: "Protein", value: r1(nutrition.protein), target: targets.protein, capped: false },
+    { label: "Carbs", value: r1(nutrition.carbs), target: targets.carbs, capped: true },
+    { label: "Fat", value: r1(nutrition.fat), target: targets.fat, capped: true },
   ];
   return (
     <div className="mx-2.5 rounded-[22px] px-4 pt-2 pb-1.5" style={{ ...L.card, color: L.ink }} data-testid="home-nutrition">
@@ -261,7 +262,8 @@ export function HomeNutritionCard({ dark, nutrition, targets, dayLabel, isToday,
       </div>
       <div className="flex items-center gap-3 pt-0.5">
         <div className="relative shrink-0" style={{ width: 88, height: 88 }}>
-          <Ring value={cal} max={targets.calories} size={88} stroke={5} dark={dark} />
+          {/* #294: the ring turns red too once the day is over target. */}
+          <Ring value={cal} max={targets.calories} size={88} stroke={5} dark={dark} color={over ? overColor : undefined} />
           <span className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-[18px] font-bold tabular-nums leading-none" style={over ? { color: overColor } : undefined}>
               {cal.toLocaleString()}
@@ -282,7 +284,7 @@ export function HomeNutritionCard({ dark, nutrition, targets, dayLabel, isToday,
                 / {m.target}g
               </p>
               <div className="h-[4px] rounded-full mt-1.5 overflow-hidden" style={{ backgroundColor: L.track }}>
-                <div className="h-full rounded-full" style={{ width: `${m.target > 0 ? Math.min(100, (m.value / m.target) * 100) : 0}%`, backgroundColor: L.ink }} />
+                <div className="h-full rounded-full" style={{ width: `${m.target > 0 ? Math.min(100, (m.value / m.target) * 100) : 0}%`, backgroundColor: m.capped && m.target > 0 && m.value > m.target * 1.1 ? overColor : L.ink }} data-testid={`home-macro-bar-${m.label.toLowerCase()}`} />
               </div>
             </div>
           ))}

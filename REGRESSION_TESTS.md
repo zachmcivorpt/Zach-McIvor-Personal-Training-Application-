@@ -3967,6 +3967,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Check**: Playwright at 375 / 390 / 430pt — nothing inside the card past its edges, `scrollWidth` = `clientWidth`. `clientLook279.test.jsx` guards the label's width and wrap (fails on the old nowrap label). Full suite passes.
 - **Date**: 2026-11-18
 
+### 294. Home Nutrition: ring stayed black when over target; macro bars never red (owner, 2026-11-18)
+
+- **Problem**: on Home's Nutrition card (#279) the calorie figure turned red when over (2,755 / 2,400) but the ring stayed black, and every macro bar was black even when fat was 74.5 / 43 g — against #114's rule (bars red past 10% over, protein exempt).
+- **Fix**: the ring is drawn in red once calories are over target; the carbs and fat bars are red past 10% over target, protein never; everything else stays black (`HomeNutritionCard`, `ClientLook.jsx`).
+- **Test**: `clientLook279.test.jsx` — 2,755 / 2,400 kcal → red ring; fat 74.5 / 43 → red bar; carbs 306.7 / 323 not red; protein 200 / 180 not red; 1,678 / 2,400 → black ring. Fails on the old code (checked by reverting only ClientLook.jsx). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
