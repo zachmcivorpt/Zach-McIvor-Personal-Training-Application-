@@ -141,6 +141,9 @@ export function NativeStatusBarSync() {
     // Train Solo has its own light/dark toggle, so it posts its own theme
     // from SoloThemeProvider (src/solo/SoloThemeContext.jsx) instead.
     if (location.pathname.startsWith("/solo")) return;
+    // So does the coached client app (#277): it follows the client's own
+    // Profile > Appearance choice (ClientApp's useClientStatusBar).
+    if (location.pathname.startsWith("/app")) return;
     // The full-bleed photo screens also get a dark strip, so an App Store
     // build that doesn't support the edge-to-edge frame yet shows black
     // above the photo instead of a white bar.

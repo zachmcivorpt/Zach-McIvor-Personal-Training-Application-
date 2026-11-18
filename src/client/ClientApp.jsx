@@ -9317,6 +9317,30 @@ function loadActiveSession(userId) {
 // them all recompute every time anything on screen changed) — #126.
 const EMPTY_LIST = [];
 
+// The strip at the very top of the phone (the App Store build's native
+// status-bar background, and the browser's theme-color) follows the
+// client's own light/dark choice (#277). It stayed white in dark mode:
+// only the coach console and Train Solo ever told the phone to go dark.
+// NativeStatusBarSync (App.jsx) skips /app for this, as it does /solo.
+export function useClientStatusBar(dark) {
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const original = meta?.getAttribute("content");
+    return () => {
+      if (meta && original != null) meta.setAttribute("content", original);
+      document.body.style.backgroundColor = "";
+    };
+  }, []);
+  useEffect(() => {
+    try {
+      window.webkit?.messageHandlers?.apexTheme?.postMessage({ dark: !!dark, edgeToEdge: false });
+    } catch {}
+    const colour = dark ? CLIENT_DARK_BG : "#FFFFFF";
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", colour);
+    document.body.style.backgroundColor = colour;
+  }, [dark]);
+}
+
 export default function ClientApp() {
   const {
     currentUser,
@@ -9365,6 +9389,7 @@ export default function ClientApp() {
   const [themePick, setThemePick] = useState(null); // { key, value } once chosen this session
   const storedPick = themePick?.key === themeKey ? themePick.value : readClientThemePick(themeKey);
   const dark = resolveClientDark(storedPick, db.appDesign?.clientDarkMode);
+  useClientStatusBar(dark);
   function chooseClientTheme(nextDark) {
     const value = nextDark ? "dark" : "light";
     try {

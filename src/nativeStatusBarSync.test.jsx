@@ -6,7 +6,7 @@
 // notch) as its own background color — it has no way to know what the page
 // is actually showing unless told. NativeStatusBarSync posts that over
 // window.webkit.messageHandlers.apexTheme whenever the route changes: dark
-// for the coach console, light for everything else (client app,
+// for the coach console, light for login/activate (the client app and Train Solo post their own, #277),
 // login/activate) so fixing the coach's white strip doesn't paint a black
 // bar over the client app's light screens.
 //
@@ -41,8 +41,8 @@ describe("NativeStatusBarSync", () => {
     expect(renderAt("/coach/clients")).toHaveBeenCalledWith({ dark: true, edgeToEdge: false });
   });
 
-  it("posts dark:false, edgeToEdge:false on the client app route", () => {
-    expect(renderAt("/app")).toHaveBeenCalledWith({ dark: false, edgeToEdge: false });
+  it("leaves the client app route to the client app's own theme (#277)", () => {
+    expect(renderAt("/app")).not.toHaveBeenCalled();
   });
 
   it("posts dark:true, edgeToEdge:true on the login route", () => {

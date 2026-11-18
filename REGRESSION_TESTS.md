@@ -3852,6 +3852,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix** (`ClientApp.jsx`): `reopenWorkoutInProgress` runs first in `startWorkout` and `continueCompletedWorkout`. While a workout is in progress (`runningSession` + `activeLog`), every Start / Resume / Continue reopens THAT workout as it is. A different one only shows "Finish or discard … first". Only Complete or Discard ends a workout. Home's card (today) and Training's Today card show the workout in progress, whichever day it was for. `sessionStaleness.js`: a saved workout that is open or has any set entered is never dropped, whatever day it was started or for.
 - **Tests**: `src/client/sessionNeverLost276.test.jsx` renders the REAL `ClientApp` over a saved workout with the live screen closed. Resume on Home keeps every set. Another day's session (nothing on today) is on Home and reopens with its sets. It isn't replaced by today's. One started days ago survives a reload. `sessionReload274.test.jsx`: yesterday's open workout now reopens. `sessionStaleness.test.js`: never stale while open or with a set. All 5 ClientApp cases fail on the code before this fix (checked by restoring it).
 
+### 277. Client app: the top of the iPhone stayed white in dark mode (owner, 2026-11-18)
+
+- **Problem**: with Appearance set to Black in the coached client app, the strip at the very top of the iPhone (behind the clock) stayed white. The App Store build paints that strip from what the page tells it (`apexTheme`), and only the coach console (`NativeStatusBarSync`) and Train Solo (`SoloThemeProvider`) ever said "dark"; for the client app (`/app`) `NativeStatusBarSync` always said light.
+- **Fix**: `useClientStatusBar(dark)` in `ClientApp.jsx` posts the client's own light/dark to the native strip, sets the browser's `theme-color` and the page under the app to `CLIENT_DARK_BG` / white, every time Appearance changes, and puts `theme-color` back when leaving. `NativeStatusBarSync` now skips `/app` (as it does `/solo`).
+- **Tests**: `src/client/clientStatusBar277.test.jsx` (Black → dark strip + `CLIENT_DARK_BG`, White → light + white, back again, restored on leaving) fails before the fix (no client post at all); `src/nativeStatusBarSync.test.jsx` now checks `/app` is left to the client app. Needs the App Store build with the `apexTheme` handler (1.0.4+), which the owner's phone has.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
