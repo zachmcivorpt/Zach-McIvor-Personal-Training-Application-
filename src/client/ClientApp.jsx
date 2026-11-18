@@ -1480,6 +1480,8 @@ export function HomeScreen({
             isPastDate={dayOffset < 0}
             onStart={onStartWorkout}
             onView={onViewWorkout}
+            // #282 (owner): View Plan opens the program (Training → Your Program), not the workout.
+            onViewPlan={() => onOpenTab("workouts")}
             onDiscard={onDiscardWorkout}
             dbReady={dbReady}
             dark={dark}

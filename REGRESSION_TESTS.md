@@ -3884,6 +3884,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `clientTabBar278.test.jsx` checks `max(4px, … - 24px)` on the real ClientApp's bar; it fails on the old `max(6px, … - 14px)` (checked by reverting only ClientLook.jsx). Full suite passes.
 - **Date**: 2026-11-18
 
+### 282. Home's "View Plan" opened the workout, not the program (owner, 2026-11-18)
+
+- **Problem**: on Home's workout card, View Plan called the same handler as View Workout, so it opened the day's workout preview instead of the client's program.
+- **Fix**: `HomeWorkoutCard` takes `onViewPlan`; Home passes `onOpenTab("workouts")`, so View Plan opens Training → Your Program. Start / View Workout and tapping the card are unchanged.
+- **Test**: `clientLook279.test.jsx` — View Plan calls `onOpenTab("workouts")` and never `onViewWorkout`; fails on the old code (checked by reverting only ClientLook.jsx / ClientApp.jsx). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

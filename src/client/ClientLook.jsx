@@ -161,7 +161,7 @@ export function HomeWeekStrip({ dark, dayOffset, onSelect, heading, dotFor, date
 // The day's workout on the dark gym-photo card: a label pill, the name,
 // "5 Exercises · ~35 min", Start/Resume (or View when done / another day),
 // and View Plan.
-export function HomeWorkoutCard({ session, minutes, exercises, label, started, done, canStart, isPastDate, onStart, onView, onDiscard, dbReady, dark }) {
+export function HomeWorkoutCard({ session, minutes, exercises, label, started, done, canStart, isPastDate, onStart, onView, onViewPlan, onDiscard, dbReady, dark }) {
   const L = clientLook(dark);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   if (!session) {
@@ -199,7 +199,7 @@ export function HomeWorkoutCard({ session, minutes, exercises, label, started, d
             <button type="button" onClick={(e) => { e.stopPropagation(); primary(); }} className={`h-[34px] pl-4 pr-6 rounded-full bg-white text-black text-[12.5px] font-semibold flex items-center gap-2.5 ${TAP}`} data-testid="home-start-workout">
               {canStart && <Play size={13} fill="currentColor" />} {primaryLabel}
             </button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); onView(); }} className="text-[12px] font-semibold flex items-center gap-1.5 text-white/90" data-testid="home-view-plan">
+            <button type="button" onClick={(e) => { e.stopPropagation(); (onViewPlan || onView)(); }} className="text-[12px] font-semibold flex items-center gap-1.5 text-white/90" data-testid="home-view-plan">
               View Plan <ArrowRight size={13} />
             </button>
           </div>

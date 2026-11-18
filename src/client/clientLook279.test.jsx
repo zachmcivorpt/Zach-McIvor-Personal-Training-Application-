@@ -81,15 +81,17 @@ describe("client Home (#279)", () => {
     expect(f.onSelectDay).toHaveBeenLastCalledWith(7);
   });
 
-  it("workout card: Start Workout starts, View Plan opens the plan, the card itself starts", () => {
+  it("workout card: Start Workout starts, View Plan opens the program, the card itself starts", () => {
     const f = home();
     const hero = screen.getByTestId("client-session-hero");
     expect(hero.textContent).toMatch(/Core & Arms/);
     expect(hero.textContent).toMatch(/2 Exercises/);
     fireEvent.click(screen.getByTestId("home-start-workout"));
     expect(f.onStartWorkout).toHaveBeenCalledTimes(1);
+    // #282: View Plan opens the program (Training tab), never the workout.
     fireEvent.click(screen.getByTestId("home-view-plan"));
-    expect(f.onViewWorkout).toHaveBeenCalledTimes(1);
+    expect(f.onOpenTab).toHaveBeenLastCalledWith("workouts");
+    expect(f.onViewWorkout).not.toHaveBeenCalled();
     expect(f.onStartWorkout).toHaveBeenCalledTimes(1); // View Plan doesn't also start
     fireEvent.click(hero);
     expect(f.onStartWorkout).toHaveBeenCalledTimes(2);
