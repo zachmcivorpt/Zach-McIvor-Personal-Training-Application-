@@ -125,6 +125,14 @@ describe("client Home (#279)", () => {
     expect(f.onLogCardio).toHaveBeenCalledTimes(1);
   });
 
+  it("#286: water shows to 2 places — 250 ml is 0.25 L, never 0.3", () => {
+    home({ dayNutrition: { calories: 0, protein: 0, carbs: 0, fat: 0, water: 0.25 } });
+    expect(screen.getByTestId("home-water-amount").textContent).toBe("0.25 / 3 L");
+    cleanup();
+    home({ dayNutrition: { calories: 0, protein: 0, carbs: 0, fat: 0, water: 0.75 } });
+    expect(screen.getByTestId("home-water-amount").textContent).toBe("0.75 / 3 L");
+  });
+
   it("#284: the week's focus shows on other days too", () => {
     home({ dayOffset: 1, isToday: false });
     expect(screen.getByTestId("home-focus")).toBeTruthy();

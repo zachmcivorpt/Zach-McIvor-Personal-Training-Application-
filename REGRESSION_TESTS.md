@@ -3912,6 +3912,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `src/client/addFoodOnce285.test.jsx` renders the real ClientApp: the tile opens Add Food; Home → Nutrition and Progress → Nutrition afterwards do not. Fails on the old code (checked by reverting only ClientApp.jsx). Full suite passes.
 - **Date**: 2026-11-18
 
+### 286. Home water: +250ml showed as 0.3 L (owner, 2026-11-18)
+
+- **Problem**: Home's Nutrition card rounded water to one decimal place, so a logged 250 ml (0.25 L, saved correctly) read "0.3 / 3 L" and 750 ml read "0.8".
+- **Fix**: the card shows litres to two places (0.25, 0.5, 0.75), matching what is saved (`setNutritionForDate` keeps two places).
+- **Test**: `clientLook279.test.jsx` — 0.25 → "0.25 / 3 L", 0.75 → "0.75 / 3 L"; fails on the old code (checked by reverting only ClientLook.jsx). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

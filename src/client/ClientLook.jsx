@@ -290,8 +290,9 @@ export function HomeNutritionCard({ dark, nutrition, targets, dayLabel, isToday,
       <div className="mt-2 flex items-center gap-2 rounded-full pl-3 pr-[3px] py-[2px]" style={{ backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,11,0.04)" }}>
         <Droplet size={13} />
         <span className="text-[11px] font-semibold">Water</span>
-        <span className="text-[11px] tabular-nums flex-1" style={{ color: L.muted }}>
-          {r1(nutrition.water)} / {targets.water} L
+        <span className="text-[11px] tabular-nums flex-1" data-testid="home-water-amount" style={{ color: L.muted }}>
+          {/* #286: litres to 2 places — 1 place showed 250 ml as "0.3". */}
+          {Math.round((Number(nutrition.water) || 0) * 100) / 100} / {targets.water} L
         </span>
         {isToday && (
           <>
