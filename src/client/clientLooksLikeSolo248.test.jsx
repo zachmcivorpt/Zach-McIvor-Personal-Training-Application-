@@ -99,6 +99,10 @@ describe("Progress goal (#248)", () => {
     expect(typeof saved.startKey).toBe("string");
   });
   it("shows the goal and its progress from their own logs", () => {
+    // Pinned to midday (#272): logs 1–2 h earlier fell on yesterday when
+    // the suite ran just after midnight, and the count read 1.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-18T12:00:00"));
     const today = new Date();
     const logs = [0, 1, 2].map((i) => ({ id: `l${i}`, date: today.getTime() - i * 3600000, entries: [] }));
     const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;

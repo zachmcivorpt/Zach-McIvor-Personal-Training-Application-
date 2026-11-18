@@ -3821,6 +3821,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Where**: `src/client/TrainingGlass.jsx` (components), `src/client/trainingGlass.js` (`weekDays`, `phaseWeeks`, `trainingGlass` surface; take the given today key), wired in `WorkoutsScreen` / `ClientProgramTab` (`ClientApp.jsx`). `TrainingPhotoHero` removed.
 - **Tests**: `trainingGlass271.test.jsx` renders the real `WorkoutsScreen` with real-shaped data on a pinned Wednesday: logo-only header, today ringed blue, the glass card's own figures, no gym photo; a real client gets only Log a cardio session while View as Client gets the coach rows; Program's phase card (5 week bars, week 3 "now"), today's workout row outlined and tagged, no Add/Import for a real client; glows in light only, plain glass in dark; `weekDays` / `phaseWeeks` maths. Four of the five fail on the code before this change (checked by restoring it). Full suite passes; the new screens were also rendered in headless Chrome in both themes.
 
+### 272. Progress goal test failed just after midnight (2026-11-18)
+
+- **Problem**: `clientLooksLikeSolo248.test.jsx` "shows the goal and its progress" used the real clock and logs 1–2 hours before "now"; run between midnight and 2am (CI did, at 00:19 UTC) two of the three logs fell on yesterday and the count read 1, failing CI on main and on #271's branch. The app was right; the test wasn't pinned.
+- **Fix**: the test pins the time to midday (`vi.setSystemTime`), as CLAUDE.md asks of date-dependent tests.
+- **Tests**: passes with `TZ=UTC` at any hour; failed before the fix at 00:19 UTC (checked on main).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
