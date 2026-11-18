@@ -81,6 +81,11 @@
       try {
         if ((JSON.parse(localStorage.getItem("apexProfileCache") || "null") || {}).role === "coach") {
           document.documentElement.style.backgroundColor = "#090909";
+          // #292: the iPhone's top strip goes dark from the first frame too
+          // (it stayed white over the dark launch screen).
+          var tc = document.querySelector('meta[name="theme-color"]');
+          if (tc) tc.setAttribute("content", "#090909");
+          try { window.webkit.messageHandlers.apexTheme.postMessage({ dark: true, edgeToEdge: false }); } catch (e) {}
         }
       } catch (e) {}
     </script>

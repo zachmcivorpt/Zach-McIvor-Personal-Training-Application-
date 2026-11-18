@@ -37,6 +37,17 @@ function renderAt(path) {
 }
 
 describe("NativeStatusBarSync", () => {
+  it("#292: a coach's launch screen on \"/\" gets a dark strip (it stayed white), a client's doesn't", () => {
+    localStorage.setItem("apexProfileCache", JSON.stringify({ uid: "c", role: "coach" }));
+    document.head.innerHTML = '<meta name="theme-color" content="#FFFFFF">';
+    expect(renderAt("/")).toHaveBeenCalledWith({ dark: true, edgeToEdge: false });
+    expect(document.querySelector('meta[name="theme-color"]').getAttribute("content")).toBe("#090909");
+    cleanup();
+    localStorage.setItem("apexProfileCache", JSON.stringify({ uid: "x", role: "client" }));
+    expect(renderAt("/")).toHaveBeenCalledWith({ dark: false, edgeToEdge: false });
+    localStorage.removeItem("apexProfileCache");
+  });
+
   it("posts dark:true, edgeToEdge:false on a coach route", () => {
     expect(renderAt("/coach/clients")).toHaveBeenCalledWith({ dark: true, edgeToEdge: false });
   });

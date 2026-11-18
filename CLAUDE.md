@@ -152,6 +152,7 @@ rather than inventing new colors per screen:
   only the client's own figures, are edited in the sheet, and go through
   `sendMessage`. No amber here (green / blue / red only).
 - The coach console is otherwise still dark-only, glass on near-black (#212).
+- **The coach app's top strip is dark from the first frame** (#292): index.html's coach pre-paint sets `theme-color` #090909 and posts `apexTheme` dark; `NativeStatusBarSync` treats "/" (the launch splash) as dark for a coach. Never let the strip go white over the coach's dark launch screen.
 
 ### Train Solo (self-guided app, `src/solo/`) design rules
 

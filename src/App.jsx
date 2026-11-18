@@ -148,11 +148,21 @@ export function NativeStatusBarSync() {
     // build that doesn't support the edge-to-edge frame yet shows black
     // above the photo instead of a white bar.
     const fullBleed = location.pathname === "/login" || location.pathname === "/start";
+    // #292 (owner): a coach's app opens on "/" (the dark splash) before it
+    // reaches /coach — the strip must be dark there too, not white.
+    let coachLaunch = false;
+    if (location.pathname === "/") {
+      try {
+        coachLaunch = JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || "null")?.role === "coach";
+      } catch {}
+    }
+    const dark = location.pathname.startsWith("/coach") || fullBleed || coachLaunch;
     try {
-      window.webkit?.messageHandlers?.apexTheme?.postMessage({
-        dark: location.pathname.startsWith("/coach") || fullBleed,
-        edgeToEdge: fullBleed,
-      });
+      window.webkit?.messageHandlers?.apexTheme?.postMessage({ dark, edgeToEdge: fullBleed });
+    } catch {}
+    try {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", dark ? "#090909" : "#FFFFFF");
     } catch {}
   }, [location.pathname]);
   return null;

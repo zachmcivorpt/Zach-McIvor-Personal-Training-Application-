@@ -3953,6 +3953,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `addFoodOnce285.test.jsx` (real ClientApp) — the tile lands on the Nutrition tab with Add Food closed, and later visits never open Add Food. Fails on the old code (it opened Add Food). Full suite passes.
 - **Date**: 2026-11-18
 
+### 292. Coach app: white top strip over the dark launch screen (owner, 2026-11-18)
+
+- **Problem**: a coach's app opens on "/" (the dark splash) before it reaches /coach. `NativeStatusBarSync` only posted a dark strip for /coach routes (and /login, /start), and index.html painted only the page dark — so the iPhone's status-bar strip stayed white over the dark launch screen.
+- **Fix**: index.html's coach pre-paint also sets `theme-color` to #090909 and posts `apexTheme { dark: true }` before any script loads; `NativeStatusBarSync` treats "/" as dark when the phone's saved profile is a coach (and keeps `theme-color` in step with the strip on the routes it handles).
+- **Test**: `src/nativeStatusBarSync.test.jsx` — "/" with a coach profile posts dark and sets theme-color #090909; with a client profile it stays light. Fails on the old code (checked by reverting only App.jsx). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
