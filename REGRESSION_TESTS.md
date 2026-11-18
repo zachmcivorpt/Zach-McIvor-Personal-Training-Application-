@@ -3827,6 +3827,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: the test pins the time to midday (`vi.setSystemTime`), as CLAUDE.md asks of date-dependent tests.
 - **Tests**: passes with `TZ=UTC` at any hour; failed before the fix at 00:19 UTC (checked on main).
 
+### 273. Client Training tab (Today + Program): every button checked; Up next, backdrop and dark pop-ups fixed (owner, 2026-11-18)
+
+- **Checked**: every button on the two screens, clicked in the real `WorkoutsScreen` as View as Client and as a real client: Today/Program switch; Start / Resume (and the two-tap discard), the eye and VIEW on a completed day; Edit / move (opens today's workout, saves via `saveScheduledWorkout` with `previousId`); Remove (asks, Cancel keeps it, Remove calls `deleteScheduledWorkoutById`); Create workout of the day (from scratch, or from a library template with its exercises; saves as a WOD); Log a cardio session (sheet → `onLogCardio`); every phase workout row and Up next row (opens that workout); Phases (lists phases, picking an old one shows it); Add workout and Import (open the editor, save into the phase via `updateClientPhase`). A real client still sees only Log a cardio session and no Add/Import. All worked; the week strip is a display of this week, not a button.
+- **Fixed (design)**: in light mode the grey glow behind the page stopped on a hard line part-way down (its container was clipped at 760px) — it now covers the whole page; "Up next" was still in the old style (black rule, bigger type) under the new glass list — it is now the same glass row (`TrainingUpNextRow`, day in the tile, est. min · exercises); the Remove, Workout of the Day and Import pop-ups stayed white in dark mode — they now follow the client's theme like Log Activity.
+- **Tests**: `src/client/trainingButtons273.test.jsx` (14 tests, one per button flow, the glows covering the page, Up next's glass row). The glow and Up next tests fail on the code before this fix; the button flows passed on it (nothing was broken). Both screens and the three pop-ups were rendered in headless Chrome at 390 wide, light and dark, with no errors or sideways scroll.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

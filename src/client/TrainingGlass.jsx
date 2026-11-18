@@ -25,7 +25,9 @@ export function TrainingBackdrop({ dark, children }) {
   return (
     <div className="relative" data-testid="training-backdrop">
       {!dark && (
-        <div className="absolute inset-x-0 top-0 h-[760px] overflow-hidden pointer-events-none" aria-hidden="true" data-testid="training-glows">
+        // Full height, so the last glow fades out instead of stopping on a
+        // hard line part-way down the page (#273).
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" data-testid="training-glows">
           <div className="absolute rounded-full" style={{ width: 260, height: 260, left: -80, top: 300, background: "#A1A1AA", opacity: 0.35, filter: "blur(70px)" }} />
           <div className="absolute rounded-full" style={{ width: 240, height: 240, right: -70, top: 560, background: "#A1A1AA", opacity: 0.3, filter: "blur(70px)" }} />
           <div className="absolute rounded-full" style={{ width: 240, height: 220, right: -90, top: 140, background: "#A1A1AA", opacity: 0.3, filter: "blur(70px)" }} />
@@ -325,6 +327,36 @@ export function TrainingWorkoutRow({ index, day, isToday, onClick, dark }) {
         <span className="text-[10px] font-medium truncate" style={{ color: c.muted }}>
           est. {estimateWorkoutMinutes(day.exercises)} min · {n} exercise{n === 1 ? "" : "s"}
           {day.muscleGroups?.length ? ` · ${day.muscleGroups.join(", ")}` : ""}
+        </span>
+      </span>
+      <ChevronRight size={14} style={{ color: c.muted }} className="shrink-0" />
+    </button>
+  );
+}
+
+// One "Up next" workout from the calendar (#273): the same glass row as
+// "Workouts in this phase", with the day in the tile instead of a number.
+export function TrainingUpNextRow({ workout, onClick, dark }) {
+  const c = ink(dark);
+  const d = new Date(workout.date + "T00:00:00");
+  const n = countExercises(workout.exercises || []);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[18px] text-left active:opacity-70 transition-opacity"
+      style={{ ...trainingGlass(dark), boxShadow: dark ? "none" : "0 6px 18px rgba(0,0,0,0.05)", color: c.text }}
+    >
+      <span className="w-9 h-9 shrink-0 rounded-[11px] flex flex-col items-center justify-center leading-none" style={{ border: `1px solid ${dark ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.9)"}`, backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.55)" }}>
+        <span className="text-[8px] font-semibold tracking-[0.08em] uppercase" style={{ color: c.muted }}>
+          {d.toLocaleDateString(undefined, { weekday: "short" })}
+        </span>
+        <span className="text-[13px] font-semibold tabular-nums mt-0.5">{d.getDate()}</span>
+      </span>
+      <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <span className="text-[13px] font-semibold truncate">{workout.label}</span>
+        <span className="text-[10px] font-medium truncate" style={{ color: c.muted }}>
+          est. {estimateWorkoutMinutes(workout.exercises || [])} min · {n} exercise{n === 1 ? "" : "s"}
         </span>
       </span>
       <ChevronRight size={14} style={{ color: c.muted }} className="shrink-0" />

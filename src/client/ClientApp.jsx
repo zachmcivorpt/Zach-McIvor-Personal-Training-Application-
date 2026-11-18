@@ -179,7 +179,7 @@ import { planPhaseSwap } from "./phaseSwap";
 import { SOLO_MARK_WHITE, SOLO_MARK_BLACK } from "../solo/soloMark";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet, NutritionPage } from "./NutritionFeatures";
 import { AddFoodPage } from "./AddFoodPage";
-import { TrainingBackdrop, TrainingSwitch, TrainingWeekStrip, TrainingTodayCard, TrainingPhaseCard, TrainingWorkoutRow } from "./TrainingGlass";
+import { TrainingBackdrop, TrainingSwitch, TrainingWeekStrip, TrainingTodayCard, TrainingPhaseCard, TrainingWorkoutRow, TrainingUpNextRow } from "./TrainingGlass";
 import { trainingGlass } from "./trainingGlass";
 import { buildCorrectedFood } from "../lib/barcodeLookup";
 import { AFCD_FOODS } from "../lib/afcdFoods";
@@ -3990,34 +3990,15 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast, todayLabel =
       </section>
 
       {upNext.length > 0 && (
-        <div className="relative mx-2.5 px-1 pt-2">
-          <div className="flex items-baseline justify-between mb-2">
+        <section aria-label="Up next" className="mx-2.5 flex flex-col gap-2" data-testid="training-up-next">
+          <div className="flex items-baseline justify-between px-0.5">
             <h3 className={`text-[10px] font-bold tracking-[0.16em] uppercase ${dark ? "text-white/80" : "text-black/75"}`}>Up next</h3>
-            <span className={`text-xs ${dark ? "text-white/40" : "text-black/40"}`}>From your calendar</span>
+            <span className={`text-[10px] font-medium ${dark ? "text-white/50" : "text-black/45"}`}>From your calendar</span>
           </div>
-          <div className={`border-t ${dark ? "border-white/20" : "border-black"}`}>
-            {upNext.map((w) => {
-              const d = new Date(w.date + "T00:00:00");
-              return (
-                <button
-                  key={w.id || w.date}
-                  onClick={() => onPreviewDay(w)}
-                  className={`w-full text-left flex items-center gap-3.5 min-h-[62px] py-2 border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
-                >
-                  <span className={`w-[52px] h-[46px] rounded-xl flex flex-col items-center justify-center shrink-0 ${dark ? "bg-white/[0.06]" : "bg-black/[0.04]"}`}>
-                    <span className={`text-[10.5px] font-medium ${dark ? "text-white/55" : "text-black/55"}`}>{d.toLocaleDateString(undefined, { weekday: "short" })}</span>
-                    <span className={`text-base font-semibold leading-tight tabular-nums ${dark ? "text-white" : "text-black"}`}>{d.getDate()}</span>
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className={`block text-[15px] font-semibold tracking-[-0.01em] truncate ${dark ? "text-white" : "text-black"}`}>{w.label}</span>
-                    <span className={`block text-[13px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>est. {estimateWorkoutMinutes(w.exercises || [])} min</span>
-                  </span>
-                  <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
-                </button>
-              );
-            })}
-          </div>
-        </div>
+          {upNext.map((w) => (
+            <TrainingUpNextRow key={w.id || w.date} workout={w} onClick={() => onPreviewDay(w)} dark={dark} />
+          ))}
+        </section>
       )}
 
       <ClientPhaseHistorySheet
@@ -4046,23 +4027,23 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast, todayLabel =
             />
             </React.Suspense>
           )}
-          <BottomSheet open={libraryPickerOpen} onClose={() => setLibraryPickerOpen(false)} title="Add from Workout Library">
+          <BottomSheet dark={dark} open={libraryPickerOpen} onClose={() => setLibraryPickerOpen(false)} title="Add from Workout Library">
             {(db.masterWorkouts || []).length === 0 ? (
-              <p className="text-black/30 text-sm text-center py-6">No workout templates yet — build some in Library → Workouts.</p>
+              <p className={`text-sm text-center py-6 ${dark ? "text-white/40" : "text-black/30"}`}>No workout templates yet — build some in Library → Workouts.</p>
             ) : (
               <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                 {(db.masterWorkouts || []).map((w) => (
                   <button
                     key={w.id}
                     onClick={() => addWorkoutFromLibrary(w)}
-                    className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 text-left transition-colors"
+                    className={`w-full flex items-center gap-3 border rounded-xl px-3.5 py-3 text-left transition-colors ${dark ? "bg-white/[0.04] border-white/10" : "bg-black/[0.03] hover:bg-black/[0.06] border-black/8"}`}
                   >
                     <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
                       <Dumbbell size={15} className="text-blue-500" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-black font-semibold text-sm truncate">{w.label}</p>
-                      <p className="text-black/35 text-xs truncate">
+                      <p className={`font-semibold text-sm truncate ${dark ? "text-white" : "text-black"}`}>{w.label}</p>
+                      <p className={`text-xs truncate ${dark ? "text-white/45" : "text-black/35"}`}>
                         {countExercises(w.exercises)} exercise{countExercises(w.exercises) === 1 ? "" : "s"}
                         {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
                       </p>
@@ -4228,35 +4209,35 @@ export function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWor
 
       {viewingAsClient && (
         <>
-          <BottomSheet open={wodPickerOpen} onClose={() => setWodPickerOpen(false)} title="Workout of the Day">
+          <BottomSheet dark={dark} open={wodPickerOpen} onClose={() => setWodPickerOpen(false)} title="Workout of the Day">
             <div className="space-y-2 max-h-[65vh] overflow-y-auto">
               <button
                 onClick={() => startWod(null)}
-                className="w-full flex items-center gap-3 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl px-3.5 py-3 text-left transition-colors"
+                className={`w-full flex items-center gap-3 border rounded-xl px-3.5 py-3 text-left transition-colors ${dark ? "bg-blue-500/10 border-blue-400/30" : "bg-blue-50 hover:bg-blue-100 border-blue-100"}`}
               >
                 <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
                   <Plus size={16} className="text-white" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-black font-semibold text-sm">Build from scratch</p>
-                  <p className="text-black/40 text-xs">Pick exercises, sets and reps</p>
+                  <p className={`font-semibold text-sm ${dark ? "text-white" : "text-black"}`}>Build from scratch</p>
+                  <p className={`text-xs ${dark ? "text-white/50" : "text-black/40"}`}>Pick exercises, sets and reps</p>
                 </div>
               </button>
               {(db.masterWorkouts || []).length > 0 && (
-                <p className="text-black/40 text-[11px] font-semibold tracking-wide pt-2 px-1">OR START FROM YOUR LIBRARY</p>
+                <p className={`text-[11px] font-semibold tracking-wide pt-2 px-1 ${dark ? "text-white/50" : "text-black/40"}`}>OR START FROM YOUR LIBRARY</p>
               )}
               {(db.masterWorkouts || []).map((w) => (
                 <button
                   key={w.id}
                   onClick={() => startWod(w)}
-                  className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 text-left transition-colors"
+                  className={`w-full flex items-center gap-3 border rounded-xl px-3.5 py-3 text-left transition-colors ${dark ? "bg-white/[0.04] border-white/10" : "bg-black/[0.03] hover:bg-black/[0.06] border-black/8"}`}
                 >
                   <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
                     <Dumbbell size={15} className="text-blue-500" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-black font-semibold text-sm truncate">{w.label}</p>
-                    <p className="text-black/35 text-xs truncate">
+                    <p className={`font-semibold text-sm truncate ${dark ? "text-white" : "text-black"}`}>{w.label}</p>
+                    <p className={`text-xs truncate ${dark ? "text-white/45" : "text-black/35"}`}>
                       {countExercises(w.exercises)} exercise{countExercises(w.exercises) === 1 ? "" : "s"}
                       {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
                     </p>
@@ -4281,9 +4262,9 @@ export function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWor
             </React.Suspense>
           )}
 
-          <BottomSheet open={wodRemoveOpen} onClose={() => setWodRemoveOpen(false)} title="Remove today's workout?">
+          <BottomSheet dark={dark} open={wodRemoveOpen} onClose={() => setWodRemoveOpen(false)} title="Remove today's workout?">
             <div className="space-y-4">
-              <p className="text-black/60 text-sm leading-snug">
+              <p className={`text-sm leading-snug ${dark ? "text-white/65" : "text-black/60"}`}>
                 Takes {todayScheduledEntry?.label ? `"${todayScheduledEntry.label}"` : "this workout"} off {currentUser.name?.split(" ")[0] || "the client"}'s calendar for today. Logged sessions and PBs aren't affected.
               </p>
               <div className="flex gap-3">
@@ -4297,7 +4278,7 @@ export function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWor
                 >
                   Remove
                 </button>
-                <button onClick={() => setWodRemoveOpen(false)} className="flex-1 bg-black/8 text-black/70 text-sm font-semibold py-3 rounded-xl">
+                <button onClick={() => setWodRemoveOpen(false)} className={`flex-1 text-sm font-semibold py-3 rounded-xl ${dark ? "bg-white/10 text-white/80" : "bg-black/8 text-black/70"}`}>
                   Cancel
                 </button>
               </div>
