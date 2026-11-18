@@ -10694,8 +10694,11 @@ export default function ClientApp() {
           {/* Train Solo's tab bar (#251): glass docked to the bottom edge,
               capital labels, a lit blue dot under the current tab. */}
           <div
-            className="w-full flex backdrop-blur-xl border-t pb-safe"
-            style={{ backgroundColor: dark ? "rgba(10,10,10,0.82)" : "rgba(255,255,255,0.78)", borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(20,19,15,0.07)" }}
+            className="w-full flex backdrop-blur-xl border-t"
+            // Tighter to the bottom of the phone (#278, owner: "big gap"):
+            // the home-bar inset less 14px (the bar's own spacing already
+            // keeps the labels clear of the home indicator), never under 6px.
+            style={{ paddingBottom: "max(6px, calc(env(safe-area-inset-bottom, 0px) - 14px))", backgroundColor: dark ? "rgba(10,10,10,0.82)" : "rgba(255,255,255,0.78)", borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(20,19,15,0.07)" }}
             data-testid="client-tab-bar"
           >
             {TABS.map((t) => {
@@ -10704,7 +10707,7 @@ export default function ClientApp() {
               const on = dark ? "#FFFFFF" : "#14130F";
               const off = dark ? "rgba(255,255,255,0.35)" : "rgba(20,19,15,0.35)";
               return (
-                <button key={t.id} onClick={() => setTab(t.id)} aria-current={active ? "page" : undefined} className="flex-1 h-16 flex flex-col items-center justify-center gap-1 relative">
+                <button key={t.id} onClick={() => setTab(t.id)} aria-current={active ? "page" : undefined} className="flex-1 h-[54px] flex flex-col items-center justify-center gap-1 relative">
                   <Icon size={19} color={active ? on : off} strokeWidth={active ? 2.2 : 1.8} style={active && dark ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.7))" } : undefined} />
                   <span className="text-[8.5px] font-bold uppercase tracking-[0.1em] leading-none" style={{ color: active ? on : off }}>
                     {t.label}

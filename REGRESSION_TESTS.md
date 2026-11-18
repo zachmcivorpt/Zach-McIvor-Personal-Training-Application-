@@ -3858,6 +3858,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `useClientStatusBar(dark)` in `ClientApp.jsx` posts the client's own light/dark to the native strip, sets the browser's `theme-color` and the page under the app to `CLIENT_DARK_BG` / white, every time Appearance changes, and puts `theme-color` back when leaving. `NativeStatusBarSync` now skips `/app` (as it does `/solo`).
 - **Tests**: `src/client/clientStatusBar277.test.jsx` (Black → dark strip + `CLIENT_DARK_BG`, White → light + white, back again, restored on leaving) fails before the fix (no client post at all); `src/nativeStatusBarSync.test.jsx` now checks `/app` is left to the client app. Needs the App Store build with the `apexTheme` handler (1.0.4+), which the owner's phone has.
 
+### 278. Client app: big gap under the bottom tab bar (owner, 2026-11-18)
+
+- **Problem**: on an iPhone the client app's bottom tab bar had a big empty band between the labels and the bottom of the phone. Each tab was 64px tall with its icon/label/dot centred, and the bar then added the FULL home-bar inset (`pb-safe`, ~34pt) underneath — about 98pt in all, ~48pt of it empty below the labels.
+- **Fix** (`ClientApp.jsx`, `client-tab-bar`): tabs are 54px, and the bottom padding is the home-bar inset less 14px, never under 6px (`max(6px, calc(env(safe-area-inset-bottom) - 14px))`) — about 74pt in all on a Face ID iPhone, labels still clear of the home indicator. Page content keeps its bottom padding, so nothing is hidden under the bar. Train Solo's bar is unchanged (client side only, as asked).
+- **Tests**: `src/client/clientTabBar278.test.jsx` renders the real `ClientApp`: six 54px tabs, no `pb-safe`, the trimmed inset. Fails on the old bar (checked by restoring it). Visual check on the owner's phone after release (jsdom/Chrome can't emulate the home-bar inset).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
