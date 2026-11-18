@@ -151,7 +151,7 @@ describe("client Home (#279)", () => {
     expect(screen.getByTestId("home-nutrition").querySelectorAll("svg circle")[1].getAttribute("stroke")).not.toMatch(/#EF4444/i);
   });
 
-  it("#295: protein and carbs bars blue until within 10% of target, then green; carbs red past 10% over; fat black", async () => {
+  it("#295/#296: protein, carbs and fat bars blue until within 10% of target, then green; carbs/fat red past 10% over", async () => {
     const { macroBarColor } = await import("./ClientLook");
     const { GOAL_GREEN, MEASURE_BLUE } = await import("../theme");
     const c = (label, value, target, capped = label !== "Protein") => macroBarColor({ label, value, target, capped }, "INK", "RED");
@@ -162,9 +162,11 @@ describe("client Home (#279)", () => {
     expect(c("Carbs", 306.7, 323)).toBe(GOAL_GREEN); // 95%
     expect(c("Carbs", 355, 323)).toBe(GOAL_GREEN); // 110% exactly is still within
     expect(c("Carbs", 356, 323)).toBe("RED"); // past 10% over
-    expect(c("Fat", 30, 43)).toBe("INK");
+    expect(c("Fat", 30, 43)).toBe(MEASURE_BLUE); // #296: 70% → blue
+    expect(c("Fat", 40, 43)).toBe(GOAL_GREEN); // #296: 93% → green
     expect(c("Fat", 74.5, 43)).toBe("RED");
     expect(c("Carbs", 50, 0)).toBe("INK"); // no target
+    expect(c("Fat", 20, 0)).toBe("INK");
   });
 
   it("#284: the week's focus shows on other days too", () => {

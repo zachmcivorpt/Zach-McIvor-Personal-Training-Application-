@@ -238,15 +238,14 @@ function Ring({ value, max, size = 128, stroke = 7, dark, color }) {
   );
 }
 
-// A Home macro bar's colour (#294, #295, owner): protein and carbs are blue
-// until within 10% of target, then green; carbs (and fat) red past 10% over;
-// protein never red; fat otherwise black.
+// A Home macro bar's colour (#294, #295, #296, owner): protein, carbs and fat
+// are blue until within 10% of target, then green; carbs and fat red past 10%
+// over; protein never red.
 export function macroBarColor(m, ink, overColor) {
   const t = Number(m.target) || 0;
   if (t <= 0) return ink;
   if (m.capped && m.value > t * 1.1) return overColor;
-  if (m.label === "Protein" || m.label === "Carbs") return m.value >= t * 0.9 ? GOAL_GREEN : MEASURE_BLUE;
-  return ink;
+  return m.value >= t * 0.9 ? GOAL_GREEN : MEASURE_BLUE;
 }
 
 // Calories as a ring, protein/carbs/fat with black bars, and water with +Log.

@@ -3980,6 +3980,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `clientLook279.test.jsx`, worked by hand: protein 122.7/180 (68%) blue, 162/180 (90%) green, 250/180 green; carbs 201.8/323 blue, 306.7/323 green, 355/323 (≤110%) green, 356/323 red; fat 30/43 black, 74.5/43 red; no target → black. Fails on the old code (no such colours). Full suite passes.
 - **Date**: 2026-11-18
 
+### 296. Home Nutrition: fat bar blue, then green within 10% too (owner, 2026-11-18)
+
+- **Change**: the fat bar follows protein and carbs (#295): blue until within 10% of target, then green; still red past 10% over (#294). `macroBarColor` no longer has a black case except "no target".
+- **Test**: `clientLook279.test.jsx` — fat 30/43 (70%) blue, 40/43 (93%) green, 74.5/43 red, no target → ink. Fails on the old code (fat was black). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
