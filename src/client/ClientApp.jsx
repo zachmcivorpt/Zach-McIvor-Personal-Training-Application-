@@ -417,13 +417,16 @@ export function useClientDark() {
    HOME
 ============================================================================ */
 
-function NutritionQuickTile({ icon: Icon, label, onClick, dark, invert = false }) {
+// #299 (owner's reference): every quick tile is frosted glass — Scan Food
+// too (it was solid black / white); `invert` is kept for callers but no
+// longer fills the tile.
+function NutritionQuickTile({ icon: Icon, label, onClick, dark, invert: _invert = false }) {
+  const L = clientLook(dark);
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl py-3.5 active:scale-95 transition-transform ${
-        invert ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/8 text-white/70" : "bg-black/8 text-black/70"
-      }`}
+      className="flex flex-col items-center justify-center gap-1.5 rounded-2xl py-3.5 active:scale-95 transition-transform"
+      style={{ ...L.tile, color: L.ink }}
     >
       <Icon size={18} />
       <span className="text-[11px] font-semibold text-center leading-tight">{label}</span>
@@ -5717,15 +5720,16 @@ export function NutritionScreen({
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 px-4 py-2 rounded-xl text-sm font-medium text-center ${
+            className="flex-1 px-4 py-2 rounded-xl text-sm font-medium text-center"
+            style={
+              // #299 (owner's reference): the chosen side is solid black (a lit
+              // rim in dark mode), the other frosted glass.
               tab === t.key
                 ? dark
-                  ? "bg-white text-black"
-                  : "bg-black text-white"
-                : dark
-                ? "bg-white/8 text-white/60"
-                : "bg-black/8 text-black/60"
-            }`}
+                  ? { backgroundColor: "#000000", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.22)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14)" }
+                  : { backgroundColor: "#0A0A0B", color: "#FFFFFF", border: "1px solid #0A0A0B" }
+                : { ...clientLook(dark).tile, color: dark ? "rgba(255,255,255,0.75)" : "rgba(10,10,11,0.6)" }
+            }
           >
             {t.label}
           </button>
@@ -5734,7 +5738,7 @@ export function NutritionScreen({
 
       {tab === "today" && (
       <div className="px-2.5 mb-1 flex items-center justify-between gap-2">
-        <div className={dark ? "inline-flex items-center rounded-xl border border-white/10 bg-white/5" : "inline-flex items-center rounded-xl border border-black/10 bg-black/5"}>
+        <div className="inline-flex items-center rounded-xl" style={clientLook(dark).tile}>
           <button
             onClick={() => setNavOffset((o) => o + 1)}
             className={dark ? "w-8 h-8 flex items-center justify-center shrink-0 text-white/70 active:scale-90 transition-transform" : "w-8 h-8 flex items-center justify-center shrink-0 text-black/60 active:scale-90 transition-transform"}
@@ -5758,7 +5762,8 @@ export function NutritionScreen({
         <button
           onClick={() => setGraphOpen(true)}
           aria-label="View nutrition history graph"
-          className={dark ? "w-9 h-9 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center shrink-0 text-white/70 active:scale-90 transition-transform" : "w-9 h-9 rounded-xl border border-black/10 bg-black/5 flex items-center justify-center shrink-0 text-black/60 active:scale-90 transition-transform"}
+          className={dark ? "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-white/80 active:scale-90 transition-transform" : "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-black/70 active:scale-90 transition-transform"}
+          style={clientLook(dark).tile}
         >
           <BarChart3 size={15} />
         </button>

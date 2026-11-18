@@ -3999,6 +3999,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Check**: Playwright at 390pt, before −1.5 / −0.5px, after +3.5 / +3.5px; before/after screenshot sent to the owner. `clientLook279.test.jsx` guards both spacings (fails on the old 2px / 0px). Full suite passes.
 - **Date**: 2026-11-18
 
+### 299. Frosted glass on Home, Training and Nutrition (owner's reference, 2026-11-18)
+
+- **Change**: subtle glassmorphism to match the owner's six reference screens, light and dark, layouts/icons/text/functions unchanged. The client card and tile tokens (`clientLook`) are now see-through frosted glass: a top-down sheen (`linear-gradient(180deg, …)`), a lit rim (white border light / 13% white dark + an inset top highlight), a wide soft shadow, `blur(24–26px) saturate(170–180%)` with the `-webkit-` copy. Light glass is soft grey (as in the reference), dark is charcoal. Every card using the tokens picks it up: Home's streak, week strip, Nutrition card, tiles, Daily Execution; Training's phase card, workouts, Up next, actions; Nutrition's calorie card and meals (through `CardSurfaceContext`). Made glass where the reference shows glass: Nutrition's Scan Food tile (was solid black / white), the Today / My Meal Guide switch's unselected side, the date pill and the chart button. The workout card and the focus banner get the same lit rim; the focus banner is dark grey glass in light mode (reference) and stays black in dark mode.
+- **Check**: side-by-side screenshots of the reference vs the app for Home / Training / Nutrition in light and dark sent to the owner before merging.
+- **Tests**: `clientLook279.test.jsx` — card and tile tokens in both modes are see-through with the sheen, rim and blur (and `-webkit-`); the focus banner is glass with a lit rim. `trainingGlass271.test.jsx` updated to the new charcoal fill. Both new tests fail on the old code (checked by reverting only clientLook.js / ClientLook.jsx). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -131,7 +131,9 @@ describe("Training tab glass design (#271)", () => {
     setup();
     await renderTraining(true);
     expect(screen.queryByTestId("training-glows")).toBeNull();
-    // #279: the client app's see-through charcoal card, as on Home.
-    expect(screen.getByTestId("training-phase-card").style.backgroundColor).toBe("rgba(30, 30, 32, 0.48)");
+    // #279/#299: the client app's frosted charcoal glass, as on Home.
+    const card = screen.getByTestId("training-phase-card").style;
+    expect(card.backgroundColor).toBe("rgba(32, 32, 35, 0.58)");
+    expect(card.backdropFilter).toMatch(/blur/);
   });
 });

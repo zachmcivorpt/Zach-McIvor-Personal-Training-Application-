@@ -14,8 +14,10 @@ export function clientLook(dark) {
         dark: true,
         page: "#070708",
         pageImage: "radial-gradient(120% 60% at 100% 0%, rgba(255,255,255,0.05), transparent 60%)",
-        card: { backgroundColor: "rgba(30,30,32,0.48)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 18px 40px -26px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" },
-        tile: { backgroundColor: "rgba(36,36,38,0.48)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" },
+        // #299 frosted glass (owner's reference, 2026-11-18): charcoal glass
+        // with a top-down sheen and a lit rim; same colours, sizes, layout.
+        card: { backgroundColor: "rgba(32,32,35,0.58)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.035) 42%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.13)", boxShadow: "0 22px 44px -26px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.2), inset 1px 0 0 rgba(255,255,255,0.04)", backdropFilter: "blur(26px) saturate(170%)", WebkitBackdropFilter: "blur(26px) saturate(170%)" },
+        tile: { backgroundColor: "rgba(34,34,37,0.58)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 55%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.13)", boxShadow: "0 14px 28px -18px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.2)", backdropFilter: "blur(24px) saturate(170%)", WebkitBackdropFilter: "blur(24px) saturate(170%)" },
         ink: "#FFFFFF",
         onInk: "#0A0A0B",
         muted: "rgba(255,255,255,0.6)",
@@ -29,9 +31,11 @@ export function clientLook(dark) {
         // grey glows lower down give the glass something to show over.
         page: "#FFFFFF",
         pageImage:
-          "radial-gradient(60% 30% at 0% 45%, rgba(160,160,170,0.16), transparent 70%), radial-gradient(60% 30% at 100% 75%, rgba(160,160,170,0.14), transparent 70%)",
-        card: { backgroundColor: "rgba(246,246,248,0.6)", border: "1px solid rgba(10,10,11,0.06)", boxShadow: "0 16px 36px -22px rgba(20,20,30,0.28), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" },
-        tile: { backgroundColor: "rgba(246,246,248,0.6)", border: "1px solid rgba(10,10,11,0.06)", boxShadow: "0 12px 26px -18px rgba(20,20,30,0.3), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" },
+          "radial-gradient(60% 30% at 0% 45%, rgba(160,160,170,0.2), transparent 70%), radial-gradient(60% 30% at 100% 75%, rgba(160,160,170,0.18), transparent 70%), radial-gradient(50% 22% at 20% 100%, rgba(160,160,170,0.14), transparent 70%)",
+        // #299 frosted glass (owner's reference): soft grey glass with a white
+        // top-down sheen, a white rim and a wide soft shadow.
+        card: { backgroundColor: "rgba(236,236,240,0.62)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(246,246,249,0.32) 48%, rgba(228,228,233,0.5) 100%)", border: "1px solid rgba(255,255,255,0.95)", boxShadow: "0 0 0 0.5px rgba(10,10,11,0.07), 0 16px 32px -16px rgba(20,20,30,0.24), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(10,10,11,0.03)", backdropFilter: "blur(26px) saturate(180%)", WebkitBackdropFilter: "blur(26px) saturate(180%)" },
+        tile: { backgroundColor: "rgba(236,236,240,0.62)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(225,225,230,0.8) 100%)", border: "1px solid rgba(255,255,255,0.95)", boxShadow: "0 0 0 0.5px rgba(10,10,11,0.07), 0 12px 22px -12px rgba(20,20,30,0.3), inset 0 1px 0 rgba(255,255,255,1)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)" },
         ink: "#0A0A0B",
         onInk: "#FFFFFF",
         muted: "rgba(10,10,11,0.55)",

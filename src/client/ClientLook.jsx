@@ -184,7 +184,7 @@ export function HomeWorkoutCard({ session, minutes, exercises, label, started, d
     <div className="mx-2.5">
       {/* The whole card does the main action too (as before #279); its two
           buttons do their own and don't bubble. */}
-      <div role="button" tabIndex={0} onClick={primary} onKeyDown={(e) => e.key === "Enter" && primary()} className="relative overflow-hidden rounded-[22px] text-white cursor-pointer" style={{ minHeight: 158, boxShadow: "0 22px 40px -24px rgba(0,0,0,0.6)" }} data-testid="client-session-hero">
+      <div role="button" tabIndex={0} onClick={primary} onKeyDown={(e) => e.key === "Enter" && primary()} className="relative overflow-hidden rounded-[22px] text-white cursor-pointer" style={{ minHeight: 158, border: "1px solid rgba(255,255,255,0.16)", boxShadow: "0 22px 40px -24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.22)" }} data-testid="client-session-hero">
         <img src="/brand/home-workout.jpg" alt="" aria-hidden="true" className="absolute inset-y-0 right-0 w-[56%] h-full object-cover object-left" />
         <span aria-hidden="true" className="absolute inset-0" style={{ background: "linear-gradient(90deg, #111113 0%, #111113 42%, rgba(17,17,19,0.55) 52%, rgba(17,17,19,0) 62%)" }} />
         <div className="relative px-4 pt-3 pb-3 flex flex-col gap-1">
@@ -369,9 +369,9 @@ export function HomeFocusBanner({ dark, focus, onOpen }) {
   if (!focus) return null;
   return (
     <div className="px-2.5">
-      <button type="button" onClick={onOpen} className={`relative w-full overflow-hidden rounded-[18px] text-left text-white ${TAP}`} style={{ backgroundColor: "#0B0B0C", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none", boxShadow: "0 16px 30px -20px rgba(0,0,0,0.6)" }} data-testid="home-focus">
+      <button type="button" onClick={onOpen} className={`relative w-full overflow-hidden rounded-[18px] text-left text-white ${TAP}`} style={{ backgroundColor: dark ? "#0B0B0C" : "rgba(36,36,40,0.9)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 60%)", border: "1px solid rgba(255,255,255,0.16)", boxShadow: "0 16px 30px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2)", backdropFilter: "blur(20px) saturate(160%)", WebkitBackdropFilter: "blur(20px) saturate(160%)" }} data-testid="home-focus">
         <img src="/brand/focus-mountain.jpg" alt="" aria-hidden="true" className="absolute right-0 top-0 h-full w-[62%] object-cover object-right" />
-        <span aria-hidden="true" className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0B0B0C 0%, #0B0B0C 38%, rgba(11,11,12,0.6) 60%, rgba(11,11,12,0) 80%)" }} />
+        <span aria-hidden="true" className="absolute inset-0" style={{ background: dark ? "linear-gradient(90deg, #0B0B0C 0%, #0B0B0C 38%, rgba(11,11,12,0.6) 60%, rgba(11,11,12,0) 80%)" : "linear-gradient(90deg, rgba(36,36,40,1) 0%, rgba(36,36,40,1) 38%, rgba(36,36,40,0.6) 60%, rgba(36,36,40,0) 80%)" }} />
         <span className="relative flex items-center gap-4 pl-4 pr-3 py-2">
           <TrendingUp size={22} strokeWidth={2.4} className="shrink-0" />
           <span className="flex-1 min-w-0">

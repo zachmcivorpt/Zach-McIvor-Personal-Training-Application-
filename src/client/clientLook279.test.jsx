@@ -189,6 +189,26 @@ describe("client Home (#279)", () => {
     expect(mark.className).toMatch(/mt-\[4px\]/);
   });
 
+  it("#299: cards and tiles are frosted glass in both modes — see-through fill, a top-down sheen, a lit rim, backdrop blur", async () => {
+    const { clientLook } = await import("./clientLook");
+    for (const dark of [false, true]) {
+      for (const s of [clientLook(dark).card, clientLook(dark).tile]) {
+        expect(s.backgroundColor).toMatch(/rgba\(.*,\s*0\.(5|6)\d*\)/); // see-through, not solid
+        expect(s.backgroundImage).toMatch(/linear-gradient\(180deg/); // the sheen
+        expect(s.boxShadow).toMatch(/inset 0 1px 0 rgba\(255,255,255/); // lit top rim
+        expect(s.backdropFilter).toMatch(/blur\(2\dpx\) saturate/);
+        expect(s.WebkitBackdropFilter).toBe(s.backdropFilter); // iOS needs the -webkit- one
+      }
+    }
+  });
+
+  it("#299: the focus banner is glass with a lit rim (dark grey glass in light mode)", () => {
+    home();
+    const f = screen.getByTestId("home-focus").style;
+    expect(f.backdropFilter).toMatch(/blur/);
+    expect(f.border).toMatch(/rgba\(255, 255, 255/);
+  });
+
   it("#284: the week's focus shows on other days too", () => {
     home({ dayOffset: 1, isToday: false });
     expect(screen.getByTestId("home-focus")).toBeTruthy();
