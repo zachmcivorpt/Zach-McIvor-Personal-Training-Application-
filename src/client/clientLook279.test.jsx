@@ -111,7 +111,7 @@ describe("client Home (#279)", () => {
     expect(f.onLogWater).toHaveBeenLastCalledWith(0.5);
   });
 
-  it("the four tiles: Log Workout → Training, Log Nutrition → Add Food, View Progress → Progress, Log Cardio → the cardio sheet", () => {
+  it("the four tiles: Log Workout → Training, Log Nutrition → the Nutrition tab, View Progress → Progress, Log Cardio → the cardio sheet", () => {
     const f = home();
     fireEvent.click(screen.getByTestId("home-tile-workout"));
     expect(f.onOpenTab).toHaveBeenLastCalledWith("workouts");

@@ -5465,8 +5465,6 @@ export function NutritionScreen({
   onDeleteSavedMeal,
   recentFoods,
   showToast,
-  openAddFoodKey = 0,
-  onAddFoodOpened = () => {},
 }) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal, createFood } = useApp();
@@ -5577,17 +5575,6 @@ export function NutritionScreen({
     setSessionAdds([]);
     setAddPageOpen(true);
   }
-  // Home's "Log Nutrition" tile (#279): open Add Food on the meal for now —
-  // ONCE per tap. The request is cleared as soon as it's used (#285): this
-  // screen remounts on every visit to the tab, and a kept request reopened
-  // Add Food every time the client opened Nutrition.
-  useEffect(() => {
-    if (!openAddFoodKey) return;
-    onAddFoodOpened();
-    const h = new Date().getHours();
-    openAddPage(h < 11 ? "Breakfast" : h < 16 ? "Lunch" : h < 21 ? "Dinner" : "Snacks");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openAddFoodKey]);
 
   // Logs straight from a row's + on the Add Food page: a recent food at the
   // amount it was last logged, or a search result at its default serving.
@@ -9488,7 +9475,6 @@ export default function ClientApp() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [autoOpenWeighIn, setAutoOpenWeighIn] = useState(0);
   // Home's "Log Nutrition" tile opens the Add Food page straight away (#279).
-  const [openAddFoodKey, setOpenAddFoodKey] = useState(0);
   // Apple Health (iPhone app only) — never while a coach is viewing as
   // this client, so the coach's own phone can't sync into their records.
   useAppleHealthSync("coached", { db: firestore, metrics: "bodyMetrics", weighIns: "weighIns", owner: "clientId", uid: currentUser.id }, !viewingAsClient);
@@ -10556,10 +10542,8 @@ export default function ClientApp() {
               todayKey: todayDateKey,
             }) : null}
             onOpenTab={setTab}
-            onLogNutrition={() => {
-              setTab("nutrition");
-              setOpenAddFoodKey((n) => n + 1);
-            }}
+            // #291 (owner): Log Nutrition opens the main Nutrition tab, not Add Food.
+            onLogNutrition={() => setTab("nutrition")}
             phaseLabel={(() => {
               const ph = getCurrentPhase(clientPhasesForReview, localDateKey(new Date()));
               if (!ph) return "";
@@ -10608,8 +10592,6 @@ export default function ClientApp() {
             onDeleteSavedMeal={(mealId) => deleteSavedMeal(currentUser.id, mealId)}
             recentFoods={recentFoods}
             showToast={showToast}
-            openAddFoodKey={openAddFoodKey}
-            onAddFoodOpened={() => setOpenAddFoodKey(0)}
           />
         )}
         {tab === "checkins" && <CheckInsScreen userId={currentUser.id} showToast={showToast} openFeedbackId={openFeedbackId} onFeedbackOpened={clearOpenFeedback} />}

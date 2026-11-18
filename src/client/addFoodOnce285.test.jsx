@@ -34,13 +34,16 @@ function setup() {
 const addFoodOpen = () => !!screen.queryByPlaceholderText(/Search foods/i);
 const tabBtn = (label) => within(screen.getByTestId("client-tab-bar")).getByRole("button", { name: label });
 
-describe("Log Nutrition opens Add Food once (#285)", () => {
-  it("the tile opens Add Food; coming back to Nutrition later does not", async () => {
+describe("Log Nutrition opens the main Nutrition tab (#285, #291)", () => {
+  it("the tile opens the Nutrition tab (not Add Food); coming back to Nutrition later never opens Add Food", async () => {
     setup();
     const { default: ClientApp } = await import("./ClientApp");
     render(<ClientApp />);
     fireEvent.click(await screen.findByTestId("home-tile-nutrition"));
-    expect(await screen.findByPlaceholderText(/Search foods/i)).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 50));
+    // #291 (owner): the main Nutrition tab, not the Add Food page.
+    expect(within(screen.getByTestId("client-tab-bar")).getByRole("button", { name: "Nutrition" }).getAttribute("aria-current")).toBe("page");
+    expect(addFoodOpen()).toBe(false);
     // Leave for Home, then open the Nutrition tab normally.
     fireEvent.click(tabBtn("Home"));
     expect(addFoodOpen()).toBe(false);

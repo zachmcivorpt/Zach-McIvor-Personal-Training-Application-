@@ -3947,6 +3947,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `clientLook279.test.jsx` — worked by hand: Wed 18 with today's Legs undone, Tue Pull ✓, Mon Push ✓, Sun cardio-only (skipped), Sat Legs caught up Sunday (scheduledDate) ✓, Thu Pull missed → 3; doing today's → 4; a different workout on Tue → 0; nothing scheduled → 0; future sessions ignored. Fails on the old code (no such function; Home showed the any-log day count). Full suite passes.
 - **Date**: 2026-11-18
 
+### 291. Home's Log Nutrition opens the main Nutrition tab (owner, 2026-11-18)
+
+- **Change**: the Log Nutrition tile opened the Add Food page; the owner wants the main Nutrition tab (Today, calories remaining, Today's Meals). The tile now just switches tab; the one-shot Add Food request (#279/#285) is removed entirely.
+- **Test**: `addFoodOnce285.test.jsx` (real ClientApp) — the tile lands on the Nutrition tab with Add Food closed, and later visits never open Add Food. Fails on the old code (it opened Add Food). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
