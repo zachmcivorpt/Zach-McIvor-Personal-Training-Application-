@@ -125,6 +125,14 @@ describe("client Home (#279)", () => {
     expect(f.onLogCardio).toHaveBeenCalledTimes(1);
   });
 
+  it("#284: the week's focus shows on other days too", () => {
+    home({ dayOffset: 1, isToday: false });
+    expect(screen.getByTestId("home-focus")).toBeTruthy();
+    cleanup();
+    home({ dayOffset: -1, isToday: false });
+    expect(screen.getByTestId("home-focus")).toBeTruthy();
+  });
+
   it("focus banner opens the tab it's about; Daily Execution is one card and tapping a habit saves it", () => {
     const onToggleHabit = vi.fn(() => Promise.resolve());
     const f = home({ onToggleHabit });

@@ -3898,6 +3898,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `clientStatusBar277.test.jsx` expects #FFFFFF in light mode; fails on the old #F4F4F6. Full suite passes.
 - **Date**: 2026-11-18
 
+### 284. Home: focus missing on other days, stray "Log a cardio session" row on past days, long names over the photo (owner, 2026-11-18)
+
+- **Problem**: "Your Focus This Week" only showed on today; on a past day #218's "Log a cardio session" row sat under the tiles (the Log Cardio tile already does it); a long workout name ("Hypertrophy & Strength 1A") ran over the gym photo.
+- **Fix**: the focus banner shows on every day; the past-day row is gone — the Log Cardio tile opens the sheet on every day and saves on the day shown at midday (#218), or now if a future day is shown (never a log in the future); the name is held to the left 62% of the card, 22px when longer than 16 characters, two lines at most.
+- **Tests**: `clientLook279.test.jsx` (focus on yesterday and tomorrow), `cardioPastDay218.test.jsx` (no row on any day, the tile logs a past day, the future-day guard in the save) — 3 fail on the old code (checked by reverting only ClientApp.jsx / ClientLook.jsx). Browser check: Tuesday and Thursday show the focus and no stray row. Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

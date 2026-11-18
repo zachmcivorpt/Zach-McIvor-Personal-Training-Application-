@@ -189,7 +189,7 @@ export function HomeWorkoutCard({ session, minutes, exercises, label, started, d
           <span className="self-start inline-flex items-center gap-1.5 h-[26px] px-2.5 rounded-full text-[9.5px] font-semibold tracking-[0.08em] uppercase" style={{ backgroundColor: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
             {done ? <CheckCircle2 size={13} /> : <FlatDumbbell size={13} />} {label}
           </span>
-          <p className="text-[27px] leading-[1.1] font-extrabold tracking-[-0.02em] pr-10 mt-1">{session.label}</p>
+          <p className="text-[27px] leading-[1.1] font-extrabold tracking-[-0.02em] mt-1 max-w-[62%] line-clamp-2 break-words" style={{ fontSize: session.label.length > 16 ? 22 : 27 }}>{session.label}</p>
           <p className="text-[12.5px] text-white/75">
             {exercises > 0 ? `${exercises} Exercise${exercises === 1 ? "" : "s"}` : ""}
             {exercises > 0 && minutes > 0 ? "  •  " : ""}

@@ -1524,15 +1524,12 @@ export function HomeScreen({
         onProgress={() => onOpenTab("progress")}
         onLogCardio={() => setCardioOpen(true)}
       />
-      {isToday && <HomeFocusBanner dark={dark} focus={focus} onOpen={() => onOpenTab(focus?.kind === "protein" ? "nutrition" : "workouts")} />}
+      {/* #284 (owner): the week's focus shows on every day. */}
+      {<HomeFocusBanner dark={dark} focus={focus} onOpen={() => onOpenTab(focus?.kind === "protein" ? "nutrition" : "workouts")} />}
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       <CardioLogCard logs={cardioLogs} onDelete={onDeleteCardio} onUpdate={onUpdateCardio} />
-      {dayOffset < 0 && onLogCardio && (
-        <div className="mx-3.5 px-1">
-          <TrainingActionRow icon={Footprints} label="Log a cardio session" onClick={() => setCardioOpen(true)} />
-        </div>
-      )}
-      {/* #279: the "Log Cardio" tile and a past day's row open the same sheet. */}
+      {/* #279/#284: the "Log Cardio" tile opens the sheet on every day (it
+          replaced #218's past-day "Log a cardio session" row). */}
       {onLogCardio && (
           <LogCardioSheet
             open={cardioOpen}
@@ -10527,9 +10524,10 @@ export default function ClientApp() {
             userId={currentUser.id}
             cardioLogs={cardioLogsForSelectedDate}
             onLogCardio={(cardio) => {
-              // #218: logged on the day shown, at midday (as backdated weigh-ins).
+              // #218: logged on the day shown, at midday (as backdated weigh-ins);
+              // #284: a future day shown logs it now — never a log in the future.
               const [y, m, d] = selectedDateKey.split("-").map(Number);
-              logWorkout(currentUser.id, { dayLabel: `${cardio.activityLabel} (Cardio)`, entries: [], cardio, date: new Date(y, m - 1, d, 12, 0, 0).getTime() })
+              logWorkout(currentUser.id, { dayLabel: `${cardio.activityLabel} (Cardio)`, entries: [], cardio, date: selectedDateKey > todayDateKey ? Date.now() : new Date(y, m - 1, d, 12, 0, 0).getTime() })
                 .then(() => showToast(`${cardio.activityLabel} logged`))
                 .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true));
             }}
