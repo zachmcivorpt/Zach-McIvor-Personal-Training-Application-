@@ -33,8 +33,8 @@ describe("Train Solo tab headers (#174)", () => {
 describe("Train Solo header spacing (#176)", () => {
   it("logo → title and title → first section are tight", () => {
     const ui = src("./SoloUI.jsx");
-    expect(ui).toMatch(/px-3 pt-3 pb-1\.5 \$\{className\}/);
-    expect(ui).toMatch(/mt-1\.5 flex items-start/);
+    expect(ui).toMatch(/pb-1\.5 \$\{className\}/);
+    expect(ui).toMatch(/px-3 mt-1\.5 flex items-start/);
     // #203: no visible page titles (screen readers only).
     expect(ui).toMatch(/<h1 className="sr-only">\{title\}<\/h1>/);
     const mt = src("./SoloMyTrainingScreen.jsx");
@@ -44,3 +44,4 @@ describe("Train Solo header spacing (#176)", () => {
     expect(mt).not.toMatch(/\{heading\}<\/h2>/);
   });
 });
+

@@ -4032,6 +4032,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `src/solo/soloGlass302.test.jsx` — in LIGHT mode `SessionHero` renders `/brand/home-workout.jpg` on the right 56% with no opacity fade, on a #111113 card, 158px, with the white rim; fails on the old code. Full suite passes.
 - **Date**: 2026-11-18
 
+### 304. Train Solo's logo on the left, the coached client's size (owner, 2026-11-18)
+
+- **Change**: every Train Solo tab header (`SoloPageHeader`) shows the APEX mark exactly as the coached client's top bar (`ClientTopBar`): on the LEFT (it was centred), 27px tall (was 18px), in a 36px row 8px from the top and 10px from the left, no glow in dark mode (the client's has none). Same mark file. Titles (screen-reader only) and the line under the logo keep their 12px gutter. Supersedes #196 / #174's "logo centred and lit" for Train Solo's tabs.
+- **Check**: Train Solo vs coached client header screenshots (light and dark) and every Train Solo tab checked for overlaps (Profile's theme toggle, Catalogue, Calendar).
+- **Test**: `src/solo/soloLogo304.test.jsx` — in both themes the logo is 27px, not `mx-auto`, no filter, in a `px-2.5 pt-2` row; fails on the old header. `pageHeader174.test.js` updated to the new padding. Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

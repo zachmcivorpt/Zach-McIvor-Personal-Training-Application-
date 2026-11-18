@@ -254,14 +254,14 @@ rather than inventing new colors per screen:
 - **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
   of Progress, not in My Training.
 - **Interface style** (#196, owner-approved mock-up, ACG-inspired, blue not
-  yellow): logo centred and lit, titles/labels in capitals, glass tab bar docked to the
+  yellow): logo on the LEFT at the coached client's size (#304), titles/labels in capitals, glass tab bar docked to the
   bottom edge with a blue dot (#197: never floating above it), session card = the coached client's (#303): always dark, 158px, the dumbbell-rack `home-workout.jpg` on the right, no white fade in light mode, lit rim — with a
   lit ring Start, the rest timer as a blue ring (`SoloRestRing`), the
   suggested program full width with a blue glow, today ringed. Both themes.
 - **No visible page titles** (#203, owner): `SoloPageHeader` shows the logo only (title sr-only);
   My Training shows the selected day ("Today, 8th November") where the month was.
 - **Tab headers** (#174): every tab opens with `SoloPageHeader`
-  (SoloUI.jsx): the APEX mark centred at the top (#196), then the title at one size and
+  (SoloUI.jsx): the APEX mark on the LEFT exactly as the coached client's top bar — 27px, px-2.5 pt-2 in a 36px row, no glow (#304, replaces #196's centred mark) — then the title at one size and
   position — "Welcome, <first name>" on My Training, then Progress,
   Calendar, Catalogue, Profile. Spacing is tight (#176, tighter #200): logo 18px,
   logo → title 6px, title 19px (just above 18px section headings),

@@ -49,19 +49,20 @@ export function SoloTextButton({ t, children, className = "", ...props }) {
 // Tight spacing (#176): logo → title 10px, title → first section 8px.
 export function SoloPageHeader({ t, title, sub, right = null, className = "" }) {
   return (
-    <div className={`px-3 pt-3 pb-1.5 ${className}`} data-testid="solo-page-header">
-      {/* Logo centred and lit, as in the approved mock-up (#196). */}
-      <img
-        src={t.logo}
-        alt="APEX"
-        className="block w-auto mx-auto"
-        style={
-          t.bg === "#FFFFFF"
-            ? { height: 18, mixBlendMode: "multiply" }
-            : { height: 18, filter: "drop-shadow(0 0 10px rgba(255,255,255,0.55))" }
-        }
-      />
-      <div className="mt-1.5 flex items-start justify-between gap-3">
+    <div className={`pb-1.5 ${className}`} data-testid="solo-page-header">
+      {/* #304 (owner): the logo exactly as the coached client app's top bar
+          (ClientTopBar): on the LEFT, 27px tall, in a 36px row 8px from the
+          top and 10px from the left edge, no glow. */}
+      <div className="px-2.5 pt-2 h-11 flex items-center" data-testid="solo-header-logo-row">
+        <img
+          src={t.logo}
+          alt="APEX"
+          data-testid="solo-header-logo"
+          className="block w-auto"
+          style={t.bg === "#FFFFFF" ? { height: 27, mixBlendMode: "multiply" } : { height: 27 }}
+        />
+      </div>
+      <div className="px-3 mt-1.5 flex items-start justify-between gap-3">
         <div className="min-w-0">
           {/* No visible page titles (#203, owner); kept for screen readers. */}
           <h1 className="sr-only">{title}</h1>
