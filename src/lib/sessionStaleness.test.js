@@ -21,3 +21,15 @@ describe("isPersistedSessionStale", () => {
     expect(isPersistedSessionStale({ activeLog: null }, "2026-10-06")).toBe(false);
   });
 });
+
+describe("#275 a workout running past midnight", () => {
+  const now = new Date("2026-11-19T00:30:00").getTime();
+  it("keeps one started yesterday and saved 40 minutes ago", () => {
+    const persisted = { runningSession: { date: "2026-11-18" }, startedOn: "2026-11-18", savedAt: now - 40 * 60 * 1000 };
+    expect(isPersistedSessionStale(persisted, "2026-11-19", now)).toBe(false);
+  });
+  it("still drops one left from yesterday and untouched for hours", () => {
+    const persisted = { runningSession: { date: "2026-11-18" }, startedOn: "2026-11-18", savedAt: now - 7 * 60 * 60 * 1000 };
+    expect(isPersistedSessionStale(persisted, "2026-11-19", now)).toBe(true);
+  });
+});

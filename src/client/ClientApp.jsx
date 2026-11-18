@@ -9550,7 +9550,7 @@ export default function ClientApp() {
       if (snap.runningSession && (snap.sessionOpen || snap.activeLog)) {
         localStorage.setItem(
           activeSessionKey(currentUser.id),
-          JSON.stringify({ ...snap, activeMs: sessionActiveMsRef.current, startedOn: sessionStartedOnRef.current || localDateKey() })
+          JSON.stringify({ ...snap, activeMs: sessionActiveMsRef.current, startedOn: sessionStartedOnRef.current || localDateKey(), savedAt: Date.now() })
         );
       } else {
         localStorage.removeItem(activeSessionKey(currentUser.id));

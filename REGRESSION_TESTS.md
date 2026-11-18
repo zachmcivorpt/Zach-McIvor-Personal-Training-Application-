@@ -3840,6 +3840,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/client/sessionReload274.test.jsx` renders the REAL `ClientApp` over a workout saved on the phone (a fresh mount = a reload): a Program-tab workout and a caught-up missed session reopen on "Complete Workout" with their sets kept; yesterday's leftover still doesn't reopen. `src/lib/swWorkoutReload274.test.js`: no update reload while a workout is open, one after it ends. Both files fail on the code before this fix (checked by restoring it); `swUpdateCheck.test.js` still passes.
 - **Still to watch**: the iPhone app's native checks (#162 `pageLooksBlank`) can also rebuild the page on return; with this fix that reload lands back in the workout. If a client still reports it, read which reload fired before changing native code.
 
+### 275. Workout dropped on a reload after midnight (owner, "took him out of the session again", 2026-11-18)
+
+- **Problem**: after #274 a saved workout was kept only if it was started TODAY (`startedOn`), so a session started late in the evening and reopened after midnight (a release reload, the iPhone app rebuilding the page) was still thrown away.
+- **Fix**: every snapshot also stores `savedAt` (`ClientApp.jsx` `flushActiveSession`); `isPersistedSessionStale` always keeps one saved in the last 6 hours (`ACTIVE_SESSION_GRACE_MS`). A leftover untouched for longer from an earlier day is still dropped.
+- **Tests**: `src/lib/sessionStaleness.test.js` "#275": started yesterday, saved 40 min ago, reopened at 00:30 → kept (fails on the #274 code, checked by restoring it); untouched for 7 h → dropped. `sessionReload274.test.jsx` still passes.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -12,8 +12,15 @@
 // caught up from the calendar or Home's week strip) and every workout
 // started from the Program tab's phase list (those have no date at all):
 // the client was dropped out of their session and lost the sets.
-export function isPersistedSessionStale(persisted, todayDateKey) {
+//
+// #275: a workout running past midnight (started 11pm, reloaded 12:30am)
+// was still dropped. A snapshot saved in the last 6 hours
+// (`savedAt`, written with every save) is always kept.
+export const ACTIVE_SESSION_GRACE_MS = 6 * 60 * 60 * 1000;
+export function isPersistedSessionStale(persisted, todayDateKey, now = Date.now()) {
   if (!persisted?.runningSession) return false;
+  const savedAt = Number(persisted.savedAt);
+  if (Number.isFinite(savedAt) && savedAt > 0 && now - savedAt < ACTIVE_SESSION_GRACE_MS) return false;
   if (persisted.startedOn) return persisted.startedOn !== todayDateKey;
   // Snapshots written before #274 have no startedOn: keep an undated one
   // (it can only be today's — it's re-stamped on the next save); a dated one
