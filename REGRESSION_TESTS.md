@@ -4012,18 +4012,24 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Check**: before/after screenshots of Home and Nutrition (light) sent to the owner. `clientLook279.test.jsx`'s glass test still passes (see-through fill, sheen, rim, blur). Full suite passes.
 - **Date**: 2026-11-18
 
-### 301. Train Solo gets the same frosted glass as the coached client app (owner, 2026-11-18)
+### 301. Session doubled up on Home: Friday's workout showed as "Resume" over today's completed one (owner, 2026-11-18)
+
+- **Problem**: #276 counted a workout as "in progress" whenever it had been opened (`activeLog` = `{}`), even with nothing entered. Opening Friday's workout and leaving it, after finishing today's, made Home's today card switch to Friday's "Hypertrophy 1B" with **Resume Workout** and "Today's workout", over the completed one. The empty snapshot was also kept on the phone for good.
+- **Fix**: in progress now means at least one set entered (`hasEnteredSet`, `src/lib/sessionStaleness.js`): Home / Training cards and `reopenWorkoutInProgress` use it. **Cancel** on the live screen with nothing entered clears the workout (it was never started). A saved snapshot that's closed with nothing entered is dropped on load. Another day's workout that does have sets is still kept and shown, labelled **Workout in progress**, never "Today's workout". #276's rule is unchanged: a workout with sets is never lost.
+- **Tests**: `src/client/sessionGhost301.test.jsx` renders the REAL `ClientApp` with today completed. An empty Friday snapshot doesn't replace the completed card and is cleared. Cancel with nothing entered clears it. Friday WITH sets shows as "Workout in progress". All 3 fail on the code before this fix (checked by restoring it). `sessionNeverLost276`, `sessionReload274` and `sessionStaleness` tests were updated and still pass.
+
+### 302. Train Solo gets the same frosted glass as the coached client app (owner, 2026-11-18)
 
 - **Change**: Train Solo only — every box is the coached client app's glass (#299 / #300): see-through fill (soft light-grey on white / charcoal in dark), a top-down sheen, a lit rim, a wide soft shadow, `blur(26px) saturate(170%)` + `-webkit-`. Done once in Train Solo's own tokens (`SOLO_THEMES.*.glassBg / glassImage / glassBorder / glassShadow`, `soloGlass`, `soloGlassVars`) and the `.solo-glass-scope` CSS rule for the shared Card widgets, so every Solo screen picks it up; layouts, text, icons, colours of content and functions unchanged. The coached client app and coach console are untouched.
 - **Check**: before/after screenshots of My Training, Progress, Calendar and Profile in light and dark sent to the owner (Train Solo harness with real-shaped data).
-- **Test**: `src/solo/soloGlass301.test.jsx` — both themes' `soloGlass` has the fill, sheen, rim, shadow and blur (+ `-webkit-`), the CSS vars carry them, and the `.solo-glass-scope` rule applies them. Fails on the old code (3/3, checked by reverting only SoloThemeContext.jsx / index.css). Full suite passes.
+- **Test**: `src/solo/soloGlass302.test.jsx` — both themes' `soloGlass` has the fill, sheen, rim, shadow and blur (+ `-webkit-`), the CSS vars carry them, and the `.solo-glass-scope` rule applies them. Fails on the old code (3/3, checked by reverting only SoloThemeContext.jsx / index.css). Full suite passes.
 - **Date**: 2026-11-18
 
-### 302. Train Solo's session card uses the coached client's photo (owner, 2026-11-18)
+### 303. Train Solo's session card uses the coached client's photo (owner, 2026-11-18)
 
 - **Change**: My Training's session card (`SessionHero`) is the coached client's session card (#279): the dumbbell-rack photo `public/brand/home-workout.jpg` on the right 56% of an always-dark card (#111113) with no white fade in light mode (owner: "faded in the white, I don't want that"), 158px tall, the same lit glass rim. Its content (program line, title, exercises, Start ring / Done / Skipped / Locked) is unchanged, now white on the dark card. The workout screen header and the share card keep their photos.
 - **Check**: Train Solo vs coached client side-by-side screenshots in light and dark sent to the owner.
-- **Test**: `src/solo/soloGlass301.test.jsx` — in LIGHT mode `SessionHero` renders `/brand/home-workout.jpg` on the right 56% with no opacity fade, on a #111113 card, 158px, with the white rim; fails on the old code. Full suite passes.
+- **Test**: `src/solo/soloGlass302.test.jsx` — in LIGHT mode `SessionHero` renders `/brand/home-workout.jpg` on the right 56% with no opacity fade, on a #111113 card, 158px, with the white rim; fails on the old code. Full suite passes.
 - **Date**: 2026-11-18
 
 ## What still requires manual testing

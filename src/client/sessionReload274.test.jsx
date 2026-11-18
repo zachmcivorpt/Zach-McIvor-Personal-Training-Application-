@@ -57,13 +57,12 @@ afterEach(() => {
 });
 
 describe("a workout survives a reload (#274)", () => {
-  it("staleness is decided by the day it was started, not the day it was for", () => {
-    expect(isPersistedSessionStale({ runningSession: { date: "2026-11-16" }, startedOn: TODAY }, TODAY)).toBe(false); // catch-up started today
-    expect(isPersistedSessionStale({ runningSession: { label: "Program day" }, startedOn: TODAY }, TODAY)).toBe(false); // Program tab: no date
-    expect(isPersistedSessionStale({ runningSession: { date: TODAY }, startedOn: "2026-11-17" }, TODAY)).toBe(true); // left over from yesterday
-    // saved before #274 (no startedOn): an undated one is kept, an old dated one isn't
-    expect(isPersistedSessionStale({ runningSession: { label: "x" } }, TODAY)).toBe(false);
-    expect(isPersistedSessionStale({ runningSession: { date: "2026-11-16" } }, TODAY)).toBe(true);
+  it("a saved workout with sets is kept whatever day; an empty closed one is dropped (#276/#301)", () => {
+    const sets = { bench: [{ reps: 8, weight: 60, completed: true }] };
+    expect(isPersistedSessionStale({ runningSession: { date: "2026-11-16" }, startedOn: TODAY, activeLog: sets }, TODAY)).toBe(false); // catch-up
+    expect(isPersistedSessionStale({ runningSession: { label: "Program day" }, startedOn: TODAY, activeLog: sets }, TODAY)).toBe(false); // Program tab: no date
+    expect(isPersistedSessionStale({ runningSession: { date: TODAY }, startedOn: "2026-11-17", activeLog: sets }, TODAY)).toBe(false); // from yesterday
+    expect(isPersistedSessionStale({ runningSession: { date: "2026-11-20" }, startedOn: TODAY, activeLog: {} }, TODAY)).toBe(true); // opened, cancelled, nothing entered
   });
 
   it("a workout started from the Program tab (no date) reopens after a reload, sets kept", async () => {

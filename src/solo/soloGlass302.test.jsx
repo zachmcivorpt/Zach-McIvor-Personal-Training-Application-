@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// #301 (owner: "exact same style of design with Train Solo only"): Train
+// #302 (owner: "exact same style of design with Train Solo only"): Train
 // Solo's boxes are the same frosted glass as the coached client app's
 // (#299 / #300): see-through fill, a top-down sheen, a lit rim, a wide soft
 // shadow and a 26px blur with saturation (+ the -webkit- copy for iOS), in
@@ -9,7 +9,7 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 import { soloGlass, soloGlassVars, SOLO_THEMES } from "./SoloThemeContext";
 
-describe("Train Solo frosted glass (#301)", () => {
+describe("Train Solo frosted glass (#302)", () => {
   for (const mode of ["light", "dark"]) {
     it(`${mode}: soloGlass has the see-through fill, sheen, lit rim, shadow and blur`, () => {
       const g = soloGlass(SOLO_THEMES[mode]);
@@ -33,12 +33,12 @@ describe("Train Solo frosted glass (#301)", () => {
   });
 });
 
-// #302 (owner): Train Solo's session card uses the coached client's session
+// #303 (owner): Train Solo's session card uses the coached client's session
 // photo (the dumbbell rack) instead of the gym hall.
 import React from "react";
 import { render } from "@testing-library/react";
 import { SessionHero } from "./SoloMyTrainingScreen";
-describe("Train Solo session photo (#302)", () => {
+describe("Train Solo session card (#303)", () => {
   it("is the coached client's home-workout.jpg", () => {
     const { getByTestId } = render(
       <SessionHero item={{ title: "Lower Body", subtitle: "Week 3", day: { exercises: [] }, done: false }} actionable onStart={() => {}} t={SOLO_THEMES.light} />

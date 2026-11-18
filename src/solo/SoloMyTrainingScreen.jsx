@@ -1319,7 +1319,7 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, on
 // the session name large in capitals, and a lit ring to start it.
 export function SessionHero({ item, actionable, onStart, future, t }) {
   const exercises = (item.day?.exercises || []).filter((e) => !e.isRest).length;
-  // #302 (owner): the coached client's session card — always the dark card
+  // #303 (owner): the coached client's session card — always the dark card
   // with the dumbbell-rack photo on the right (no white fade in light mode),
   // the same 158px height and lit glass rim. Content and buttons unchanged.
   const light = false;

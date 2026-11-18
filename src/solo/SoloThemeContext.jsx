@@ -128,7 +128,7 @@ export const SOLO_THEMES = {
     logo: MARK_WHITE,
     inputBg: "rgba(255,255,255,0.08)",
     inputBorder: "rgba(255,255,255,0.1)",
-    // #301 frosted glass, the same as the coached client app's (#299):
+    // #302 frosted glass, the same as the coached client app's (#299):
     // charcoal glass, a top-down sheen, a lit rim, a wide soft shadow.
     glassBg: "rgba(32,32,35,0.58)",
     glassImage: "linear-gradient(180deg, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.035) 42%, rgba(255,255,255,0.02) 100%)",
@@ -153,7 +153,7 @@ export const SOLO_THEMES = {
     logo: MARK_BLACK,
     inputBg: "rgba(20,19,15,0.05)",
     inputBorder: "rgba(20,19,15,0.08)",
-    // #301: soft light-grey glass on white, a white sheen and rim, a wide
+    // #302: soft light-grey glass on white, a white sheen and rim, a wide
     // soft shadow (the coached client app's #299 / #300 glass).
     glassBg: "rgba(246,246,249,0.55)",
     glassImage: "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(250,250,252,0.4) 50%, rgba(242,242,246,0.45) 100%)",

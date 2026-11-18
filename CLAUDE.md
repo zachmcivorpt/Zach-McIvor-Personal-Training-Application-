@@ -192,7 +192,7 @@ rather than inventing new colors per screen:
   `sessionPlan` (never by rewriting logs); kept swaps live in
   `programSwaps`. Warm-up and plate maths stays in `liftHelpers.js`.
 - **Every box/card is frosted glass** — the SAME glass as the coached client
-  app (#301, owner): see-through fill, a top-down sheen, a lit rim, a wide
+  app (#302, owner): see-through fill, a top-down sheen, a lit rim, a wide
   soft shadow, `blur(26px) saturate(170%)` + `-webkit-`, set in the theme
   tokens (`glassBg`/`glassImage`/`glassBorder`/`glassShadow`), never per box —
   in both Solo light and dark mode. Use `soloGlass(t)` from
@@ -255,7 +255,7 @@ rather than inventing new colors per screen:
   of Progress, not in My Training.
 - **Interface style** (#196, owner-approved mock-up, ACG-inspired, blue not
   yellow): logo centred and lit, titles/labels in capitals, glass tab bar docked to the
-  bottom edge with a blue dot (#197: never floating above it), session card = the coached client's (#302): always dark, 158px, the dumbbell-rack `home-workout.jpg` on the right, no white fade in light mode, lit rim — with a
+  bottom edge with a blue dot (#197: never floating above it), session card = the coached client's (#303): always dark, 158px, the dumbbell-rack `home-workout.jpg` on the right, no white fade in light mode, lit rim — with a
   lit ring Start, the rest timer as a blue ring (`SoloRestRing`), the
   suggested program full width with a blue glow, today ringed. Both themes.
 - **No visible page titles** (#203, owner): `SoloPageHeader` shows the logo only (title sr-only);
@@ -832,7 +832,7 @@ any Train Solo work from now on:
 
 ## A workout in progress survives reloads (#274)
 
-- **A client is NEVER taken out of a workout** (#276, owner): only Complete or Discard ends one. While one is in progress, every Start / Resume / Continue (Home, Training, Calendar, previews, coach links) goes through `reopenWorkoutInProgress` and reopens THAT workout, never a fresh or different one. Home's and Training's today card show the workout in progress, whatever day it was for. A saved workout that's open or has a set entered is never dropped on a reload (`isPersistedSessionStale`), whatever day. Keep `sessionNeverLost276.test.jsx` passing.
+- **A client is NEVER taken out of a workout** (#276, owner): only Complete or Discard ends one. While one is in progress, every Start / Resume / Continue (Home, Training, Calendar, previews, coach links) goes through `reopenWorkoutInProgress` and reopens THAT workout, never a fresh or different one. Home's and Training's today card show the workout in progress, whatever day it was for. A saved workout that's open or has a set entered is never dropped on a reload (`isPersistedSessionStale`), whatever day. Keep `sessionNeverLost276.test.jsx` passing. "In progress" means at least one set entered (`hasEnteredSet`, #301): a workout opened and cancelled with nothing in it is cleared and never takes over Home's card. Another day's workout with sets is labelled "Workout in progress", never "Today's workout". Keep `sessionGhost301.test.jsx` passing.
 
 - The coached client's open workout lives on the phone (`clientActiveSession_<uid>`) and reopens after any reload. Whether a saved one is still current is decided ONLY by the day it was started (`startedOn`, `isPersistedSessionStale`), never by the workout's scheduled date: Program-tab workouts have no date, and catch-up sessions are for an earlier day. Any new way to start a workout must stamp `sessionStartedOnRef`. A snapshot saved in the last 6 hours (`savedAt`) is always kept, so a workout running past midnight survives (#275).
 - A new release never reloads the app by itself while a workout is open (`workoutInProgress` in `swUpdateCheck.js`: a coached session or a Train Solo draft). Keep both keys in step if they're renamed.
