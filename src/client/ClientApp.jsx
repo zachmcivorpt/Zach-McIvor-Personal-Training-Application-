@@ -9345,7 +9345,7 @@ export function useClientStatusBar(dark) {
       window.webkit?.messageHandlers?.apexTheme?.postMessage({ dark: !!dark, edgeToEdge: false });
     } catch {}
     // #279: the top of the new page (light streak / near-black).
-    const colour = dark ? clientLook(true).page : "#F4F4F6";
+    const colour = clientLook(dark).page; // #283: white in light mode
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", colour);
     document.body.style.backgroundColor = colour;
   }, [dark]);

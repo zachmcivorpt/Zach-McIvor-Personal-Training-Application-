@@ -24,12 +24,13 @@ export function clientLook(dark) {
       }
     : {
         dark: false,
-        page: "#EEEEF0",
-        // A soft diagonal light streak across the top, as in the mock-up.
+        // White, so it flows into the white top strip (#283, owner). Faint
+        // grey glows lower down give the glass something to show over.
+        page: "#FFFFFF",
         pageImage:
-          "linear-gradient(115deg, transparent 0%, transparent 52%, rgba(255,255,255,0.75) 58%, transparent 66%), radial-gradient(90% 50% at 0% 0%, #FAFAFB, transparent 70%), linear-gradient(180deg, #F4F4F6 0%, #E9E9EC 100%)",
-        card: { backgroundColor: "rgba(255,255,255,0.46)", border: "1px solid rgba(255,255,255,0.95)", boxShadow: "0 16px 36px -22px rgba(20,20,30,0.28), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" },
-        tile: { backgroundColor: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.95)", boxShadow: "0 12px 26px -18px rgba(20,20,30,0.3), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" },
+          "radial-gradient(60% 30% at 0% 45%, rgba(160,160,170,0.16), transparent 70%), radial-gradient(60% 30% at 100% 75%, rgba(160,160,170,0.14), transparent 70%)",
+        card: { backgroundColor: "rgba(246,246,248,0.6)", border: "1px solid rgba(10,10,11,0.06)", boxShadow: "0 16px 36px -22px rgba(20,20,30,0.28), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" },
+        tile: { backgroundColor: "rgba(246,246,248,0.6)", border: "1px solid rgba(10,10,11,0.06)", boxShadow: "0 12px 26px -18px rgba(20,20,30,0.3), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" },
         ink: "#0A0A0B",
         onInk: "#FFFFFF",
         muted: "rgba(10,10,11,0.55)",

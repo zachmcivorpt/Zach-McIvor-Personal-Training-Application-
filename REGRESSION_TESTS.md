@@ -3891,6 +3891,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `clientLook279.test.jsx` — View Plan calls `onOpenTab("workouts")` and never `onViewWorkout`; fails on the old code (checked by reverting only ClientLook.jsx / ClientApp.jsx). Full suite passes.
 - **Date**: 2026-11-18
 
+### 283. Client app background white, flowing into the top strip (owner, 2026-11-18)
+
+- **Problem**: the light-mode page was light grey (#EEEEF0 with a gradient), so it didn't flow into the iPhone's white top strip.
+- **Fix**: `clientLook(false).page` is #FFFFFF; faint grey glows lower down only; the glass cards and tiles get a faint grey fill and hairline so they still show on white. `useClientStatusBar` uses the page colour, so the strip and theme-color are #FFFFFF in light mode (#070708 dark, unchanged).
+- **Test**: `clientStatusBar277.test.jsx` expects #FFFFFF in light mode; fails on the old #F4F4F6. Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -27,7 +27,7 @@ describe("client status-bar strip follows Appearance (#277)", () => {
 
     rerender({ dark: false }); // the client switches to White in Profile
     expect(postMessage).toHaveBeenLastCalledWith({ dark: false, edgeToEdge: false });
-    expect(meta.getAttribute("content")).toBe("#F4F4F6"); // #279 page top
+    expect(meta.getAttribute("content")).toBe("#FFFFFF"); // #283: white page, white strip
 
     rerender({ dark: true }); // and back to Black
     expect(postMessage).toHaveBeenLastCalledWith({ dark: true, edgeToEdge: false });
