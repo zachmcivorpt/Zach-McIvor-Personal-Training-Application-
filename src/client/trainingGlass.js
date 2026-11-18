@@ -1,3 +1,4 @@
+import { clientLook } from "./clientLook";
 // Date maths for the client Training tab's glass design (#271).
 // Every function takes the "today" it is given (a YYYY-MM-DD key), never
 // the device clock behind its back.
@@ -42,22 +43,9 @@ export function phaseWeeks(startDate, endDate, todayKey) {
   return { count, current };
 }
 
-// The glass surface (#271): translucent fill, hairline edge, blur.
-const GLASS_LIGHT = {
-  backgroundColor: "rgba(255,255,255,0.55)",
-  border: "1px solid rgba(255,255,255,0.9)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 10px 30px rgba(0,0,0,0.06)",
-  backdropFilter: "blur(24px) saturate(160%)",
-  WebkitBackdropFilter: "blur(24px) saturate(160%)",
-};
-const GLASS_DARK = {
-  backgroundColor: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.16)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
-  backdropFilter: "blur(24px) saturate(160%)",
-  WebkitBackdropFilter: "blur(24px) saturate(160%)",
-};
+// #279: the Training tab uses the client app's card (clientLook) so it reads
+// like Home.
 export function trainingGlass(dark) {
-  return dark ? GLASS_DARK : GLASS_LIGHT;
+  return clientLook(dark).card;
 }
 

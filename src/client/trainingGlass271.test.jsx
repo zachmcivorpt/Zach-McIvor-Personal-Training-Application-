@@ -83,21 +83,14 @@ describe("Training tab glass design (#271)", () => {
     expect(phaseWeeks("2026-11-02", null, "2026-11-18")).toBeNull();
   });
 
-  it("Today: logo-only header, glass switch, week strip with today ringed blue, glass card with the workout's own figures", async () => {
+  it("#279: no Today tab — the top bar, the Your Program heading, no switch or week strip", async () => {
     setup();
     await renderTraining(false);
     const header = screen.getByTestId("client-tab-header");
     expect(header.querySelector("h1").className).toMatch(/sr-only/);
-    expect(screen.getByTestId("training-switch")).toBeTruthy();
-    const today = screen.getByTestId("training-week-strip").querySelector("[data-today]");
-    expect(today.textContent).toMatch(/18/);
-    expect(today.style.border).toMatch(/rgb\(47, 143, 255\)|#2F8FFF/i);
-    const card = screen.getByTestId("training-today-card");
-    expect(card.textContent).toMatch(/Pull Day/);
-    expect(card.textContent).toMatch(/Rhomboids/);
-    expect(card.textContent).toMatch(/2EXERCISES/i);
-    expect(card.style.backdropFilter).toMatch(/blur/);
-    // No gym photo behind the tab any more.
+    expect(screen.getByTestId("training-heading").textContent).toMatch(/Your Program/);
+    expect(screen.queryByTestId("training-switch")).toBeNull();
+    expect(screen.queryByTestId("training-week-strip")).toBeNull();
     expect(document.querySelector('img[src="/brand/gym-dark.jpg"]')).toBeNull();
   });
 
@@ -116,7 +109,6 @@ describe("Training tab glass design (#271)", () => {
   it("Program: glass phase card with the ring, done/to go, week bars (this week blue), today's workout outlined; no Add/Import for a real client", async () => {
     setup();
     await renderTraining(false);
-    fireEvent.click(screen.getByRole("button", { name: "program" }));
     const card = screen.getByTestId("training-phase-card");
     expect(card.textContent).toMatch(/Week 5 - 8 Strength Phase/);
     expect(card.textContent).toMatch(/CURRENT PHASE/i);
@@ -139,6 +131,7 @@ describe("Training tab glass design (#271)", () => {
     setup();
     await renderTraining(true);
     expect(screen.queryByTestId("training-glows")).toBeNull();
-    expect(screen.getByTestId("training-today-card").style.backgroundColor).toBe("rgba(255, 255, 255, 0.06)");
+    // #279: the client app's see-through charcoal card, as on Home.
+    expect(screen.getByTestId("training-phase-card").style.backgroundColor).toBe("rgba(30, 30, 32, 0.48)");
   });
 });

@@ -236,7 +236,7 @@ export function TrainingPhaseCard({ phase, isCurrent, completion, todayKey, onPh
   const showWeeks = weeks && weeks.count >= 1 && weeks.count <= 12;
   const left = completion && completion.expected > 0 ? Math.max(0, completion.expected - completion.completed) : null;
   return (
-    <section className="relative mx-2.5 rounded-3xl p-[18px] flex flex-col gap-4" style={trainingGlass(dark)} aria-label="Current phase" data-testid="training-phase-card">
+    <section className="relative mx-3.5 rounded-[22px] p-4 flex flex-col gap-4" style={trainingGlass(dark)} aria-label="Current phase" data-testid="training-phase-card">
       <button
         type="button"
         onClick={onPhases}
@@ -308,8 +308,8 @@ export function TrainingWorkoutRow({ index, day, isToday, onClick, dark }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[18px] text-left active:opacity-70 transition-opacity"
-      style={{ ...trainingGlass(dark), ...(isToday ? { border: `1.5px solid ${MEASURE_BLUE}` } : null), boxShadow: dark ? "none" : "0 6px 18px rgba(0,0,0,0.05)", color: c.text }}
+      className="w-full flex items-center gap-3 px-2 py-2 my-1 rounded-[14px] text-left active:opacity-70 transition-opacity"
+      style={{ border: isToday ? `1.5px solid ${MEASURE_BLUE}` : "1.5px solid transparent", color: c.text }}
       data-today={isToday || undefined}
     >
       <span className="w-9 h-9 shrink-0 rounded-[11px] flex items-center justify-center text-[12px] font-semibold tabular-nums" style={{ border: `1px solid ${dark ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.9)"}`, backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.55)" }}>
@@ -344,8 +344,8 @@ export function TrainingUpNextRow({ workout, onClick, dark }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[18px] text-left active:opacity-70 transition-opacity"
-      style={{ ...trainingGlass(dark), boxShadow: dark ? "none" : "0 6px 18px rgba(0,0,0,0.05)", color: c.text }}
+      className="w-full flex items-center gap-3 px-2 py-2 my-1 rounded-[14px] text-left active:opacity-70 transition-opacity"
+      style={{ border: "1.5px solid transparent", color: c.text }}
     >
       <span className="w-9 h-9 shrink-0 rounded-[11px] flex flex-col items-center justify-center leading-none" style={{ border: `1px solid ${dark ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.9)"}`, backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.55)" }}>
         <span className="text-[8px] font-semibold tracking-[0.08em] uppercase" style={{ color: c.muted }}>

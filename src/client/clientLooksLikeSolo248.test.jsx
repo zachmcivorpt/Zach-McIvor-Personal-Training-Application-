@@ -58,8 +58,8 @@ describe("Home like Train Solo (#248)", () => {
     home();
     const header = screen.getAllByTestId("client-tab-header")[0];
     expect(header.querySelector("h1").className).toMatch(/sr-only/);
-    // No greeting any more (#256, owner).
-    expect(screen.queryByTestId("home-greeting")).toBeNull();
+    // #279 (owner's mock-up): the greeting is back, under the top bar.
+    expect(screen.getByTestId("home-greeting").textContent).toMatch(/Good (morning|afternoon|evening)/);
     expect(screen.getByTestId("home-day-heading").textContent).toMatch(/^Today, \d+(st|nd|rd|th) [A-Z][a-z]+$/);
     const order = ["home-weekly-review", "home-day-heading", "home-body-stats"].map((id) => screen.getByTestId(id));
     expect(order[0].compareDocumentPosition(order[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -75,7 +75,7 @@ describe("Home like Train Solo (#248)", () => {
     vi.setSystemTime(new Date("2026-11-17T19:00:00")); // Tuesday
     home();
     expect(screen.queryByTestId("home-weekly-review")).toBeNull();
-    expect(screen.getAllByTestId("client-tab-header")[0].querySelector("img").style.height).toBe("26px");
+    expect(screen.getAllByTestId("client-tab-header")[0].querySelector("img").style.height).toBe("27px");
     cleanup();
     onMonday();
     home();

@@ -16,7 +16,6 @@ afterEach(() => {
 describe("client status-bar strip follows Appearance (#277)", () => {
   it("dark → the phone's strip and theme-color go black; light → white; leaving restores", async () => {
     const { useClientStatusBar } = await import("./ClientApp");
-    const { CLIENT_DARK_BG } = await import("../theme");
     const postMessage = vi.fn();
     window.webkit = { messageHandlers: { apexTheme: { postMessage } } };
     document.head.innerHTML = '<meta name="theme-color" content="#FFFFFF">';
@@ -24,11 +23,11 @@ describe("client status-bar strip follows Appearance (#277)", () => {
 
     const { rerender, unmount } = renderHook(({ dark }) => useClientStatusBar(dark), { initialProps: { dark: true } });
     expect(postMessage).toHaveBeenLastCalledWith({ dark: true, edgeToEdge: false });
-    expect(meta.getAttribute("content")).toBe(CLIENT_DARK_BG);
+    expect(meta.getAttribute("content")).toBe("#070708"); // #279 page colour
 
     rerender({ dark: false }); // the client switches to White in Profile
     expect(postMessage).toHaveBeenLastCalledWith({ dark: false, edgeToEdge: false });
-    expect(meta.getAttribute("content")).toBe("#FFFFFF");
+    expect(meta.getAttribute("content")).toBe("#F4F4F6"); // #279 page top
 
     rerender({ dark: true }); // and back to Black
     expect(postMessage).toHaveBeenLastCalledWith({ dark: true, edgeToEdge: false });

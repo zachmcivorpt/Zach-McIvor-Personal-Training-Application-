@@ -29,7 +29,7 @@ describe("#252", () => {
         <HomeScreen user={{ id: "u1", name: "Zach McIvor" }} userId="u1" dayOffset={0} onSelectDay={() => {}} isToday habits={[]} completedHabitIds={[]} dayHabitCompletedIds={[]} cardioLogs={[]} challenges={[]} groups={[]} targets={{ calories: 2000 }} dayNutrition={null} dbReady />
       </MemoryRouter>
     );
-    // #257: only a small pull (-mb-2) so the weekly review line stays clear of the logo.
-    expect(screen.getByTestId("home-top").className).toMatch(/!mb-2/);
+    // #279: the greeting sits straight under the top bar (pulled up 6px).
+    expect(screen.getByTestId("home-greeting-row").className).toMatch(/-mt-1\.5/);
   });
 });

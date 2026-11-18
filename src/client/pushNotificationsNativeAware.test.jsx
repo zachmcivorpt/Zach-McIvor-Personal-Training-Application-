@@ -81,7 +81,7 @@ describe("NotificationsPromptCard (client)", () => {
     const { enablePush } = await import("../lib/push");
     render(<NotificationsPromptCard userId="client-1" showToast={vi.fn()} />);
 
-    const enableButton = await screen.findByText("ENABLE");
+    const enableButton = await screen.findByText("Enable"); // #279 monochrome button
     fireEvent.click(enableButton);
 
     expect(enablePush).not.toHaveBeenCalled();

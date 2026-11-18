@@ -69,6 +69,7 @@ import {
   Minus,
   Copy,
   BookmarkPlus,
+  ListChecks,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported, isNativeApp } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage, uploadMessageAudio } from "../lib/storage";
@@ -177,9 +178,11 @@ const MuscleMapCard = React.lazy(() => import("../solo/SoloMuscleMap").then((m) 
 import { NutritionTargetsCard } from "../coach/NutritionTargetsCard";
 import { planPhaseSwap } from "./phaseSwap";
 import { SOLO_MARK_WHITE, SOLO_MARK_BLACK } from "../solo/soloMark";
+import { ClientChromeContext, ClientTopBar, ClientTabBar, HomeGreeting, HomeWeekStrip, HomeWorkoutCard, HomeNutritionCard, HomeQuickTiles, HomeFocusBanner } from "./ClientLook";
+import { clientLook, greetingFor, dayStreak, weekFocus } from "./clientLook";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet, NutritionPage } from "./NutritionFeatures";
 import { AddFoodPage } from "./AddFoodPage";
-import { TrainingBackdrop, TrainingSwitch, TrainingWeekStrip, TrainingTodayCard, TrainingPhaseCard, TrainingWorkoutRow, TrainingUpNextRow } from "./TrainingGlass";
+import { TrainingBackdrop, TrainingPhaseCard, TrainingWorkoutRow, TrainingUpNextRow } from "./TrainingGlass";
 import { trainingGlass } from "./trainingGlass";
 import { buildCorrectedFood } from "../lib/barcodeLookup";
 import { AFCD_FOODS } from "../lib/afcdFoods";
@@ -437,20 +440,15 @@ function NutritionQuickTile({ icon: Icon, label, onClick, dark, invert = false }
 // APEX mark centred and lit at the top, no visible page title (kept for
 // screen readers), an optional line + right-hand action under it.
 function TabHeader({ label, dark = false, right = null, sub = null }) {
+  // #279 (owner's mock-up): every tab opens with the APEX mark + wordmark on
+  // the left and the bell / profile buttons on the right (ClientTopBar); the
+  // page title stays for screen readers.
   return (
-    <div className="px-2.5 pt-3 pb-0.5" data-testid="client-tab-header">
-      {/* Train Solo's own APEX mark (#251, owner: exactly Train Solo — never
-          the coach's uploaded logo here), 26px (#249). */}
-      <img
-        src={dark ? SOLO_MARK_WHITE : SOLO_MARK_BLACK}
-        alt="APEX"
-        className="block w-auto mx-auto"
-        data-testid="client-tab-logo"
-        style={dark ? { height: 26, filter: "drop-shadow(0 0 10px rgba(255,255,255,0.55))" } : { height: 26, mixBlendMode: "multiply" }}
-      />
+    <div className="pb-0.5" data-testid="client-tab-header">
+      <ClientTopBar dark={dark} />
       <h1 className="sr-only">{label}</h1>
       {(sub || right) && (
-        <div className="mt-1.5 flex items-start justify-between gap-3">
+        <div className="px-4 mt-3 flex items-start justify-between gap-3">
           <div className="min-w-0">{sub}</div>
           {right}
         </div>
@@ -481,18 +479,9 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
 // Frosted-glass card surface for the client app's session/program cards —
 // the same translucent fill + hairline border + blur Train Solo uses, in
 // the client app's light or dark theme.
-const CLIENT_GLASS_DARK = {
-  backgroundColor: "rgba(28,28,30,0.55)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  backdropFilter: "blur(18px)",
-  WebkitBackdropFilter: "blur(18px)",
-};
-const CLIENT_GLASS_LIGHT = {
-  backgroundColor: "rgba(255,255,255,0.62)",
-  border: "1px solid rgba(20,19,15,0.08)",
-  backdropFilter: "blur(18px)",
-  WebkitBackdropFilter: "blur(18px)",
-};
+// #279: the same white / charcoal glass as the owner's mock-up (clientLook).
+const CLIENT_GLASS_DARK = clientLook(true).card;
+const CLIENT_GLASS_LIGHT = clientLook(false).card;
 function clientGlass(dark) {
   return dark ? CLIENT_GLASS_DARK : CLIENT_GLASS_LIGHT;
 }
@@ -926,29 +915,25 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
     }
   }
 
-  const muted = dark ? "text-white/55" : "text-black/55";
-  const faint = dark ? "text-white/35" : "text-black/35";
-  const doneLabelColor = dark ? "text-white/35" : "text-black/35";
-  const notDoneLabelColor = dark ? "text-white" : "text-black";
-  const doneCheckBg = dark ? "bg-white border-white" : "bg-black border-black";
-  const notDoneCheckBorder = dark ? "border-white/25" : "border-black/22";
-  const checkIconColor = dark ? "text-black" : "text-white";
-  const divider = dark ? "border-white/10" : "border-black/8";
+  // The mock-up's Nutrition card build (#279): one glass card, icon +
+  // title with the count on the right, a rule, then the habits.
+  const L = clientLook(dark);
   return (
-    <div className="mx-2.5 px-1">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${dark ? "text-white" : "text-black"}`}>Daily Execution</h3>
-        <span className={`text-[13px] tabular-nums shrink-0 ${muted}`}>
-          <span className={`font-semibold ${dark ? "text-white" : "text-black"}`}>{doneCount}</span>/{habits.length} complete
+    <div className="mx-3.5 rounded-[22px] px-4 pt-3 pb-1.5" style={{ ...L.card, color: L.ink }} data-testid="home-daily-execution">
+      <div className="flex items-center justify-between gap-3 pb-2 border-b" style={{ borderColor: L.line }}>
+        <span className="flex items-center gap-2.5 text-[13px] font-semibold">
+          <ListChecks size={17} /> Daily Execution
+        </span>
+        <span className="text-[11px] tabular-nums shrink-0" style={{ color: L.muted }}>
+          <span className="font-semibold" style={{ color: L.ink }}>{doneCount}</span> / {habits.length}
         </span>
       </div>
-      <p className={`text-[13px] mt-0.5 ${muted}`}>The small actions that drive your performance.</p>
-      <div className="flex gap-1 mt-3">
+      <div className="flex gap-1 mt-2.5">
         {habits.map((h) => (
-          <span key={h.id} className="flex-1 h-[3px] rounded-full transition-colors" style={{ backgroundColor: isDone(h) ? MEASURE_BLUE : dark ? "rgba(255,255,255,0.12)" : "rgba(10,10,11,0.09)" }} />
+          <span key={h.id} className="flex-1 h-[4px] rounded-full transition-colors" style={{ backgroundColor: isDone(h) ? L.ink : L.track }} />
         ))}
       </div>
-      <div className={`mt-3 border-t ${divider}`}>
+      <div className="mt-2">
         {habits.map((h, i) => {
           const done = isDone(h);
           const Icon = habitIcon(h.label);
@@ -957,17 +942,20 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
               type="button"
               key={h.id}
               onClick={() => (interactive ? handleToggle(h) : showToast?.("Jump to today to update habits"))}
-              className={`w-full flex items-center gap-3 min-h-[54px] py-2.5 text-left border-b ${divider} ${interactive ? "active:opacity-70" : "opacity-60"} transition-opacity duration-150`}
+              className={`w-full flex items-center gap-3 min-h-[44px] py-1.5 text-left ${i > 0 ? "border-t" : ""} ${interactive ? "active:opacity-70" : "opacity-60"} transition-opacity duration-150`}
+              style={{ borderColor: L.line }}
             >
-              <span className={`w-5 text-[11px] font-semibold tabular-nums shrink-0 ${faint}`}>{String(i + 1).padStart(2, "0")}</span>
-              <Icon size={16} className={`shrink-0 ${muted}`} strokeWidth={1.8} />
-              <span className={`text-[14.5px] leading-snug flex-1 transition-colors ${done ? `${doneLabelColor} line-through` : notDoneLabelColor}`}>{h.label}</span>
+              <span className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,11,0.04)" }}>
+                <Icon size={14} strokeWidth={1.8} />
+              </span>
+              <span className={`text-[12.5px] font-medium leading-snug flex-1 transition-colors ${done ? "line-through" : ""}`} style={{ color: done ? L.faint : L.ink }}>
+                {h.label}
+              </span>
               <span
-                className={`w-[22px] h-[22px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  done ? `${doneCheckBg} scale-100` : `${notDoneCheckBorder} scale-95`
-                }`}
+                className={`w-[20px] h-[20px] rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${done ? "scale-100" : "scale-95"}`}
+                style={done ? { backgroundColor: L.ink, color: L.onInk } : { border: `1.5px solid ${L.faint}` }}
               >
-                {done && <Check size={12} className={checkIconColor} strokeWidth={3.5} />}
+                {done && <Check size={13} strokeWidth={3.5} />}
               </span>
             </button>
           );
@@ -984,7 +972,7 @@ function ActiveChallengesCard({ challenges, userId }) {
   if (active.length === 0) return null;
 
   return (
-    <div className="px-2.5 space-y-2.5">
+    <div className="px-3.5 space-y-2.5">
       {active.map((c) => {
         const snapshot = c.leaderboardSnapshot || [];
         const mine = snapshot.find((r) => r.clientId === userId);
@@ -1030,7 +1018,7 @@ function ClientGroupsCard({ groups, onOpen }) {
   if (groups.length === 0) return null;
 
   return (
-    <div className="px-2.5 space-y-2.5">
+    <div className="px-3.5 space-y-2.5">
       {groups.map((g) => {
         const memberCount = (g.memberIds || []).length;
         return (
@@ -1278,21 +1266,17 @@ export function NotificationsPromptCard({ userId, showToast }) {
   }
 
   return (
-    <div
-      className={`mx-2.5 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
-      style={clientGlass(dark)}
-    >
-      <BellRing size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
-      <p className={`flex-1 text-[13px] font-medium ${dark ? "text-white/65" : "text-black/65"}`}>
+    <div className="mx-3.5 flex items-center gap-3 rounded-[18px] px-4 py-2.5" style={clientLook(dark).card}>
+      <BellRing size={15} className={`shrink-0 ${dark ? "text-white" : "text-black"}`} />
+      <p className={`flex-1 text-[11px] font-medium ${dark ? "text-white/65" : "text-black/65"}`}>
         Turn on notifications so you never miss a message from your coach
       </p>
       <button
         onClick={enable}
         disabled={busy}
-        className="text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0 disabled:opacity-50"
-        style={{ backgroundColor: MEASURE_BLUE }}
+        className={`text-[11px] font-semibold h-7 px-3.5 rounded-full shrink-0 disabled:opacity-50 ${dark ? "bg-white text-black" : "bg-black text-white"}`}
       >
-        {busy ? "…" : "ENABLE"}
+        {busy ? "…" : "Enable"}
       </button>
       <button
         onClick={dismiss}
@@ -1417,6 +1401,10 @@ export function HomeScreen({
   onCheckIn,
   weekDot = () => null,
   phaseLabel = "",
+  streak = null,
+  focus = null,
+  onOpenTab = () => {},
+  onLogNutrition = null,
 }) {
   const dark = useClientDark();
   // #218: a past day on Home offers the same "Log a cardio session" as today's Training tab.
@@ -1431,16 +1419,14 @@ export function HomeScreen({
   const dayHeading = `${isToday ? "Today" : dayOffset === 1 ? "Tomorrow" : dayOffset === -1 ? "Yesterday" : selectedDate.toLocaleDateString("en-AU", { weekday: "long" })}, ${ordinalDay(selectedDate.getDate())} ${selectedDate.toLocaleDateString("en-AU", { month: "long" })}`;
   const line = dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
   return (
-    <div className="pb-28 space-y-5">
-      {/* No greeting (#256, owner): the logo, then straight into the day, as in Train Solo. */}
-      {/* #257/#258: the page's space-y gap is a bottom margin on this block,
-          so any negative margin here pulled the weekly review's line up
-          through the logo. A plain 8px gap instead. */}
-      <div className="!mb-2" data-testid="home-top">
+    <div className="pb-28 space-y-4">
+      {/* #279 (owner's mock-up): the top bar, then the greeting and the day streak. */}
+      <div data-testid="home-top">
         <TabHeader label="Home" dark={dark} />
       </div>
+      <HomeGreeting dark={dark} greeting={greetingFor(new Date().getHours())} firstName={(user?.name || "").split(" ")[0]} streak={streak} onStreak={() => onOpenTab("progress")} />
       {hasReview && (
-        <div className="px-2.5">
+        <div className="px-3.5">
           <button
             type="button"
             onClick={() => setReviewOpen(true)}
@@ -1461,14 +1447,13 @@ export function HomeScreen({
           )}
         </div>
       )}
-      <ClientWeekStrip dayOffset={dayOffset} onSelect={onSelectDay} heading={dayHeading} dotFor={weekDot} dark={dark} />
-      {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
+      <HomeWeekStrip dark={dark} dayOffset={dayOffset} onSelect={onSelectDay} heading={dayHeading} dotFor={weekDot} dateForOffset={dateForOffset} localDateKey={localDateKey} />
       {isToday && feedbackReady && (
         <button
           type="button"
           onClick={onWatchFeedback}
           data-testid="home-feedback-ready"
-          className={`mx-2.5 w-[calc(100%-1.25rem)] flex items-center gap-3 rounded-2xl px-4 py-3 border text-left ${dark ? "border-white/8" : "border-black/8"}`}
+          className={`mx-3.5 w-[calc(100%-1.25rem)] flex items-center gap-3 rounded-2xl px-4 py-3 border text-left ${dark ? "border-white/8" : "border-black/8"}`}
           style={clientGlass(dark)}
         >
           <Play size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} fill={MEASURE_BLUE} />
@@ -1478,23 +1463,32 @@ export function HomeScreen({
           </span>
         </button>
       )}
-      <ClientSessionHero
+      {(() => {
         // #276: today's card is the workout in progress, whichever day it was for.
-        session={isToday && workoutInProgress && runningSession ? runningSession : daySession}
-        subtitle={phaseLabel}
-        activeLog={activeLog}
-        onStart={onStartWorkout}
-        onDiscard={onDiscardWorkout}
-        onView={onViewWorkout}
-        isToday={isToday}
-        completedOnDate={completedOnDate && !(isToday && workoutInProgress)}
-        isPastDate={dayOffset < 0}
-        dbReady={dbReady}
-        dark={dark}
-      />
+        const session = isToday && workoutInProgress && runningSession ? runningSession : daySession;
+        const done = completedOnDate && !(isToday && workoutInProgress);
+        const started = isToday && !!activeLog && !done;
+        return (
+          <HomeWorkoutCard
+            session={session}
+            exercises={session ? countExercises(session.exercises) : 0}
+            minutes={session ? estimateWorkoutMinutes(session.exercises || []) : 0}
+            label={done ? "Completed" : isToday ? (session?.wod ? "Workout of the day" : "Today's workout") : dayOffset < 0 ? "Past workout" : "Upcoming workout"}
+            started={started}
+            done={done}
+            canStart={isToday && !done}
+            isPastDate={dayOffset < 0}
+            onStart={onStartWorkout}
+            onView={onViewWorkout}
+            onDiscard={onDiscardWorkout}
+            dbReady={dbReady}
+            dark={dark}
+          />
+        );
+      })()}
       {isToday && bodyStatsDueToday && (
         // Train Solo's day-plan row (#248): the check-in right under the session.
-        <div className="px-2.5">
+        <div className="px-3.5">
           <button
             type="button"
             onClick={onLogWeight}
@@ -1511,11 +1505,33 @@ export function HomeScreen({
           </button>
         </div>
       )}
-      <NutritionSummaryCard nutrition={dayNutrition} targets={targets} onLogFood={onLogFood} onLogWater={onLogWater} onGoToday={() => onSelectDay(0)} isToday={isToday} />
+      <HomeNutritionCard
+        dark={dark}
+        nutrition={dayNutrition || DEFAULT_NUTRITION}
+        targets={targets}
+        dayLabel={isToday ? "Today" : selectedDate.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })}
+        isToday={isToday}
+        onOpenNutrition={onLogFood}
+        onLogWater={onLogWater}
+        overColor={OVER_RED}
+      />
+      <HomeQuickTiles
+        dark={dark}
+        onLogWorkout={() => onOpenTab("workouts")}
+        onLogNutrition={onLogNutrition || onLogFood}
+        onProgress={() => onOpenTab("progress")}
+        onLogCardio={() => setCardioOpen(true)}
+      />
+      {isToday && <HomeFocusBanner dark={dark} focus={focus} onOpen={() => onOpenTab(focus?.kind === "protein" ? "nutrition" : "workouts")} />}
+      {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       <CardioLogCard logs={cardioLogs} onDelete={onDeleteCardio} onUpdate={onUpdateCardio} />
       {dayOffset < 0 && onLogCardio && (
-        <div className="mx-2.5 px-1">
+        <div className="mx-3.5 px-1">
           <TrainingActionRow icon={Footprints} label="Log a cardio session" onClick={() => setCardioOpen(true)} />
+        </div>
+      )}
+      {/* #279: the "Log Cardio" tile and a past day's row open the same sheet. */}
+      {onLogCardio && (
           <LogCardioSheet
             open={cardioOpen}
             onClose={() => setCardioOpen(false)}
@@ -1524,7 +1540,6 @@ export function HomeScreen({
               setCardioOpen(false);
             }}
           />
-        </div>
       )}
       <DailyHabitsCard
         habits={habits}
@@ -3908,7 +3923,7 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast, todayLabel =
     return (
       <div className="flex flex-col gap-3.5">
         {header}
-        <p className={`mx-2.5 px-1 text-[13px] ${dark ? "text-white/70" : "text-black/60"}`}>No training program set up yet — your coach will assign one soon.</p>
+        <p className={`mx-3.5 px-1 text-[13px] ${dark ? "text-white/70" : "text-black/60"}`}>No training program set up yet — your coach will assign one soon.</p>
       </div>
     );
   }
@@ -3966,13 +3981,13 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast, todayLabel =
     .slice(0, 3);
 
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-4">
       {header}
       <TrainingPhaseCard phase={phase} isCurrent={phase.id === current?.id} completion={completion} todayKey={todayStr} onPhases={() => setHistoryOpen(true)} dark={dark} />
 
-      <section aria-label="Workouts in this phase" className="mx-2.5 flex flex-col gap-2" data-testid="training-phase-workouts">
-        <div className="flex items-baseline justify-between px-0.5">
-          <h3 className={`text-[10px] font-bold tracking-[0.16em] uppercase ${dark ? "text-white/80" : "text-black/75"}`}>Workouts in this phase</h3>
+      <section aria-label="Workouts in this phase" className="mx-3.5 rounded-[22px] px-4 pt-3 pb-2 flex flex-col" style={clientLook(dark).card} data-testid="training-phase-workouts">
+        <div className="flex items-baseline justify-between pb-2 border-b" style={{ borderColor: clientLook(dark).line }}>
+          <h3 className={`text-[13px] font-semibold ${dark ? "text-white" : "text-black"}`}>Workouts in this phase</h3>
           {days.length > 0 && <span className={`text-[10px] font-semibold tabular-nums ${dark ? "text-white/60" : "text-black/55"}`}>{String(days.length).padStart(2, "0")}</span>}
         </div>
         {days.length === 0 ? (
@@ -3993,9 +4008,9 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast, todayLabel =
       </section>
 
       {upNext.length > 0 && (
-        <section aria-label="Up next" className="mx-2.5 flex flex-col gap-2" data-testid="training-up-next">
-          <div className="flex items-baseline justify-between px-0.5">
-            <h3 className={`text-[10px] font-bold tracking-[0.16em] uppercase ${dark ? "text-white/80" : "text-black/75"}`}>Up next</h3>
+        <section aria-label="Up next" className="mx-3.5 rounded-[22px] px-4 pt-3 pb-2 flex flex-col" style={clientLook(dark).card} data-testid="training-up-next">
+          <div className="flex items-baseline justify-between pb-2 border-b" style={{ borderColor: clientLook(dark).line }}>
+            <h3 className={`text-[13px] font-semibold ${dark ? "text-white" : "text-black"}`}>Up next</h3>
             <span className={`text-[10px] font-medium ${dark ? "text-white/50" : "text-black/45"}`}>From your calendar</span>
           </div>
           {upNext.map((w) => (
@@ -4086,7 +4101,6 @@ export function WorkoutsScreen({ runningSession = null, todaySession: scheduledT
   // #276: Today shows the workout in progress, whichever day it was for.
   const todaySession = runningSession || scheduledToday;
   const { db, currentUser, viewingAsClient, saveScheduledWorkout, deleteScheduledWorkoutById } = useApp();
-  const [tab, setTab] = useState("today");
   const [cardioOpen, setCardioOpen] = useState(false);
   // Coach-only (View as Client): build a one-off "workout of the day" or
   // edit/move today's scheduled workout. Saved as an ordinary scheduled
@@ -4165,52 +4179,37 @@ export function WorkoutsScreen({ runningSession = null, todaySession: scheduledT
   }
 
   const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
-  // The current phase's "x/y workouts" for the Today card's figures.
-  const phaseProgress = useMemo(() => {
-    const cur = getCurrentPhase((db.clientPhases || {})[currentUser.id] || [], todayStr);
-    if (!cur) return null;
-    return computePhaseCompletion(db.workoutLogs?.[currentUser.id] || [], (db.scheduledWorkouts || {})[currentUser.id] || [], cur.startDate, cur.endDate);
-  }, [db.clientPhases, db.workoutLogs, db.scheduledWorkouts, currentUser.id, todayStr]);
-  // #271 (owner): only the APEX mark at the top (TabHeader's title is
-  // screen-reader only), then the glass Today/Program switch.
+  // #279 (owner): no Today tab any more — Training is "Your Program" only,
+  // built like Home: the top bar, a Home-style heading, the program. Log a
+  // cardio session and View as Client's coach actions sit under it.
+  const L = clientLook(dark);
   const header = (
     <div>
-      <TabHeader label={tab === "program" ? `${currentUser.name}'s Program` : "Training"} dark={dark} />
-      <TrainingSwitch tab={tab} onChange={setTab} dark={dark} />
+      <TabHeader label="Your Program" dark={dark} />
+      <div className="px-3.5 mt-1" data-testid="training-heading">
+        <p className="text-[9px] font-semibold tracking-[0.22em] uppercase" style={{ color: L.ink }}>
+          Training
+        </p>
+        <p className="text-[31px] leading-none py-[2px] font-extrabold tracking-[-0.03em]" style={{ color: L.ink }}>
+          Your Program
+        </p>
+      </div>
     </div>
   );
   return (
     <TrainingBackdrop dark={dark}>
-    <div className="pb-28">
-      {tab === "today" && (
-        <div className="flex flex-col gap-3.5">
-          {header}
-          <TrainingWeekStrip todayKey={todayStr} dark={dark} />
-          <TrainingTodayCard
-            todaySession={todaySession}
-            activeLog={activeLog}
-            onStart={onStart}
-            onDiscard={onDiscardWorkout}
-            onView={onViewWorkout}
-            completedOnDate={completedOnDate}
-            dbReady={dbReady}
-            phaseProgress={phaseProgress}
-            dark={dark}
-          />
-          <div className={`relative mx-2.5 px-1 border-t ${dark ? "border-white/[0.14]" : "border-black/10"}`} data-testid="training-actions">
-            {canEditToday && (
-              <>
-                <TrainingActionRow icon={Edit3} label="Edit / move" onClick={() => editScheduled(todayScheduledEntry)} />
-                <TrainingActionRow icon={X} label="Remove" onClick={() => setWodRemoveOpen(true)} />
-              </>
-            )}
-            {viewingAsClient && <TrainingActionRow icon={Plus} label="Create workout of the day" accent onClick={() => setWodPickerOpen(true)} />}
-            <TrainingActionRow icon={Footprints} label="Log a cardio session" onClick={() => setCardioOpen(true)} />
-          </div>
-        </div>
-      )}
-
-      {tab === "program" && <ClientProgramTab header={header} onPreviewDay={onPreviewWorkout} showToast={showToast} todayLabel={todaySession?.label || null} />}
+    <div className="pb-28 flex flex-col gap-4">
+      <ClientProgramTab header={header} onPreviewDay={onPreviewWorkout} showToast={showToast} todayLabel={todaySession?.label || null} />
+      <div className="mx-3.5 rounded-[22px] px-4" style={{ ...L.card, color: L.ink }} data-testid="training-actions">
+        {canEditToday && (
+          <>
+            <TrainingActionRow icon={Edit3} label="Edit / move today's workout" onClick={() => editScheduled(todayScheduledEntry)} />
+            <TrainingActionRow icon={X} label="Remove today's workout" onClick={() => setWodRemoveOpen(true)} />
+          </>
+        )}
+        {viewingAsClient && <TrainingActionRow icon={Plus} label="Create workout of the day" accent onClick={() => setWodPickerOpen(true)} />}
+        <TrainingActionRow icon={Footprints} label="Log a cardio session" onClick={() => setCardioOpen(true)} />
+      </div>
 
       {viewingAsClient && (
         <>
@@ -5468,6 +5467,7 @@ export function NutritionScreen({
   onDeleteSavedMeal,
   recentFoods,
   showToast,
+  openAddFoodKey = 0,
 }) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal, createFood } = useApp();
@@ -5578,6 +5578,13 @@ export function NutritionScreen({
     setSessionAdds([]);
     setAddPageOpen(true);
   }
+  // Home's "Log Nutrition" tile (#279): open Add Food on the meal for now.
+  useEffect(() => {
+    if (!openAddFoodKey) return;
+    const h = new Date().getHours();
+    openAddPage(h < 11 ? "Breakfast" : h < 16 ? "Lunch" : h < 21 ? "Dinner" : "Snacks");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openAddFoodKey]);
 
   // Logs straight from a row's + on the Add Food page: a recent food at the
   // amount it was last logged, or a search result at its default serving.
@@ -9335,7 +9342,8 @@ export function useClientStatusBar(dark) {
     try {
       window.webkit?.messageHandlers?.apexTheme?.postMessage({ dark: !!dark, edgeToEdge: false });
     } catch {}
-    const colour = dark ? CLIENT_DARK_BG : "#FFFFFF";
+    // #279: the top of the new page (light streak / near-black).
+    const colour = dark ? clientLook(true).page : "#F4F4F6";
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", colour);
     document.body.style.backgroundColor = colour;
   }, [dark]);
@@ -9471,6 +9479,8 @@ export default function ClientApp() {
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
   const [notifOpen, setNotifOpen] = useState(false);
   const [autoOpenWeighIn, setAutoOpenWeighIn] = useState(0);
+  // Home's "Log Nutrition" tile opens the Add Food page straight away (#279).
+  const [openAddFoodKey, setOpenAddFoodKey] = useState(0);
   // Apple Health (iPhone app only) — never while a coach is viewing as
   // this client, so the coach's own phone can't sync into their records.
   useAppleHealthSync("coached", { db: firestore, metrics: "bodyMetrics", weighIns: "weighIns", owner: "clientId", uid: currentUser.id }, !viewingAsClient);
@@ -9767,6 +9777,11 @@ export default function ClientApp() {
   const completedToday = isDateActuallyCompleted(todayDateKey, logsForClient);
   const todaySession = completedToday ? sessionForDate(todayDateKey, logsForClient) : scheduledToSession(scheduledWorkoutsByDate[todayDateKey]);
   const nutritionLogsForClient = db.nutritionLogs[currentUser.id] || EMPTY_LIST;
+  // #279 Home: the day streak and this week's focus, from the client's own logs.
+  const homeStreak = useMemo(
+    () => (dbReady ? dayStreak({ workoutLogs: logsForClient, nutritionLogs: nutritionLogsForClient, todayKey: todayDateKey }).days : null),
+    [dbReady, logsForClient, nutritionLogsForClient, todayDateKey]
+  );
   const nutritionByDateKey = useMemo(
     () => Object.fromEntries(nutritionLogsForClient.map((n) => [n.date, n])),
     [nutritionLogsForClient]
@@ -10432,7 +10447,9 @@ export default function ClientApp() {
   return (
     <ClientThemeContext.Provider value={dark}>
     <CardSurfaceContext.Provider value={dark ? CLIENT_GLASS_DARK : CLIENT_GLASS_LIGHT}>
-    <div className={`w-full h-full min-h-screen font-sans flex justify-center ${dark ? "bg-[#090909]" : "bg-white"}`}>
+    <ClientChromeContext.Provider value={{ notifCount: notificationItems.length, onOpenNotifications: () => setNotifOpen(true), onOpenProfile: () => setTab("profile") }}>
+    {/* #279: the owner's mock-up page — soft grey with a light streak (light), near-black (dark). */}
+    <div className="w-full h-full min-h-screen font-sans flex justify-center" style={{ backgroundColor: clientLook(dark).page, backgroundImage: clientLook(dark).pageImage, backgroundAttachment: "fixed" }} data-testid="client-page">
       <div className="w-full max-w-md relative">
         {viewingAsClient && (
           <div className="sticky top-0 z-[70] bg-blue-600 text-white flex items-center justify-between gap-2 px-4 py-2 pt-safe">
@@ -10520,6 +10537,19 @@ export default function ClientApp() {
             feedbackReady={unwatchedFeedback}
             onWatchFeedback={() => unwatchedFeedback && watchFeedback(unwatchedFeedback.id)}
             weekDot={(key) => (isDateActuallyCompleted(key, logsForClient) ? "done" : scheduledWorkoutsByDate[key] ? "planned" : null)}
+            streak={homeStreak}
+            focus={dbReady ? weekFocus({
+              nutritionLogs: nutritionLogsForClient,
+              proteinTarget: currentUser.nutritionTargets?.calories ? targets.protein : 0,
+              scheduledKeys: Object.keys(scheduledWorkoutsByDate),
+              doneKeys: new Set(Object.keys(scheduledWorkoutsByDate).filter((k) => isDateActuallyCompleted(k, logsForClient))),
+              todayKey: todayDateKey,
+            }) : null}
+            onOpenTab={setTab}
+            onLogNutrition={() => {
+              setTab("nutrition");
+              setOpenAddFoodKey((n) => n + 1);
+            }}
             phaseLabel={(() => {
               const ph = getCurrentPhase(clientPhasesForReview, localDateKey(new Date()));
               if (!ph) return "";
@@ -10568,6 +10598,7 @@ export default function ClientApp() {
             onDeleteSavedMeal={(mealId) => deleteSavedMeal(currentUser.id, mealId)}
             recentFoods={recentFoods}
             showToast={showToast}
+            openAddFoodKey={openAddFoodKey}
           />
         )}
         {tab === "checkins" && <CheckInsScreen userId={currentUser.id} showToast={showToast} openFeedbackId={openFeedbackId} onFeedbackOpened={clearOpenFeedback} />}
@@ -10685,42 +10716,11 @@ export default function ClientApp() {
           <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />
         )}
 
-        {/* Promoted to its own GPU layer (translateZ(0)) — otherwise this
-            fixed bar visibly lags behind during a fast scroll in the iOS App
-            Store build's bare WKWebView instead of staying pinned, since
-            WebKit repaints it as part of the normal scroll pipeline rather
-            than compositing it independently every frame. */}
-        <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50" style={{ transform: "translateZ(0)" }}>
-          {/* Train Solo's tab bar (#251): glass docked to the bottom edge,
-              capital labels, a lit blue dot under the current tab. */}
-          <div
-            className="w-full flex backdrop-blur-xl border-t"
-            // Tighter to the bottom of the phone (#278, owner: "big gap"):
-            // the home-bar inset less 14px (the bar's own spacing already
-            // keeps the labels clear of the home indicator), never under 6px.
-            style={{ paddingBottom: "max(6px, calc(env(safe-area-inset-bottom, 0px) - 14px))", backgroundColor: dark ? "rgba(10,10,10,0.82)" : "rgba(255,255,255,0.78)", borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(20,19,15,0.07)" }}
-            data-testid="client-tab-bar"
-          >
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const active = tab === t.id;
-              const on = dark ? "#FFFFFF" : "#14130F";
-              const off = dark ? "rgba(255,255,255,0.35)" : "rgba(20,19,15,0.35)";
-              return (
-                <button key={t.id} onClick={() => setTab(t.id)} aria-current={active ? "page" : undefined} className="flex-1 h-[54px] flex flex-col items-center justify-center gap-1 relative">
-                  <Icon size={19} color={active ? on : off} strokeWidth={active ? 2.2 : 1.8} style={active && dark ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.7))" } : undefined} />
-                  <span className="text-[8.5px] font-bold uppercase tracking-[0.1em] leading-none" style={{ color: active ? on : off }}>
-                    {t.label}
-                  </span>
-                  <span className="w-1 h-1 rounded-full" style={{ background: active ? "#2F8FFF" : "transparent", boxShadow: active ? "0 0 8px #2F8FFF" : "none" }} />
-                  {t.id === "profile" && dueCheckInsCount > 0 && (
-                    <span className={`absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full ${dark ? "bg-white" : "bg-black"}`} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* #279 (owner's mock-up): a floating glass tab bar, sentence-case
+            labels, the current tab solid black (white in dark) with a dot.
+            Its own GPU layer so it stays pinned while scrolling in the
+            iPhone app; close to the bottom of the phone (#278). */}
+        <ClientTabBar dark={dark} tabs={TABS} tab={tab} onSelect={setTab} badgeFor={(id) => id === "profile" && dueCheckInsCount > 0} />
         </>
         )}
 
@@ -10849,6 +10849,7 @@ export default function ClientApp() {
         <Toast dark={dark} message={toast.message} show={toast.show} tone={toast.tone} />
       </div>
     </div>
+    </ClientChromeContext.Provider>
     </CardSurfaceContext.Provider>
     </ClientThemeContext.Provider>
   );

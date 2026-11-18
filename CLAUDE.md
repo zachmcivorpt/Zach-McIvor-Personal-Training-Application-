@@ -48,7 +48,18 @@ rather than inventing new colors per screen:
   buried in small print.
 - Photography used sparingly, not as filler.
 
-### Coached client Home and Training (Concept A, approved 2026-10-28)
+### Coached client app look (#279, owner's mock-up 2026-11-18 — "exactly the same")
+
+- Tokens in `src/client/clientLook.js` (`clientLook(dark)`): grey page (#EEEEF0 with a soft light streak; dark #070708), see-through white glass cards (charcoal in dark), black ink and black accents, MEASURE_BLUE only as dots/outlines for "now". Parts in `src/client/ClientLook.jsx`. 14px gutters (`px-3.5`/`mx-3.5`).
+- **Every tab's TabHeader** is `ClientTopBar`: the APEX mark only (NO "APEX" wordmark, owner), bell (red dot when notifications are waiting) and profile buttons, wired through `ClientChromeContext`.
+- **Home order and sizes match the mock-up** (measured against it at 390pt): greeting ("GOOD MORNING", first name, a thin bar, "Stronger than yesterday." — no emoji) + the 156×54 day-streak card (the mock-up's flame, `dayStreak`: workout or food logged, counts from yesterday until today has something; opens Progress); the week strip (done = black tick, training day = BLUE dot, chosen day = black circle with a blue outline, no heading/arrows on screen, swipe for another week); the workout card on `public/brand/home-workout.jpg` (cut from the mock-up) with Start / Resume, View Plan; Nutrition (ring, macros with black bars and dividers, water +250ml / +500ml); four small tiles — Log Workout, Log Nutrition (opens Add Food), View Progress, Log Cardio (opens the cardio sheet); "Your Focus This Week" (`weekFocus`, own data only) on `focus-mountain.jpg`; then notifications prompt, Daily Execution (one glass card like Nutrition), groups, challenges.
+- **Training is "Your Program" only** (owner, #279): no Today tab / switch / week strip. Top bar, a Home-style heading, the phase card, "Workouts in this phase" and "Up next" as glass cards with open rows (today's outlined blue), then one card of actions: Log a cardio session (everyone) and View as Client's coach rows (Edit / move, Remove today's workout, Create workout of the day). Keep `trainingButtons273.test.jsx` passing.
+- Tab bar: floating glass (`ClientTabBar`), 6 tabs (Calendar kept), 51px buttons, the home-bar inset less 14px (min 6px, #278).
+- Status-bar strip follows Appearance (#277): #F4F4F6 light / #070708 dark (`useClientStatusBar`); `NativeStatusBarSync` skips `/app`.
+- Rules that still hold: a workout in progress shows on Home's card whatever day it was for (#276); Nutrition's Today / My Meal Guide switch (#260); Daily Execution open on the page is replaced by its card (#279); avoid a title that changes length over a backdrop-filter card (#111).
+- Supersedes the #248/#249/#251/#256/#259/#271 Train-Solo-look rules for the coached client's Home, Training and tab bar. Progress and Profile content rules (#252, #253, #255) still apply inside the new chrome.
+
+### Coached client: earlier rules (Concept A, 2026-10-28) — where they clash with #279 above (Home, Training tab, tab bar, header, greeting, status-bar colour), #279 wins; Progress, Profile, Nutrition and pop-up rules here still apply
 
 - Black-and-white gym photography (`public/brand/gym-dark.jpg`,
   `workout-1..4.jpg`): Home's workout card only. The Training tab has no

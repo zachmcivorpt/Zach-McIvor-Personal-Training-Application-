@@ -54,17 +54,17 @@ afterEach(() => {
 });
 
 describe("client tab bar sits close to the bottom of the phone (#278)", () => {
-  it("54px buttons and a trimmed home-bar inset, not 64px + the full inset", async () => {
+  it("51px buttons and a trimmed home-bar inset, not 64px + the full inset", async () => {
     setup();
     const { default: ClientApp } = await import("./ClientApp");
     render(<ClientApp />);
     const bar = await screen.findByTestId("client-tab-bar");
     expect(bar.className).not.toMatch(/\bpb-safe\b/);
-    expect(bar.style.paddingBottom).toMatch(/^max\(6px,.*14px.*safe-area-inset-bottom|^max\(6px,.*safe-area-inset-bottom.*14px/);
+    expect(bar.parentElement.style.paddingBottom).toMatch(/^max\(6px,.*14px.*safe-area-inset-bottom|^max\(6px,.*safe-area-inset-bottom.*14px/);
     const buttons = bar.querySelectorAll("button");
     expect(buttons.length).toBe(6);
     buttons.forEach((b) => {
-      expect(b.className).toMatch(/h-\[54px\]/);
+      expect(b.className).toMatch(/h-\[51px\]/); // #279 floating bar, mock-up size
       expect(b.className).not.toMatch(/\bh-16\b/);
     });
   });

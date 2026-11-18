@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // #273 (owner: "make sure all buttons work on these two pages"): every
-// button on the client Training tab's Today and Program views, clicked in
+// button on the client Training tab (Your Program only since #279), clicked in
 // the real WorkoutsScreen with real-shaped data, as View as Client (which
 // shows every coach row) and as a real client.
 import React from "react";
@@ -93,37 +93,7 @@ async function renderTraining(over = {}, dark = false) {
   return props;
 }
 
-const card = () => screen.getByTestId("training-today-card");
-
-describe("Training tab — Today buttons (#273)", () => {
-  it("Start Workout and the eye (View) do what they say", async () => {
-    setup();
-    const p = await renderTraining();
-    fireEvent.click(within(card()).getByText("START WORKOUT"));
-    expect(p.onStart).toHaveBeenCalledTimes(1);
-    fireEvent.click(within(card()).getByLabelText("View workout"));
-    expect(p.onViewWorkout).toHaveBeenCalledTimes(1);
-  });
-
-  it("a started workout says Resume, and discard asks once before it discards", async () => {
-    setup();
-    const p = await renderTraining({ activeLog: { e1: [{ completed: true }, { completed: false }] } });
-    expect(within(card()).getByText("RESUME WORKOUT")).toBeTruthy();
-    expect(card().textContent).toMatch(/1\/2 sets/);
-    fireEvent.click(within(card()).getByText(/discard progress/));
-    expect(p.onDiscardWorkout).not.toHaveBeenCalled();
-    fireEvent.click(within(card()).getByText(/Tap again to discard/));
-    expect(p.onDiscardWorkout).toHaveBeenCalledTimes(1);
-  });
-
-  it("a completed day shows VIEW, which opens the workout", async () => {
-    setup();
-    const p = await renderTraining({ completedOnDate: true });
-    expect(within(card()).queryByText("START WORKOUT")).toBeNull();
-    fireEvent.click(within(card()).getByText("VIEW"));
-    expect(p.onViewWorkout).toHaveBeenCalledTimes(1);
-  });
-
+describe("Training tab — action rows (#273, #279)", () => {
   it("Edit / move opens today's workout in the editor and Save goes to the calendar save", async () => {
     setup();
     const p = await renderTraining();
@@ -139,7 +109,7 @@ describe("Training tab — Today buttons (#273)", () => {
   it("Remove asks first; Cancel keeps it, Remove deletes today's entry", async () => {
     setup();
     const p = await renderTraining();
-    const row = () => within(screen.getByTestId("training-actions")).getByRole("button", { name: /^Remove$/ });
+    const row = () => within(screen.getByTestId("training-actions")).getByRole("button", { name: /^Remove today's workout$/ });
     fireEvent.click(row());
     expect(await screen.findByText("Remove today's workout?")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -187,17 +157,18 @@ describe("Training tab — Today buttons (#273)", () => {
 
 describe("Training tab — Program buttons (#273)", () => {
   async function openProgram(over, dark) {
-    const p = await renderTraining(over, dark);
-    fireEvent.click(screen.getByRole("button", { name: /^program$/i }));
-    return p;
+    // #279: Training is "Your Program" only — no Today / Program switch.
+    return renderTraining(over, dark);
   }
 
-  it("the switch goes to Program and back to Today", async () => {
+  it("#279: opens straight on Your Program — no Today tab, no switch", async () => {
     setup();
     await openProgram();
     expect(screen.getByTestId("training-phase-card")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /^today$/i }));
-    expect(screen.getByTestId("training-today-card")).toBeTruthy();
+    expect(screen.getByTestId("training-heading").textContent).toMatch(/Your Program/);
+    expect(screen.queryByTestId("training-switch")).toBeNull();
+    expect(screen.queryByTestId("training-today-card")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^today$/i })).toBeNull();
   });
 
   it("each workout row and each Up next row opens that workout", async () => {

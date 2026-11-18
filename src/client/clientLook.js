@@ -1,0 +1,89 @@
+// The coached client app's look (#279, owner's mock-up 2026-11-18): soft
+// grey page, white frosted-glass cards, black type and black accents in
+// light mode; black page, charcoal glass and white accents in dark mode.
+// Pure helpers only — the parts that use them are in ClientLook.jsx. Every
+// figure here comes from the client's own logs; date maths take the
+// `todayKey` given (#210).
+import { localDateKey } from "../lib/dateKey";
+import { hasFoodLogged } from "../lib/nutritionLog";
+
+export function clientLook(dark) {
+  return dark
+    ? {
+        dark: true,
+        page: "#070708",
+        pageImage: "radial-gradient(120% 60% at 100% 0%, rgba(255,255,255,0.05), transparent 60%)",
+        card: { backgroundColor: "rgba(30,30,32,0.48)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 18px 40px -26px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" },
+        tile: { backgroundColor: "rgba(36,36,38,0.48)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" },
+        ink: "#FFFFFF",
+        onInk: "#0A0A0B",
+        muted: "rgba(255,255,255,0.6)",
+        faint: "rgba(255,255,255,0.35)",
+        track: "rgba(255,255,255,0.12)",
+        line: "rgba(255,255,255,0.08)",
+      }
+    : {
+        dark: false,
+        page: "#EEEEF0",
+        // A soft diagonal light streak across the top, as in the mock-up.
+        pageImage:
+          "linear-gradient(115deg, transparent 0%, transparent 52%, rgba(255,255,255,0.75) 58%, transparent 66%), radial-gradient(90% 50% at 0% 0%, #FAFAFB, transparent 70%), linear-gradient(180deg, #F4F4F6 0%, #E9E9EC 100%)",
+        card: { backgroundColor: "rgba(255,255,255,0.46)", border: "1px solid rgba(255,255,255,0.95)", boxShadow: "0 16px 36px -22px rgba(20,20,30,0.28), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" },
+        tile: { backgroundColor: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.95)", boxShadow: "0 12px 26px -18px rgba(20,20,30,0.3), inset 0 1px 0 rgba(255,255,255,0.9)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" },
+        ink: "#0A0A0B",
+        onInk: "#FFFFFF",
+        muted: "rgba(10,10,11,0.55)",
+        faint: "rgba(10,10,11,0.32)",
+        track: "rgba(10,10,11,0.1)",
+        line: "rgba(10,10,11,0.07)",
+      };
+}
+
+export function greetingFor(hour) {
+  return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+}
+
+function addDays(key, n) {
+  const [y, m, d] = key.split("-").map(Number);
+  const dt = new Date(y, m - 1, d, 12);
+  dt.setDate(dt.getDate() + n);
+  return localDateKey(dt);
+}
+
+// Days in a row with something logged — a workout (any, cardio too) or
+// food. Counts back from today; if today has nothing yet the streak still
+// stands from yesterday (the day isn't over).
+export function dayStreak({ workoutLogs, nutritionLogs, todayKey }) {
+  const active = new Set();
+  (workoutLogs || []).forEach((l) => l?.date && active.add(localDateKey(new Date(l.date))));
+  (nutritionLogs || []).forEach((n) => hasFoodLogged(n) && active.add(n.date));
+  let k = active.has(todayKey) ? todayKey : addDays(todayKey, -1);
+  let n = 0;
+  while (active.has(k)) {
+    n += 1;
+    k = addDays(k, -1);
+  }
+  return { days: n, today: active.has(todayKey) };
+}
+
+// One focus line for the week, from the client's own week so far (Monday →
+// today): protein days missed with days still left, else training sessions
+// still to do. Null when there's nothing true to say.
+export function weekFocus({ nutritionLogs, proteinTarget, scheduledKeys = [], doneKeys = new Set(), todayKey }) {
+  const [y, m, d] = todayKey.split("-").map(Number);
+  const dow = (new Date(y, m - 1, d, 12).getDay() + 6) % 7; // 0 = Monday
+  const monday = addDays(todayKey, -dow);
+  const daysLeft = 7 - dow; // today included
+  const byDate = Object.fromEntries((nutritionLogs || []).map((n) => [n.date, n]));
+  const past = Array.from({ length: dow }, (_, i) => addDays(monday, i));
+  if (proteinTarget > 0 && dow > 0) {
+    const hits = past.filter((k) => hasFoodLogged(byDate[k]) && (Number(byDate[k].protein) || 0) >= proteinTarget * 0.9).length;
+    if (hits < dow) {
+      return { kind: "protein", text: `Hit your protein goal ${daysLeft} more day${daysLeft === 1 ? "" : "s"} this week.` };
+    }
+  }
+  const sunday = addDays(monday, 6);
+  const left = [...new Set(scheduledKeys)].filter((k) => k >= todayKey && k <= sunday && !doneKeys.has(k)).length;
+  if (left > 0) return { kind: "training", text: `${left} training session${left === 1 ? "" : "s"} left this week — keep it going.` };
+  return null;
+}

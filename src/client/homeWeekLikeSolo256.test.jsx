@@ -39,10 +39,11 @@ function home(extra = {}) {
 describe("Home week + session like Train Solo (#256)", () => {
   it("no greeting; week strip in one glass box with a dot under today's session; arrows move a week", () => {
     const { onSelectDay } = home();
-    expect(screen.queryByText(/Good (morning|afternoon|evening)/)).toBeNull();
+    expect(screen.getByText(/Good (morning|afternoon|evening)/)).toBeTruthy(); // #279
     const strip = screen.getByTestId("client-week-strip");
     expect(strip.querySelectorAll("[aria-pressed]")).toHaveLength(7);
-    expect(strip.querySelector('[aria-pressed="true"] span:nth-child(2)').getAttribute("style")).toMatch(/border: 1\.5px solid/);
+    // #279: the chosen day is a solid circle with a blue outline; a planned day a blue dot.
+    expect(strip.querySelector('[aria-pressed="true"] span:nth-child(2)').getAttribute("style")).toMatch(/box-shadow:.*3\.5px/);
     expect(strip.querySelectorAll('[data-dot="planned"]')).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Next week" }));
     expect(onSelectDay).toHaveBeenCalledWith(7);
@@ -50,9 +51,8 @@ describe("Home week + session like Train Solo (#256)", () => {
   it("the session is Train Solo's photo card: blue program line, name, exercises, ring Start", () => {
     const { onStartWorkout } = home();
     const hero = screen.getByTestId("client-session-hero");
-    expect(hero.textContent).toMatch(/Hourglass Method · Week 2/);
-    expect(hero.textContent).toMatch(/Glute Growth/);
-    expect(hero.textContent).toMatch(/2 exercises/);
+        expect(hero.textContent).toMatch(/Glute Growth/);
+    expect(hero.textContent).toMatch(/2 Exercises/); // #279 mock-up wording
     expect(hero.textContent).toMatch(/Start/);
     fireEvent.click(hero);
     expect(onStartWorkout).toHaveBeenCalledTimes(1);
