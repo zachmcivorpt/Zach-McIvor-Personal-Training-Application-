@@ -34,7 +34,7 @@ export function ClientTopBar({ dark }) {
   const L = clientLook(dark);
   const { notifCount, onOpenNotifications, onOpenProfile } = useContext(ClientChromeContext);
   return (
-    <div className="flex items-center justify-between px-3.5 pt-2" data-testid="client-top-bar">
+    <div className="flex items-center justify-between px-2.5 pt-2" data-testid="client-top-bar">
       <div className="flex items-center gap-3">
         <img src={dark ? SOLO_MARK_WHITE : SOLO_MARK_BLACK} alt="APEX" data-testid="client-tab-logo" className="block w-auto" style={{ height: 27, ...(dark ? {} : { mixBlendMode: "multiply" }) }} />
       </div>
@@ -59,7 +59,7 @@ export function ClientTopBar({ dark }) {
 export function HomeGreeting({ dark, greeting, firstName, streak, onStreak }) {
   const L = clientLook(dark);
   return (
-    <div className="px-3.5 -mt-1.5 flex items-stretch gap-3" data-testid="home-greeting-row">
+    <div className="px-2.5 -mt-1.5 flex items-stretch gap-3" data-testid="home-greeting-row">
       <div className="flex-1 min-w-0">
         <p className="text-[9px] font-semibold tracking-[0.22em] uppercase" style={{ color: L.ink }} data-testid="home-greeting">
           {greeting}
@@ -98,7 +98,7 @@ export function HomeWeekStrip({ dark, dayOffset, onSelect, heading, dotFor, date
   const offsets = Array.from({ length: 7 }, (_, i) => mondayOffset + i);
   const swipe = useRef(null);
   return (
-    <div className="px-3.5" data-testid="client-week-strip">
+    <div className="px-2.5" data-testid="client-week-strip">
       {/* The mock-up has no heading or arrows: the day is said for screen
           readers, and a sideways swipe on the strip changes week. */}
       <p className="sr-only" data-testid="home-day-heading">
@@ -166,7 +166,7 @@ export function HomeWorkoutCard({ session, minutes, exercises, label, started, d
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   if (!session) {
     return (
-      <div className="mx-3.5 rounded-[28px] px-5 py-7" style={{ ...L.card, color: L.ink }} data-testid="client-session-hero">
+      <div className="mx-2.5 rounded-[28px] px-5 py-7" style={{ ...L.card, color: L.ink }} data-testid="client-session-hero">
         <p className="text-[20px] font-bold">{dbReady ? "Rest day" : "Loading your schedule…"}</p>
         {dbReady && (
           <p className="text-[13px] mt-1" style={{ color: L.muted }}>
@@ -179,7 +179,7 @@ export function HomeWorkoutCard({ session, minutes, exercises, label, started, d
   const primary = canStart ? onStart : onView;
   const primaryLabel = canStart ? (started ? "Resume Workout" : "Start Workout") : done ? "View Workout" : isPastDate ? "View Workout" : "View Workout";
   return (
-    <div className="mx-3.5">
+    <div className="mx-2.5">
       {/* The whole card does the main action too (as before #279); its two
           buttons do their own and don't bubble. */}
       <div role="button" tabIndex={0} onClick={primary} onKeyDown={(e) => e.key === "Enter" && primary()} className="relative overflow-hidden rounded-[22px] text-white cursor-pointer" style={{ minHeight: 158, boxShadow: "0 22px 40px -24px rgba(0,0,0,0.6)" }} data-testid="client-session-hero">
@@ -249,7 +249,7 @@ export function HomeNutritionCard({ dark, nutrition, targets, dayLabel, isToday,
     { label: "Fat", value: r1(nutrition.fat), target: targets.fat },
   ];
   return (
-    <div className="mx-3.5 rounded-[22px] px-4 pt-2 pb-1.5" style={{ ...L.card, color: L.ink }} data-testid="home-nutrition">
+    <div className="mx-2.5 rounded-[22px] px-4 pt-2 pb-1.5" style={{ ...L.card, color: L.ink }} data-testid="home-nutrition">
       <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: L.line }}>
         <span className="flex items-center gap-2.5 text-[13px] font-semibold">
           <Utensils size={17} /> Nutrition
@@ -324,7 +324,7 @@ export function HomeQuickTiles({ dark, onLogWorkout, onLogNutrition, onProgress,
     { icon: Footprints, a: "Log", b: "Cardio", on: onLogCardio, id: "cardio" },
   ];
   return (
-    <div className="px-3.5 grid grid-cols-4 gap-2" data-testid="home-quick-tiles">
+    <div className="px-2.5 grid grid-cols-4 gap-2" data-testid="home-quick-tiles">
       {tiles.map((t) => (
         <button key={t.id} type="button" onClick={t.on} className={`rounded-[16px] pt-2.5 pb-2 px-1 flex flex-col items-center gap-1 ${TAP}`} style={{ ...L.tile, color: L.ink }} data-testid={`home-tile-${t.id}`}>
           <t.icon size={18} strokeWidth={1.8} />
@@ -345,7 +345,7 @@ export function HomeQuickTiles({ dark, onLogWorkout, onLogNutrition, onProgress,
 export function HomeFocusBanner({ dark, focus, onOpen }) {
   if (!focus) return null;
   return (
-    <div className="px-3.5">
+    <div className="px-2.5">
       <button type="button" onClick={onOpen} className={`relative w-full overflow-hidden rounded-[18px] text-left text-white ${TAP}`} style={{ backgroundColor: "#0B0B0C", border: dark ? "1px solid rgba(255,255,255,0.08)" : "none", boxShadow: "0 16px 30px -20px rgba(0,0,0,0.6)" }} data-testid="home-focus">
         <img src="/brand/focus-mountain.jpg" alt="" aria-hidden="true" className="absolute right-0 top-0 h-full w-[62%] object-cover object-right" />
         <span aria-hidden="true" className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0B0B0C 0%, #0B0B0C 38%, rgba(11,11,12,0.6) 60%, rgba(11,11,12,0) 80%)" }} />

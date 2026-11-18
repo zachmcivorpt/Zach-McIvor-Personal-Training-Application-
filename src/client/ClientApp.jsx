@@ -919,7 +919,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
   // title with the count on the right, a rule, then the habits.
   const L = clientLook(dark);
   return (
-    <div className="mx-3.5 rounded-[22px] px-4 pt-3 pb-1.5" style={{ ...L.card, color: L.ink }} data-testid="home-daily-execution">
+    <div className="mx-2.5 rounded-[22px] px-4 pt-3 pb-1.5" style={{ ...L.card, color: L.ink }} data-testid="home-daily-execution">
       <div className="flex items-center justify-between gap-3 pb-2 border-b" style={{ borderColor: L.line }}>
         <span className="flex items-center gap-2.5 text-[13px] font-semibold">
           <ListChecks size={17} /> Daily Execution
@@ -972,7 +972,7 @@ function ActiveChallengesCard({ challenges, userId }) {
   if (active.length === 0) return null;
 
   return (
-    <div className="px-3.5 space-y-2.5">
+    <div className="px-2.5 space-y-2.5">
       {active.map((c) => {
         const snapshot = c.leaderboardSnapshot || [];
         const mine = snapshot.find((r) => r.clientId === userId);
@@ -1018,7 +1018,7 @@ function ClientGroupsCard({ groups, onOpen }) {
   if (groups.length === 0) return null;
 
   return (
-    <div className="px-3.5 space-y-2.5">
+    <div className="px-2.5 space-y-2.5">
       {groups.map((g) => {
         const memberCount = (g.memberIds || []).length;
         return (
@@ -1266,7 +1266,7 @@ export function NotificationsPromptCard({ userId, showToast }) {
   }
 
   return (
-    <div className="mx-3.5 flex items-center gap-3 rounded-[18px] px-4 py-2.5" style={clientLook(dark).card}>
+    <div className="mx-2.5 flex items-center gap-3 rounded-[18px] px-4 py-2.5" style={clientLook(dark).card}>
       <BellRing size={15} className={`shrink-0 ${dark ? "text-white" : "text-black"}`} />
       <p className={`flex-1 text-[11px] font-medium ${dark ? "text-white/65" : "text-black/65"}`}>
         Turn on notifications so you never miss a message from your coach
@@ -1274,7 +1274,7 @@ export function NotificationsPromptCard({ userId, showToast }) {
       <button
         onClick={enable}
         disabled={busy}
-        className={`text-[11px] font-semibold h-7 px-3.5 rounded-full shrink-0 disabled:opacity-50 ${dark ? "bg-white text-black" : "bg-black text-white"}`}
+        className={`text-[11px] font-semibold h-7 px-2.5 rounded-full shrink-0 disabled:opacity-50 ${dark ? "bg-white text-black" : "bg-black text-white"}`}
       >
         {busy ? "…" : "Enable"}
       </button>
@@ -1426,7 +1426,7 @@ export function HomeScreen({
       </div>
       <HomeGreeting dark={dark} greeting={greetingFor(new Date().getHours())} firstName={(user?.name || "").split(" ")[0]} streak={streak} onStreak={() => onOpenTab("progress")} />
       {hasReview && (
-        <div className="px-3.5">
+        <div className="px-2.5">
           <button
             type="button"
             onClick={() => setReviewOpen(true)}
@@ -1453,7 +1453,7 @@ export function HomeScreen({
           type="button"
           onClick={onWatchFeedback}
           data-testid="home-feedback-ready"
-          className={`mx-3.5 w-[calc(100%-1.25rem)] flex items-center gap-3 rounded-2xl px-4 py-3 border text-left ${dark ? "border-white/8" : "border-black/8"}`}
+          className={`mx-2.5 w-[calc(100%-1.25rem)] flex items-center gap-3 rounded-2xl px-4 py-3 border text-left ${dark ? "border-white/8" : "border-black/8"}`}
           style={clientGlass(dark)}
         >
           <Play size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} fill={MEASURE_BLUE} />
@@ -1490,7 +1490,7 @@ export function HomeScreen({
       })()}
       {isToday && bodyStatsDueToday && (
         // Train Solo's day-plan row (#248): the check-in right under the session.
-        <div className="px-3.5">
+        <div className="px-2.5">
           <button
             type="button"
             onClick={onLogWeight}
@@ -3922,7 +3922,7 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast, todayLabel =
     return (
       <div className="flex flex-col gap-3.5">
         {header}
-        <p className={`mx-3.5 px-1 text-[13px] ${dark ? "text-white/70" : "text-black/60"}`}>No training program set up yet — your coach will assign one soon.</p>
+        <p className={`mx-2.5 px-1 text-[13px] ${dark ? "text-white/70" : "text-black/60"}`}>No training program set up yet — your coach will assign one soon.</p>
       </div>
     );
   }
@@ -3984,7 +3984,7 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast, todayLabel =
       {header}
       <TrainingPhaseCard phase={phase} isCurrent={phase.id === current?.id} completion={completion} todayKey={todayStr} onPhases={() => setHistoryOpen(true)} dark={dark} />
 
-      <section aria-label="Workouts in this phase" className="mx-3.5 rounded-[22px] px-4 pt-3 pb-2 flex flex-col" style={clientLook(dark).card} data-testid="training-phase-workouts">
+      <section aria-label="Workouts in this phase" className="mx-2.5 rounded-[22px] px-4 pt-3 pb-2 flex flex-col" style={clientLook(dark).card} data-testid="training-phase-workouts">
         <div className="flex items-baseline justify-between pb-2 border-b" style={{ borderColor: clientLook(dark).line }}>
           <h3 className={`text-[13px] font-semibold ${dark ? "text-white" : "text-black"}`}>Workouts in this phase</h3>
           {days.length > 0 && <span className={`text-[10px] font-semibold tabular-nums ${dark ? "text-white/60" : "text-black/55"}`}>{String(days.length).padStart(2, "0")}</span>}
@@ -4007,7 +4007,7 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast, todayLabel =
       </section>
 
       {upNext.length > 0 && (
-        <section aria-label="Up next" className="mx-3.5 rounded-[22px] px-4 pt-3 pb-2 flex flex-col" style={clientLook(dark).card} data-testid="training-up-next">
+        <section aria-label="Up next" className="mx-2.5 rounded-[22px] px-4 pt-3 pb-2 flex flex-col" style={clientLook(dark).card} data-testid="training-up-next">
           <div className="flex items-baseline justify-between pb-2 border-b" style={{ borderColor: clientLook(dark).line }}>
             <h3 className={`text-[13px] font-semibold ${dark ? "text-white" : "text-black"}`}>Up next</h3>
             <span className={`text-[10px] font-medium ${dark ? "text-white/50" : "text-black/45"}`}>From your calendar</span>
@@ -4185,7 +4185,7 @@ export function WorkoutsScreen({ runningSession = null, todaySession: scheduledT
   const header = (
     <div>
       <TabHeader label="Your Program" dark={dark} />
-      <div className="px-3.5 mt-1" data-testid="training-heading">
+      <div className="px-2.5 mt-1" data-testid="training-heading">
         <p className="text-[9px] font-semibold tracking-[0.22em] uppercase" style={{ color: L.ink }}>
           Training
         </p>
@@ -4199,7 +4199,7 @@ export function WorkoutsScreen({ runningSession = null, todaySession: scheduledT
     <TrainingBackdrop dark={dark}>
     <div className="pb-28 flex flex-col gap-4">
       <ClientProgramTab header={header} onPreviewDay={onPreviewWorkout} showToast={showToast} todayLabel={todaySession?.label || null} />
-      <div className="mx-3.5 rounded-[22px] px-4" style={{ ...L.card, color: L.ink }} data-testid="training-actions">
+      <div className="mx-2.5 rounded-[22px] px-4" style={{ ...L.card, color: L.ink }} data-testid="training-actions">
         {canEditToday && (
           <>
             <TrainingActionRow icon={Edit3} label="Edit / move today's workout" onClick={() => editScheduled(todayScheduledEntry)} />
@@ -4216,7 +4216,7 @@ export function WorkoutsScreen({ runningSession = null, todaySession: scheduledT
             <div className="space-y-2 max-h-[65vh] overflow-y-auto">
               <button
                 onClick={() => startWod(null)}
-                className={`w-full flex items-center gap-3 border rounded-xl px-3.5 py-3 text-left transition-colors ${dark ? "bg-blue-500/10 border-blue-400/30" : "bg-blue-50 hover:bg-blue-100 border-blue-100"}`}
+                className={`w-full flex items-center gap-3 border rounded-xl px-2.5 py-3 text-left transition-colors ${dark ? "bg-blue-500/10 border-blue-400/30" : "bg-blue-50 hover:bg-blue-100 border-blue-100"}`}
               >
                 <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
                   <Plus size={16} className="text-white" />
@@ -4233,7 +4233,7 @@ export function WorkoutsScreen({ runningSession = null, todaySession: scheduledT
                 <button
                   key={w.id}
                   onClick={() => startWod(w)}
-                  className={`w-full flex items-center gap-3 border rounded-xl px-3.5 py-3 text-left transition-colors ${dark ? "bg-white/[0.04] border-white/10" : "bg-black/[0.03] hover:bg-black/[0.06] border-black/8"}`}
+                  className={`w-full flex items-center gap-3 border rounded-xl px-2.5 py-3 text-left transition-colors ${dark ? "bg-white/[0.04] border-white/10" : "bg-black/[0.03] hover:bg-black/[0.06] border-black/8"}`}
                 >
                   <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
                     <Dumbbell size={15} className="text-blue-500" />

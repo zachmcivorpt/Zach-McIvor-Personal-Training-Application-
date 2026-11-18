@@ -3926,6 +3926,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `src/client/calendarEveryDay287.test.jsx` renders the real ClientCalendarScreen with workouts on Thu 19 and Sun 22: the list is 19, 20, 21, 22 with 20 and 21 as rest days. Fails on the old code ("19, 22"). Full suite passes.
 - **Date**: 2026-11-18
 
+### 288. Client Home a little wider (owner, 2026-11-18)
+
+- **Change**: Home's side margins go from 14px to 10px (top bar, greeting, week strip, workout card, Nutrition, tiles, focus, notifications prompt, Daily Execution, groups, challenges). Your Program uses the same 10px so the logo and cards line up across tabs. A rest-day row on Home that used `mx-3.5` with a 20px width allowance now fits exactly (`mx-2.5`).
+- **Check**: before/after screenshots at 390pt; full suite passes (layout only, no logic change).
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

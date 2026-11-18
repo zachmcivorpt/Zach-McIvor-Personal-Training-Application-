@@ -236,7 +236,7 @@ export function TrainingPhaseCard({ phase, isCurrent, completion, todayKey, onPh
   const showWeeks = weeks && weeks.count >= 1 && weeks.count <= 12;
   const left = completion && completion.expected > 0 ? Math.max(0, completion.expected - completion.completed) : null;
   return (
-    <section className="relative mx-3.5 rounded-[22px] p-4 flex flex-col gap-4" style={trainingGlass(dark)} aria-label="Current phase" data-testid="training-phase-card">
+    <section className="relative mx-2.5 rounded-[22px] p-4 flex flex-col gap-4" style={trainingGlass(dark)} aria-label="Current phase" data-testid="training-phase-card">
       <button
         type="button"
         onClick={onPhases}
