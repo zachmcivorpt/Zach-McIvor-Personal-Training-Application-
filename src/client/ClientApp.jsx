@@ -1375,6 +1375,8 @@ export function CardioLogCard({ logs, onDelete, onUpdate }) {
 
 export function HomeScreen({
   user,
+  workoutInProgress = false,
+  runningSession = null,
   onDeleteCardio,
   onUpdateCardio,
   todaySession,
@@ -1477,14 +1479,15 @@ export function HomeScreen({
         </button>
       )}
       <ClientSessionHero
-        session={daySession}
+        // #276: today's card is the workout in progress, whichever day it was for.
+        session={isToday && workoutInProgress && runningSession ? runningSession : daySession}
         subtitle={phaseLabel}
         activeLog={activeLog}
         onStart={onStartWorkout}
         onDiscard={onDiscardWorkout}
         onView={onViewWorkout}
         isToday={isToday}
-        completedOnDate={completedOnDate}
+        completedOnDate={completedOnDate && !(isToday && workoutInProgress)}
         isPastDate={dayOffset < 0}
         dbReady={dbReady}
         dark={dark}
@@ -4078,8 +4081,10 @@ function TrainingActionRow({ icon: Icon, label, onClick, accent = false }) {
   );
 }
 
-export function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsByDate, activeLog, completedOnDate, onStart, onDiscardWorkout, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
+export function WorkoutsScreen({ runningSession = null, todaySession: scheduledToday, todayScheduledEntry, scheduledWorkoutsByDate, activeLog, completedOnDate, onStart, onDiscardWorkout, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
   const dark = useClientDark();
+  // #276: Today shows the workout in progress, whichever day it was for.
+  const todaySession = runningSession || scheduledToday;
   const { db, currentUser, viewingAsClient, saveScheduledWorkout, deleteScheduledWorkoutById } = useApp();
   const [tab, setTab] = useState("today");
   const [cardioOpen, setCardioOpen] = useState(false);
@@ -9892,6 +9897,11 @@ export default function ClientApp() {
   );
 
   function startWorkout(session = todaySession) {
+    // #276: a workout in progress is NEVER replaced or wiped by a Start /
+    // Resume tap anywhere (Home's card handed in a fresh copy of the day's
+    // session, so `session !== todaySession` cleared every logged set).
+    // Only Complete or Discard ends it; any start reopens it.
+    if (reopenWorkoutInProgress(session)) return;
     if (!session) return;
     // Starting a different day's workout than whatever's currently tracked
     // (e.g. picking Friday's plan from the calendar while today's session
@@ -9905,6 +9915,16 @@ export default function ClientApp() {
     setPreStartOpen(true);
   }
 
+  // #276: the open workout (any day's, started from anywhere) wins over
+  // every Start / Resume / Continue: it's reopened as it is.
+  function reopenWorkoutInProgress(session) {
+    if (!runningSession || !activeLog) return false;
+    setPreStartOpen(false);
+    setSessionOpen(true);
+    if (session?.label && session.label !== runningSession.label) showToast(`Finish or discard ${runningSession.label || "your workout"} first`);
+    return true;
+  }
+
   // Re-opens a workout that's already been logged today (most often an
   // accidental tap on Save mid-session) so the client can keep adding sets
   // or fix numbers instead of being locked out for the rest of the day.
@@ -9914,6 +9934,7 @@ export default function ClientApp() {
   // already logged so nothing already entered is lost. finishWorkout() sees
   // editingLogId set and updates this same log instead of creating a new one.
   function continueCompletedWorkout(session, dateKey = todayDateKey) {
+    if (reopenWorkoutInProgress(session)) return; // #276
     if (!session?.workoutLogId) return;
     // scheduledWorkoutsByDate only ever keeps ONE entry per date (last one
     // wins), so on a day with more than one scheduled workout it can easily
@@ -10429,6 +10450,8 @@ export default function ClientApp() {
             todaySession={todaySession}
             activeLog={activeLog}
             onStartWorkout={() => startWorkout(daySession)}
+            workoutInProgress={!!(runningSession && activeLog)}
+            runningSession={runningSession}
             onDiscardWorkout={discardActiveSession}
             onViewWorkout={() => openPreview(daySession, !completedOnDate, isToday && completedOnDate)}
             dayNutrition={dayNutrition}
@@ -10488,7 +10511,8 @@ export default function ClientApp() {
             todayScheduledEntry={scheduledWorkoutsByDate[todayDateKey] || null}
             scheduledWorkoutsByDate={scheduledWorkoutsByDate}
             activeLog={activeLog}
-            completedOnDate={completedToday}
+            completedOnDate={completedToday && !(runningSession && activeLog)}
+            runningSession={runningSession && activeLog ? runningSession : null}
             onStart={() => startWorkout()}
             onDiscardWorkout={discardActiveSession}
             onViewWorkout={() => openPreview(todaySession, !completedToday, completedToday)}
