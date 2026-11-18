@@ -51,11 +51,19 @@ rather than inventing new colors per screen:
 ### Coached client Home and Training (Concept A, approved 2026-10-28)
 
 - Black-and-white gym photography (`public/brand/gym-dark.jpg`,
-  `workout-1..4.jpg`): Home's workout card, and the Training tab's photo
-  header (`TrainingPhotoHero`) with today's workout or the current phase
-  in white on it. The photo fades into the page colour at the top (the
-  app's top bar is white) and the bottom; the page header and
-  Today/Program switch sit on the plain page above it.
+  `workout-1..4.jpg`): Home's workout card only. The Training tab has no
+  photo any more (#271).
+- **Training tab is glass** (#271, owner-approved mock-up 2026-11-18;
+  replaces the photo header): `src/client/TrainingGlass.jsx` +
+  `trainingGlass.js`. Logo only at the top (TabHeader), glass Today/Program
+  switch; Today = this week (today ringed blue), today's workout on one
+  glass card, then the open action rows; Program = glass phase card (blue
+  ring, week bars, this week blue, Phases in its corner) and numbered glass
+  workout rows (today's outlined blue + TODAY tag). Blue only on what is
+  "now". Light mode (the main mode) has soft grey glows behind the glass;
+  dark mode is plain black — no grey/silver glows (owner). Small type, the
+  app's own font. A real client sees only "Log a cardio session"; every
+  coach action stays View as Client only.
 - Lists are open rows with thin dividers (a darker top rule), not cards.
 - **Reads like Train Solo** (#248, owner):
   - Every tab's `TabHeader` is Train Solo's: Train Solo's own mark (`SOLO_MARK_*`, never the uploaded logo, #251) centred (26px, #249), no visible title, with a tight gap to the greeting. The tab bar is Train Solo's (capital labels, blue dot, #251).
@@ -69,8 +77,6 @@ rather than inventing new colors per screen:
 - Daily Execution is open on the page; Nutrition is a solid card (no
   glass). Avoid a title that changes length over a backdrop-filter
   card: iOS WebKit can leave the new text half-drawn (#111).
-- Content placed after `TrainingPhotoHero` must be `relative`, or the
-  photo's bottom fade paints over it.
 
 ### Coach Overview (approved 2026-10-28)
 

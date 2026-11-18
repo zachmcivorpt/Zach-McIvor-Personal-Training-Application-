@@ -179,6 +179,8 @@ import { planPhaseSwap } from "./phaseSwap";
 import { SOLO_MARK_WHITE, SOLO_MARK_BLACK } from "../solo/soloMark";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet, NutritionPage } from "./NutritionFeatures";
 import { AddFoodPage } from "./AddFoodPage";
+import { TrainingBackdrop, TrainingSwitch, TrainingWeekStrip, TrainingTodayCard, TrainingPhaseCard, TrainingWorkoutRow } from "./TrainingGlass";
+import { trainingGlass } from "./trainingGlass";
 import { buildCorrectedFood } from "../lib/barcodeLookup";
 import { AFCD_FOODS } from "../lib/afcdFoods";
 import {
@@ -3885,7 +3887,7 @@ function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId,
 // Read-only mirror of the coach's own Training Program view — same phase
 // (name/dates/description) + workout-list structure, just without any
 // edit/add/schedule controls, which stay coach-only.
-function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
+function ClientProgramTab({ header = null, onPreviewDay, showToast, todayLabel = null }) {
   const dark = useClientDark();
   const { db, currentUser, viewingAsClient, updateClientPhase } = useApp();
   const phases = (db.clientPhases || {})[currentUser.id] || [];
@@ -3901,10 +3903,10 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
 
   if (phases.length === 0) {
     return (
-      <TrainingPhotoHero>
+      <div className="flex flex-col gap-3.5">
         {header}
-        <p className="mx-2.5 px-1 pt-[76px] text-white/80 text-sm">No training program set up yet — your coach will assign one soon.</p>
-      </TrainingPhotoHero>
+        <p className={`mx-2.5 px-1 text-[13px] ${dark ? "text-white/70" : "text-black/60"}`}>No training program set up yet — your coach will assign one soon.</p>
+      </div>
     );
   }
 
@@ -3961,100 +3963,36 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
     .slice(0, 3);
 
   return (
-    <div className="space-y-4">
-      <TrainingPhotoHero>
-        {header}
-        <div className="mx-2.5 px-1 pt-[76px]">
-          <div className="flex items-center justify-between gap-2">
-            {phase.id === current?.id ? (
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-white">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: MEASURE_BLUE }} />
-                Current
-              </span>
-            ) : (
-              <span />
-            )}
-            <button
-              onClick={() => setHistoryOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold h-[30px] px-2.5 rounded-[10px] text-white active:scale-[0.96] transition-transform"
-              style={{ backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
-            >
-              <Calendar size={12} /> Phases
-            </button>
-          </div>
-          <h2 className="text-white text-xl font-semibold tracking-[-0.02em] truncate mt-2.5">{phase.name}</h2>
-          <p className="text-white/70 text-[13px] mt-0.5">
-            {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-            {phase.endDate
-              ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-              : ""}
-          </p>
-          {phase.description && <p className="text-white/75 text-sm leading-relaxed whitespace-pre-line mt-3">{phase.description}</p>}
-          <div className="flex items-baseline justify-between mt-5 mb-2">
-            <p className="text-white/75 text-[13px]">Program phase completion</p>
-            <p className="text-white text-xl font-semibold tracking-[-0.02em] tabular-nums">{completion.pct != null ? `${completion.pct}%` : "—"}</p>
-          </div>
-          <div className="h-[3px] rounded-full overflow-hidden bg-white/20">
-            <div className="h-full rounded-full transition-all flex justify-end bg-white" style={{ width: `${completion.pct ?? 0}%` }}>
-              <span className="w-[3px] h-full" style={{ backgroundColor: MEASURE_BLUE }} />
-            </div>
-          </div>
-          <p className="text-white/65 text-xs mt-2">
-            {completion.expected > 0
-              ? `${completion.completed} of ${completion.expected} scheduled workouts completed`
-              : "No workouts scheduled yet in this phase"}
-          </p>
-        </div>
-      </TrainingPhotoHero>
+    <div className="flex flex-col gap-3.5">
+      {header}
+      <TrainingPhaseCard phase={phase} isCurrent={phase.id === current?.id} completion={completion} todayKey={todayStr} onPhases={() => setHistoryOpen(true)} dark={dark} />
 
-      <div className="relative mx-2.5 px-1 pt-10">
-        <h3 className={`text-[17px] font-semibold tracking-[-0.01em] mb-2 ${dark ? "text-white" : "text-black"}`}>Workouts in this phase</h3>
+      <section aria-label="Workouts in this phase" className="mx-2.5 flex flex-col gap-2" data-testid="training-phase-workouts">
+        <div className="flex items-baseline justify-between px-0.5">
+          <h3 className={`text-[10px] font-bold tracking-[0.16em] uppercase ${dark ? "text-white/80" : "text-black/75"}`}>Workouts in this phase</h3>
+          {days.length > 0 && <span className={`text-[10px] font-semibold tabular-nums ${dark ? "text-white/60" : "text-black/55"}`}>{String(days.length).padStart(2, "0")}</span>}
+        </div>
         {days.length === 0 ? (
-          <p className={`text-sm py-6 border-t ${dark ? "text-white/40 border-white/20" : "text-black/40 border-black"}`}>No workouts added to this phase yet.</p>
+          <p className={`text-[12px] py-4 ${dark ? "text-white/50" : "text-black/50"}`}>No workouts added to this phase yet.</p>
         ) : (
-          <div className={`border-t ${dark ? "border-white/20" : "border-black"}`}>
-            {days.map((d, i) => (
-              <button
-                key={d.id || i}
-                onClick={() => onPreviewDay(d)}
-                className={`w-full text-left flex items-center gap-3.5 min-h-[72px] py-2.5 border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
-              >
-                {/* A workout without its own photo gets one of the stock
-                    gym photos, so the list reads as one set. */}
-                <img
-                  src={d.photoUrl || `/brand/workout-${(i % 4) + 1}.jpg`}
-                  alt=""
-                  className={`w-[52px] h-[52px] rounded-xl object-cover shrink-0 grayscale ${dark ? "bg-white/5" : "bg-black/5"}`}
-                  draggable={false}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className={`text-[15px] font-semibold tracking-[-0.01em] truncate ${dark ? "text-white" : "text-black"}`}>{d.label}</p>
-                  <p className={`text-[13px] mt-0.5 truncate ${dark ? "text-white/55" : "text-black/55"}`}>
-                    est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
-                    {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
-                  </p>
-                </div>
-                <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
-              </button>
-            ))}
-          </div>
+          days.map((d, i) => <TrainingWorkoutRow key={d.id || i} index={i} day={d} isToday={!!todayLabel && phase.id === current?.id && d.label === todayLabel} onClick={() => onPreviewDay(d)} dark={dark} />)
         )}
         {viewingAsClient && (
-          <div className="flex items-center gap-5 mt-3">
-            <button onClick={addWorkout} className={`flex items-center gap-1.5 text-[13px] font-semibold ${dark ? "text-blue-400" : "text-blue-600"}`}>
-              <Plus size={14} /> Add new workout
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
+            <button onClick={addWorkout} className={`h-10 rounded-[14px] border border-dashed flex items-center justify-center gap-1.5 text-[10px] font-semibold tracking-[0.12em] ${dark ? "border-white/30 text-white" : "border-black/25 text-black"}`}>
+              <Plus size={14} /> ADD WORKOUT
             </button>
-            <button onClick={() => setLibraryPickerOpen(true)} className={`flex items-center gap-1.5 text-[13px] font-semibold ${dark ? "text-blue-400" : "text-blue-600"}`}>
-              <Upload size={14} /> Import
+            <button onClick={() => setLibraryPickerOpen(true)} className={`h-10 rounded-[14px] border border-dashed flex items-center justify-center gap-1.5 text-[10px] font-semibold tracking-[0.12em] ${dark ? "border-white/30 text-white" : "border-black/25 text-black"}`}>
+              <Upload size={14} /> IMPORT
             </button>
           </div>
         )}
-      </div>
+      </section>
 
       {upNext.length > 0 && (
-        <div className="relative mx-2.5 px-1 pt-6">
+        <div className="relative mx-2.5 px-1 pt-2">
           <div className="flex items-baseline justify-between mb-2">
-            <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${dark ? "text-white" : "text-black"}`}>Up next</h3>
+            <h3 className={`text-[10px] font-bold tracking-[0.16em] uppercase ${dark ? "text-white/80" : "text-black/75"}`}>Up next</h3>
             <span className={`text-xs ${dark ? "text-white/40" : "text-black/40"}`}>From your calendar</span>
           </div>
           <div className={`border-t ${dark ? "border-white/20" : "border-black"}`}>
@@ -4140,51 +4078,26 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
   );
 }
 
-// Training tab's top section: a black-and-white gym photo behind the
-// header and whatever sits under it (today's workout or the current
-// phase), darkened behind the text and fading into the page at the bottom.
-function TrainingPhotoHero({ children }) {
-  const dark = useClientDark();
-  const pageBg = dark ? CLIENT_DARK_BG : "#FFFFFF";
-  return (
-    <div className="relative text-white">
-      <div className="absolute inset-x-0 top-0 -bottom-[70px] overflow-hidden pointer-events-none" aria-hidden="true">
-        <img src="/brand/gym-dark.jpg" alt="" className="w-full h-full object-cover" style={{ objectPosition: "50% 40%", filter: "brightness(0.78)" }} draggable={false} />
-        <div
-          className="absolute inset-0"
-          style={{ background: `linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.35) 28%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.35) 72%, ${dark ? "rgba(9,9,9,0.4)" : "rgba(255,255,255,0.4)"} 86%, ${pageBg} 100%)` }}
-        />
-        {/* Fades the top into the page too, so the header and switch sit
-            on the plain page colour below the app's top bar. */}
-        <div
-          className="absolute inset-0"
-          style={{ background: `linear-gradient(180deg, ${pageBg} 0px, ${pageBg} 100px, ${dark ? "rgba(9,9,9,0)" : "rgba(255,255,255,0)"} 175px)` }}
-        />
-      </div>
-      <div className="relative pb-6">{children}</div>
-    </div>
-  );
-}
-
 // One tappable row in the Training tab's open lists (icon, label, chevron).
 function TrainingActionRow({ icon: Icon, label, onClick, accent = false }) {
+  // Glass icon tile (#271).
   const dark = useClientDark();
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-3.5 min-h-[60px] py-2 text-left border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
+      className={`w-full flex items-center gap-3.5 min-h-[60px] py-2 text-left border-b active:opacity-70 transition-opacity ${dark ? "border-white/[0.14]" : "border-black/10"}`}
     >
-      <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${dark ? "bg-white/[0.06]" : "bg-black/[0.04]"}`}>
+      <span className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={trainingGlass(dark)}>
         <Icon size={18} className={accent ? (dark ? "text-blue-400" : "text-blue-600") : dark ? "text-white/80" : "text-black/80"} />
       </span>
-      <span className={`flex-1 text-[15px] font-semibold ${accent ? (dark ? "text-blue-400" : "text-blue-600") : dark ? "text-white" : "text-black"}`}>{label}</span>
+      <span className={`flex-1 text-[14px] font-semibold ${accent ? (dark ? "text-blue-400" : "text-blue-600") : dark ? "text-white" : "text-black"}`}>{label}</span>
       <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
     </button>
   );
 }
 
-function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsByDate, activeLog, completedOnDate, onStart, onDiscardWorkout, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
+export function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsByDate, activeLog, completedOnDate, onStart, onDiscardWorkout, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, viewingAsClient, saveScheduledWorkout, deleteScheduledWorkoutById } = useApp();
   const [tab, setTab] = useState("today");
@@ -4266,46 +4179,39 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
   }
 
   const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
-  // Page name + Today/Program switch at the top of both tabs, on the plain
-  // page colour above where the gym photo fades in.
+  // The current phase's "x/y workouts" for the Today card's figures.
+  const phaseProgress = useMemo(() => {
+    const cur = getCurrentPhase((db.clientPhases || {})[currentUser.id] || [], todayStr);
+    if (!cur) return null;
+    return computePhaseCompletion(db.workoutLogs?.[currentUser.id] || [], (db.scheduledWorkouts || {})[currentUser.id] || [], cur.startDate, cur.endDate);
+  }, [db.clientPhases, db.workoutLogs, db.scheduledWorkouts, currentUser.id, todayStr]);
+  // #271 (owner): only the APEX mark at the top (TabHeader's title is
+  // screen-reader only), then the glass Today/Program switch.
   const header = (
-    <>
+    <div>
       <TabHeader label={tab === "program" ? `${currentUser.name}'s Program` : "Training"} dark={dark} />
-      <div className={`grid grid-cols-2 p-[3px] mx-2.5 mt-1 rounded-xl ${dark ? "bg-white/8" : "bg-black/5"}`}>
-        {["today", "program"].map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`py-2 rounded-[9px] text-[13.5px] capitalize text-center ${
-              tab === t ? "bg-white text-black font-semibold shadow-sm" : dark ? "text-white/60 font-medium" : "text-black/55 font-medium"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-    </>
+      <TrainingSwitch tab={tab} onChange={setTab} dark={dark} />
+    </div>
   );
   return (
+    <TrainingBackdrop dark={dark}>
     <div className="pb-28">
       {tab === "today" && (
-        <div>
-          <TrainingPhotoHero>
-            {header}
-            <TodayWorkoutCard
-              todaySession={todaySession}
-              activeLog={activeLog}
-              onStart={onStart}
-              onDiscard={onDiscardWorkout}
-              onView={onViewWorkout}
-              isToday
-              completedOnDate={completedOnDate}
-              dbReady={dbReady}
-              fullWidth
-              photo="bare"
-            />
-          </TrainingPhotoHero>
-          <div className={`relative mx-2.5 px-1 mt-14 border-t ${dark ? "border-white/20" : "border-black"}`}>
+        <div className="flex flex-col gap-3.5">
+          {header}
+          <TrainingWeekStrip todayKey={todayStr} dark={dark} />
+          <TrainingTodayCard
+            todaySession={todaySession}
+            activeLog={activeLog}
+            onStart={onStart}
+            onDiscard={onDiscardWorkout}
+            onView={onViewWorkout}
+            completedOnDate={completedOnDate}
+            dbReady={dbReady}
+            phaseProgress={phaseProgress}
+            dark={dark}
+          />
+          <div className={`relative mx-2.5 px-1 border-t ${dark ? "border-white/[0.14]" : "border-black/10"}`} data-testid="training-actions">
             {canEditToday && (
               <>
                 <TrainingActionRow icon={Edit3} label="Edit / move" onClick={() => editScheduled(todayScheduledEntry)} />
@@ -4318,7 +4224,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
         </div>
       )}
 
-      {tab === "program" && <ClientProgramTab header={header} onPreviewDay={onPreviewWorkout} showToast={showToast} />}
+      {tab === "program" && <ClientProgramTab header={header} onPreviewDay={onPreviewWorkout} showToast={showToast} todayLabel={todaySession?.label || null} />}
 
       {viewingAsClient && (
         <>
@@ -4409,6 +4315,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
         }}
       />
     </div>
+    </TrainingBackdrop>
   );
 }
 
