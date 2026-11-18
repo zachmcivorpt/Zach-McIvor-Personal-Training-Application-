@@ -6,7 +6,7 @@ import React, { createContext, useContext, useRef, useState } from "react";
 import { Bell, User, Flame, Dumbbell, Apple, BarChart3, CalendarDays, ChevronRight, ChevronDown, ArrowRight, Play, TrendingUp, Droplet, Utensils, Check, Minus, Home as HomeIcon, CheckCircle2, Footprints } from "lucide-react";
 import { SOLO_MARK_WHITE, SOLO_MARK_BLACK } from "../solo/soloMark";
 import { clientLook } from "./clientLook";
-import { MEASURE_BLUE } from "../theme";
+import { MEASURE_BLUE, GOAL_GREEN } from "../theme";
 
 // What the top bar's bell and profile buttons open, from ClientApp, so every
 // tab's header works without passing them down each screen.
@@ -238,6 +238,17 @@ function Ring({ value, max, size = 128, stroke = 7, dark, color }) {
   );
 }
 
+// A Home macro bar's colour (#294, #295, owner): protein and carbs are blue
+// until within 10% of target, then green; carbs (and fat) red past 10% over;
+// protein never red; fat otherwise black.
+export function macroBarColor(m, ink, overColor) {
+  const t = Number(m.target) || 0;
+  if (t <= 0) return ink;
+  if (m.capped && m.value > t * 1.1) return overColor;
+  if (m.label === "Protein" || m.label === "Carbs") return m.value >= t * 0.9 ? GOAL_GREEN : MEASURE_BLUE;
+  return ink;
+}
+
 // Calories as a ring, protein/carbs/fat with black bars, and water with +Log.
 export function HomeNutritionCard({ dark, nutrition, targets, dayLabel, isToday, onOpenNutrition, onLogWater, overColor }) {
   const L = clientLook(dark);
@@ -284,7 +295,7 @@ export function HomeNutritionCard({ dark, nutrition, targets, dayLabel, isToday,
                 / {m.target}g
               </p>
               <div className="h-[4px] rounded-full mt-1.5 overflow-hidden" style={{ backgroundColor: L.track }}>
-                <div className="h-full rounded-full" style={{ width: `${m.target > 0 ? Math.min(100, (m.value / m.target) * 100) : 0}%`, backgroundColor: m.capped && m.target > 0 && m.value > m.target * 1.1 ? overColor : L.ink }} data-testid={`home-macro-bar-${m.label.toLowerCase()}`} />
+                <div className="h-full rounded-full" style={{ width: `${m.target > 0 ? Math.min(100, (m.value / m.target) * 100) : 0}%`, backgroundColor: macroBarColor(m, L.ink, overColor) }} data-testid={`home-macro-bar-${m.label.toLowerCase()}`} />
               </div>
             </div>
           ))}

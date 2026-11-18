@@ -3974,6 +3974,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `clientLook279.test.jsx` — 2,755 / 2,400 kcal → red ring; fat 74.5 / 43 → red bar; carbs 306.7 / 323 not red; protein 200 / 180 not red; 1,678 / 2,400 → black ring. Fails on the old code (checked by reverting only ClientLook.jsx). Full suite passes.
 - **Date**: 2026-11-18
 
+### 295. Home Nutrition: protein and carbs bars blue, then green within 10% (owner, 2026-11-18)
+
+- **Change**: on Home's Nutrition card the protein and carbs bars are blue until within 10% of target (≥ 90%), then green. Carbs still turn red past 10% over (#294); protein never red; fat stays black until red past 10% over. One function, `macroBarColor` (`ClientLook.jsx`).
+- **Test**: `clientLook279.test.jsx`, worked by hand: protein 122.7/180 (68%) blue, 162/180 (90%) green, 250/180 green; carbs 201.8/323 blue, 306.7/323 green, 355/323 (≤110%) green, 356/323 red; fat 30/43 black, 74.5/43 red; no target → black. Fails on the old code (no such colours). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
