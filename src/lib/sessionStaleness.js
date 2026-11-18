@@ -23,16 +23,12 @@ export function isPersistedSessionStale(persisted, todayDateKey, now = Date.now(
   // or has any set entered is kept, whatever day it was started or for,
   // until the client Completes or Discards it.
   if (persisted.sessionOpen || hasEnteredSet(persisted.activeLog)) return false;
-  const savedAt = Number(persisted.savedAt);
-  if (Number.isFinite(savedAt) && savedAt > 0 && now - savedAt < ACTIVE_SESSION_GRACE_MS) return false;
-  if (persisted.startedOn) return persisted.startedOn !== todayDateKey;
-  // Snapshots written before #274 have no startedOn: keep an undated one
-  // (it can only be today's — it's re-stamped on the next save); a dated one
-  // keeps the old rule.
-  return !!persisted.runningSession.date && persisted.runningSession.date !== todayDateKey;
+  // #301: closed with no set entered = never started (opened and cancelled):
+  // nothing to lose, and it must not take over Home's card as "in progress".
+  return true;
 }
 
-function hasEnteredSet(activeLog) {
+export function hasEnteredSet(activeLog) {
   if (!activeLog || typeof activeLog !== "object") return false;
   return Object.values(activeLog).some(
     (sets) => Array.isArray(sets) && sets.some((x) => x && (x.completed || (x.reps !== "" && x.reps != null) || (x.weight !== "" && x.weight != null)))

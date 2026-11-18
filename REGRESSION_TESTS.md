@@ -4012,6 +4012,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Check**: before/after screenshots of Home and Nutrition (light) sent to the owner. `clientLook279.test.jsx`'s glass test still passes (see-through fill, sheen, rim, blur). Full suite passes.
 - **Date**: 2026-11-18
 
+### 301. Session doubled up on Home: Friday's workout showed as "Resume" over today's completed one (owner, 2026-11-18)
+
+- **Problem**: #276 counted a workout as "in progress" whenever it had been opened (`activeLog` = `{}`), even with nothing entered. Opening Friday's workout and leaving it, after finishing today's, made Home's today card switch to Friday's "Hypertrophy 1B" with **Resume Workout** and "Today's workout", over the completed one. The empty snapshot was also kept on the phone for good.
+- **Fix**: in progress now means at least one set entered (`hasEnteredSet`, `src/lib/sessionStaleness.js`): Home / Training cards and `reopenWorkoutInProgress` use it. **Cancel** on the live screen with nothing entered clears the workout (it was never started). A saved snapshot that's closed with nothing entered is dropped on load. Another day's workout that does have sets is still kept and shown, labelled **Workout in progress**, never "Today's workout". #276's rule is unchanged: a workout with sets is never lost.
+- **Tests**: `src/client/sessionGhost301.test.jsx` renders the REAL `ClientApp` with today completed. An empty Friday snapshot doesn't replace the completed card and is cleared. Cancel with nothing entered clears it. Friday WITH sets shows as "Workout in progress". All 3 fail on the code before this fix (checked by restoring it). `sessionNeverLost276`, `sessionReload274` and `sessionStaleness` tests were updated and still pass.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -149,7 +149,7 @@ import {
   suggestNextSet,
 } from "../lib/trainingStats";
 import { resolveNutritionTargets, MICRO_DV_ROWS } from "../lib/nutritionTargets";
-import { isPersistedSessionStale } from "../lib/sessionStaleness";
+import { hasEnteredSet, isPersistedSessionStale } from "../lib/sessionStaleness";
 import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
@@ -1475,7 +1475,7 @@ export function HomeScreen({
             session={session}
             exercises={session ? countExercises(session.exercises) : 0}
             minutes={session ? estimateWorkoutMinutes(session.exercises || []) : 0}
-            label={done ? "Completed" : isToday ? (session?.wod ? "Workout of the day" : "Today's workout") : dayOffset < 0 ? "Past workout" : "Upcoming workout"}
+            label={done ? "Completed" : session === runningSession && runningSession?.date !== daySession?.date ? "Workout in progress" : isToday ? (session?.wod ? "Workout of the day" : "Today's workout") : dayOffset < 0 ? "Past workout" : "Upcoming workout"}
             started={started}
             done={done}
             canStart={isToday && !done}
@@ -9958,7 +9958,9 @@ export default function ClientApp() {
   // #276: the open workout (any day's, started from anywhere) wins over
   // every Start / Resume / Continue: it's reopened as it is.
   function reopenWorkoutInProgress(session) {
-    if (!runningSession || !activeLog) return false;
+    // #301: in progress = at least one set entered. One opened and left
+    // with nothing in it was never started; a new Start replaces it.
+    if (!runningSession || !hasEnteredSet(activeLog)) return false;
     setPreStartOpen(false);
     setSessionOpen(true);
     if (session?.label && session.label !== runningSession.label) showToast(`Finish or discard ${runningSession.label || "your workout"} first`);
@@ -10492,7 +10494,7 @@ export default function ClientApp() {
             todaySession={todaySession}
             activeLog={activeLog}
             onStartWorkout={() => startWorkout(daySession)}
-            workoutInProgress={!!(runningSession && activeLog)}
+            workoutInProgress={!!(runningSession && hasEnteredSet(activeLog))}
             runningSession={runningSession}
             onDiscardWorkout={discardActiveSession}
             onViewWorkout={() => openPreview(daySession, !completedOnDate, isToday && completedOnDate)}
@@ -10565,8 +10567,8 @@ export default function ClientApp() {
             todayScheduledEntry={scheduledWorkoutsByDate[todayDateKey] || null}
             scheduledWorkoutsByDate={scheduledWorkoutsByDate}
             activeLog={activeLog}
-            completedOnDate={completedToday && !(runningSession && activeLog)}
-            runningSession={runningSession && activeLog ? runningSession : null}
+            completedOnDate={completedToday && !(runningSession && hasEnteredSet(activeLog))}
+            runningSession={runningSession && hasEnteredSet(activeLog) ? runningSession : null}
             onStart={() => startWorkout()}
             onDiscardWorkout={discardActiveSession}
             onViewWorkout={() => openPreview(todaySession, !completedToday, completedToday)}
@@ -10741,6 +10743,16 @@ export default function ClientApp() {
             onExit={() => {
               setSessionOpen(false);
               clearLiveSession(currentUser.id);
+              // #301: left with no set entered = never started; clear it so
+              // it can't sit on Home as "in progress" over today's workout.
+              if (!hasEnteredSet(activeLog)) {
+                watchEndReasonRef.current = "discarded";
+                setActiveLog(null);
+                setExerciseSwaps({});
+                setExtraExercises([]);
+                setEditingLogId(null);
+                setRunningSession(null);
+              }
             }}
             onSaveNote={(exerciseId, value) => saveExerciseNote(currentUser.id, exerciseId, value)}
             clientId={currentUser.id}
