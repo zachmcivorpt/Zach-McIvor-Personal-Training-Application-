@@ -11,8 +11,10 @@ describe("isPersistedSessionStale", () => {
   });
 
   it("does not flag a persisted session for today as stale", () => {
-    const persisted = { runningSession: { date: "2026-10-06" }, activeLog: {} };
+    const persisted = { runningSession: { date: "2026-10-06" }, activeLog: { "ex-1": [{ reps: 8, weight: 60 }] } };
     expect(isPersistedSessionStale(persisted, "2026-10-06")).toBe(false);
+    // #301: opened and closed with nothing entered was never started
+    expect(isPersistedSessionStale({ runningSession: { date: "2026-10-06" }, activeLog: {} }, "2026-10-06")).toBe(true);
   });
 
   it("is not stale when there is no persisted session at all", () => {
@@ -28,7 +30,7 @@ describe("isPersistedSessionStale", () => {
 describe("#275 a workout running past midnight", () => {
   const now = new Date("2026-11-19T00:30:00").getTime();
   it("keeps one started yesterday and saved 40 minutes ago", () => {
-    const persisted = { runningSession: { date: "2026-11-18" }, startedOn: "2026-11-18", savedAt: now - 40 * 60 * 1000 };
+    const persisted = { runningSession: { date: "2026-11-18" }, startedOn: "2026-11-18", savedAt: now - 40 * 60 * 1000, activeLog: { bench: [{ reps: 8, weight: 60 }] } };
     expect(isPersistedSessionStale(persisted, "2026-11-19", now)).toBe(false);
   });
   it("still drops an untouched (no sets, closed) one left from yesterday", () => {
