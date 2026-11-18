@@ -67,7 +67,7 @@ describe("client Home (#279)", () => {
     // #293: the label wraps onto two short lines inside the 156px card — a
     // one-line "sessions in a row" pushed "Keep it going" out of the card.
     const label = screen.getByTestId("home-streak-label");
-    expect(label.className).toMatch(/w-\[40px\]/);
+    expect(label.className).toMatch(/w-\[34px\]/);
     expect(label.className).not.toMatch(/whitespace-nowrap/);
     fireEvent.click(screen.getByTestId("home-streak"));
     expect(f.onOpenTab).toHaveBeenCalledWith("progress");

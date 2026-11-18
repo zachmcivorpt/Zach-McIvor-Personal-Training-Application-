@@ -72,18 +72,18 @@ export function HomeGreeting({ dark, greeting, firstName, streak, onStreak }) {
           Stronger than yesterday.
         </p>
       </div>
-      <button type="button" onClick={onStreak} className={`shrink-0 self-center rounded-[18px] w-[156px] h-[54px] pl-3 pr-2 flex items-center gap-1.5 text-left ${TAP}`} style={{ ...L.card, color: L.ink }} data-testid="home-streak">
-        <span className="shrink-0"><StreakFlame size={22} /></span>
+      <button type="button" onClick={onStreak} className={`shrink-0 self-center rounded-[16px] w-[132px] h-[46px] pl-2.5 pr-1.5 flex items-center gap-1 text-left ${TAP}`} style={{ ...L.card, color: L.ink }} data-testid="home-streak">
+        <span className="shrink-0"><StreakFlame size={17} /></span>
         <span>
-          <span className="block text-[19px] leading-none font-bold tabular-nums">{streak == null ? "–" : streak}</span>
+          <span className="block text-[15px] leading-none font-bold tabular-nums">{streak == null ? "–" : streak}</span>
           {/* #293: two short lines so "sessions in a row" stays inside the card. */}
-          <span className="block text-[8px] leading-[1.2] mt-0.5 w-[40px]" style={{ color: L.muted }} data-testid="home-streak-label">
+          <span className="block text-[7px] leading-[1.2] mt-0.5 w-[34px]" style={{ color: L.muted }} data-testid="home-streak-label">
             {streak === 1 ? "session in a row" : "sessions in a row"}
           </span>
         </span>
-        <span className="w-px h-[30px] mx-1.5 shrink-0" style={{ backgroundColor: L.faint }} />
-        <span className="text-[9px] leading-[1.25] font-medium w-[38px] shrink-0">
-          {streak ? "Keep it going" : "Start today"} <ArrowRight size={9} className="inline -mt-0.5" />
+        <span className="w-px h-[24px] mx-1 shrink-0" style={{ backgroundColor: L.faint }} />
+        <span className="text-[8px] leading-[1.25] font-medium w-[33px] shrink-0">
+          {streak ? "Keep it going" : "Start today"} <ArrowRight size={8} className="inline -mt-0.5" />
         </span>
       </button>
     </div>

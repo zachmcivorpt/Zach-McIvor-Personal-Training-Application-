@@ -3963,7 +3963,7 @@ each lights exactly that muscle's outline (screenshots in the session).
 ### 293. Home streak card: "Keep it going" pushed out of the card (owner, 2026-11-18)
 
 - **Problem**: since #290 the label reads "sessions in a row" on one line (`whitespace-nowrap`), which is wider than "day streak", so the 156px card overflowed and "Keep it going →" ran past its right edge.
-- **Fix**: the label wraps onto two short lines ("sessions / in a row", 40px wide) under the number; the card keeps the mock-up's 156×54.
+- **Fix**: the label wraps onto two short lines ("sessions / in a row") under the number. Then smaller on the owner's word ("too big"): the card is 132×46 (was the mock-up's 156×54), flame 17, number 15px, label 7px / 34px wide, "Keep it going" 8px.
 - **Check**: Playwright at 375 / 390 / 430pt — nothing inside the card past its edges, `scrollWidth` = `clientWidth`. `clientLook279.test.jsx` guards the label's width and wrap (fails on the old nowrap label). Full suite passes.
 - **Date**: 2026-11-18
 
