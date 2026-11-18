@@ -180,6 +180,15 @@ describe("client Home (#279)", () => {
     expect(calorieRingColor(500, 0, "RED")).toBe(MEASURE_BLUE); // no target
   });
 
+  it("#298: the chosen day's blue ring keeps clear of the weekday above and the mark below", () => {
+    home();
+    const btn = screen.getByTestId("client-week-strip").querySelector('[aria-pressed="true"]');
+    const [label, , mark] = btn.children;
+    // The ring reaches 3.5px past the 28px circle, so the label needs > 3.5px below it and the mark > 3.5px above it.
+    expect(label.className).toMatch(/mb-\[7px\]/);
+    expect(mark.className).toMatch(/mt-\[4px\]/);
+  });
+
   it("#284: the week's focus shows on other days too", () => {
     home({ dayOffset: 1, isToday: false });
     expect(screen.getByTestId("home-focus")).toBeTruthy();

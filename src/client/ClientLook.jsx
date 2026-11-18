@@ -91,7 +91,8 @@ export function HomeGreeting({ dark, greeting, firstName, streak, onStreak }) {
 }
 
 // Mon–Sun on one glass card: the chosen day a solid circle, a done day a
-// solid tick, a planned one an empty ring, the chosen day a dash under it.
+// solid tick, a planned one a blue dot. The chosen day's blue ring keeps 3px
+// clear of the weekday above and the mark below (#298).
 export function HomeWeekStrip({ dark, dayOffset, onSelect, heading, dotFor, dateForOffset, localDateKey }) {
   const L = clientLook(dark);
   const selected = dateForOffset(dayOffset);
@@ -112,7 +113,7 @@ export function HomeWeekStrip({ dark, dayOffset, onSelect, heading, dotFor, date
         Next week
       </button>
       <div
-        className="rounded-[20px] grid grid-cols-7 px-1 pt-[7px] pb-1"
+        className="rounded-[20px] grid grid-cols-7 px-1 pt-[6px] pb-[5px]"
         style={{ ...L.card, touchAction: "pan-y" }}
         onTouchStart={(e) => (swipe.current = e.touches[0].clientX)}
         onTouchEnd={(e) => {
@@ -136,13 +137,13 @@ export function HomeWeekStrip({ dark, dayOffset, onSelect, heading, dotFor, date
               aria-pressed={isSel}
               className="flex flex-col items-center"
             >
-              <span className="text-[8.5px] leading-none mb-[2px] font-semibold uppercase tracking-[0.06em]" style={{ color: isSel ? L.ink : L.muted }}>
+              <span className="text-[8.5px] leading-none mb-[7px] font-semibold uppercase tracking-[0.06em]" style={{ color: isSel ? L.ink : L.muted }}>
                 {d.toLocaleDateString("en-AU", { weekday: "short" })}
               </span>
               <span className="w-7 h-7 rounded-full flex items-center justify-center text-[14px] font-bold tabular-nums" style={isSel ? { backgroundColor: L.ink, color: L.onInk, boxShadow: `0 0 0 2px ${dark ? "#0A0A0B" : "#FFFFFF"}, 0 0 0 3.5px ${MEASURE_BLUE}` } : { color: L.ink }}>
                 {d.getDate()}
               </span>
-              <span className="h-[12px] flex items-center" data-dot={dot || undefined}>
+              <span className="h-[12px] mt-[4px] flex items-center" data-dot={dot || undefined}>
                 {dot === "done" ? (
                   <span className="w-[11px] h-[11px] rounded-full flex items-center justify-center" style={{ backgroundColor: L.ink, color: L.onInk }}>
                     <Check size={7} strokeWidth={3.5} />

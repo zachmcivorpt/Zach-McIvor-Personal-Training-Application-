@@ -3992,6 +3992,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `clientLook279.test.jsx`, worked by hand: 1,678/2,400 (70%) blue, 2,159 (89.96%) blue, 2,160 (90%) green, 2,400 green, 2,401 red, no target blue; the rendered ring at 1,678/2,400 is blue (#2F8FFF). Fails on the old code (the ring was black under target). Full suite passes.
 - **Date**: 2026-11-18
 
+### 298. Home week strip: the chosen day's ring covered the weekday and the tick (owner, 2026-11-18)
+
+- **Problem**: the chosen day's black circle has a white gap and a blue ring reaching 3.5px past it, but the weekday label sat 2px above the circle and the tick right under it — the ring ran 1.5px into "WED" and 0.5px into the tick (measured in the browser).
+- **Fix**: 7px under the weekday and 4px above the tick/dot, so the ring keeps 3.5px clear on both sides; card padding trimmed (6 / 5px) so the strip grows only 64 → 73px.
+- **Check**: Playwright at 390pt, before −1.5 / −0.5px, after +3.5 / +3.5px; before/after screenshot sent to the owner. `clientLook279.test.jsx` guards both spacings (fails on the old 2px / 0px). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
