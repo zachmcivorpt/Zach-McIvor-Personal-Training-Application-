@@ -97,9 +97,11 @@
 .solo-glass-scope .rounded-2xl.border:not(input):not(select):not(textarea),
 .solo-glass-scope .rounded-3xl.border:not(input):not(select):not(textarea) {
   background-color: var(--solo-glass-bg) !important;
+  background-image: var(--solo-glass-image);
   border-color: var(--solo-glass-border) !important;
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+  box-shadow: var(--solo-glass-shadow);
+  -webkit-backdrop-filter: blur(26px) saturate(170%);
+  backdrop-filter: blur(26px) saturate(170%);
 }
 
 /* A shared widget with its own solid fill, wrapped in a Solo glass card. */

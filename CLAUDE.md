@@ -191,8 +191,11 @@ rather than inventing new colors per screen:
   invented. Missed sessions are moved or skipped through the profile's
   `sessionPlan` (never by rewriting logs); kept swaps live in
   `programSwaps`. Warm-up and plate maths stays in `liftHelpers.js`.
-- **Every box/card is frosted glass**: translucent fill + hairline border +
-  backdrop blur, in both Solo light and dark mode. Use `soloGlass(t)` from
+- **Every box/card is frosted glass** — the SAME glass as the coached client
+  app (#301, owner): see-through fill, a top-down sheen, a lit rim, a wide
+  soft shadow, `blur(26px) saturate(170%)` + `-webkit-`, set in the theme
+  tokens (`glassBg`/`glassImage`/`glassBorder`/`glassShadow`), never per box —
+  in both Solo light and dark mode. Use `soloGlass(t)` from
   `SoloThemeContext.jsx` for Solo's own boxes; shared Card-based widgets
   rendered inside Solo pick it up via the `.solo-glass-scope` rule in
   `index.css`. Never a solid filled card on a Solo screen.

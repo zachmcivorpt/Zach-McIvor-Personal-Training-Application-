@@ -4012,6 +4012,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Check**: before/after screenshots of Home and Nutrition (light) sent to the owner. `clientLook279.test.jsx`'s glass test still passes (see-through fill, sheen, rim, blur). Full suite passes.
 - **Date**: 2026-11-18
 
+### 301. Train Solo gets the same frosted glass as the coached client app (owner, 2026-11-18)
+
+- **Change**: Train Solo only — every box is the coached client app's glass (#299 / #300): see-through fill (soft light-grey on white / charcoal in dark), a top-down sheen, a lit rim, a wide soft shadow, `blur(26px) saturate(170%)` + `-webkit-`. Done once in Train Solo's own tokens (`SOLO_THEMES.*.glassBg / glassImage / glassBorder / glassShadow`, `soloGlass`, `soloGlassVars`) and the `.solo-glass-scope` CSS rule for the shared Card widgets, so every Solo screen picks it up; layouts, text, icons, colours of content and functions unchanged. The coached client app and coach console are untouched.
+- **Check**: before/after screenshots of My Training, Progress, Calendar and Profile in light and dark sent to the owner (Train Solo harness with real-shaped data).
+- **Test**: `src/solo/soloGlass301.test.jsx` — both themes' `soloGlass` has the fill, sheen, rim, shadow and blur (+ `-webkit-`), the CSS vars carry them, and the `.solo-glass-scope` rule applies them. Fails on the old code (3/3, checked by reverting only SoloThemeContext.jsx / index.css). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

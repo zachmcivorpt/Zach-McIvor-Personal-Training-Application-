@@ -128,7 +128,12 @@ export const SOLO_THEMES = {
     logo: MARK_WHITE,
     inputBg: "rgba(255,255,255,0.08)",
     inputBorder: "rgba(255,255,255,0.1)",
-    glassBg: "rgba(28,28,30,0.55)",
+    // #301 frosted glass, the same as the coached client app's (#299):
+    // charcoal glass, a top-down sheen, a lit rim, a wide soft shadow.
+    glassBg: "rgba(32,32,35,0.58)",
+    glassImage: "linear-gradient(180deg, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.035) 42%, rgba(255,255,255,0.02) 100%)",
+    glassBorder: "rgba(255,255,255,0.13)",
+    glassShadow: "0 22px 44px -26px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.2), inset 1px 0 0 rgba(255,255,255,0.04)",
     sheetGlassBg: "rgba(24,24,26,0.78)",
     insetBg: "rgba(255,255,255,0.045)",
   },
@@ -148,7 +153,12 @@ export const SOLO_THEMES = {
     logo: MARK_BLACK,
     inputBg: "rgba(20,19,15,0.05)",
     inputBorder: "rgba(20,19,15,0.08)",
-    glassBg: "rgba(255,255,255,0.62)",
+    // #301: soft light-grey glass on white, a white sheen and rim, a wide
+    // soft shadow (the coached client app's #299 / #300 glass).
+    glassBg: "rgba(246,246,249,0.55)",
+    glassImage: "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(250,250,252,0.4) 50%, rgba(242,242,246,0.45) 100%)",
+    glassBorder: "rgba(255,255,255,0.95)",
+    glassShadow: "0 0 0 0.5px rgba(10,10,11,0.07), 0 16px 32px -16px rgba(20,20,30,0.24), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(10,10,11,0.03)",
     sheetGlassBg: "rgba(255,255,255,0.92)",
     insetBg: "rgba(20,19,15,0.035)",
   },
@@ -157,19 +167,22 @@ export const SOLO_THEMES = {
 // Train Solo's one card style: translucent glass over the page background.
 // Every Solo box uses this rather than a solid fill (see CLAUDE.md's Train
 // Solo design rule). `t` is the active SOLO_THEMES entry.
+export const SOLO_GLASS_BLUR = "blur(26px) saturate(170%)";
 export function soloGlass(t) {
   return {
     backgroundColor: t.glassBg,
-    border: `1px solid ${t.panelBorder}`,
-    backdropFilter: "blur(18px)",
-    WebkitBackdropFilter: "blur(18px)",
+    backgroundImage: t.glassImage,
+    border: `1px solid ${t.glassBorder}`,
+    boxShadow: t.glassShadow,
+    backdropFilter: SOLO_GLASS_BLUR,
+    WebkitBackdropFilter: SOLO_GLASS_BLUR,
   };
 }
 
 // CSS variables for index.css's .solo-glass-scope rule, which applies the
 // same glass to the shared Card-based widgets Train Solo reuses.
 export function soloGlassVars(t) {
-  return { "--solo-glass-bg": t.glassBg, "--solo-glass-border": t.panelBorder };
+  return { "--solo-glass-bg": t.glassBg, "--solo-glass-border": t.glassBorder, "--solo-glass-image": t.glassImage, "--solo-glass-shadow": t.glassShadow };
 }
 
 // The clearer glass of the membership sheet (#125), shared by the
