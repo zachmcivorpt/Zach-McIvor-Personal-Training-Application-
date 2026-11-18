@@ -9037,9 +9037,11 @@ export function ClientCalendarScreen({
       const checkinsToday = activeFormSchedules.filter((s) => s.dayOfWeek === d.getDay());
       const bodyStatsToday = (bodyStatsSchedules || []).some((b) => b.date === dateStr);
       const hasContent = scheduledList.length > 0 || dayLogs.length > 0 || dayHabits.length > 0 || checkinsToday.length > 0 || bodyStatsToday;
-      // #287 (owner: "why does my calendar skip 3 days?"): every day is
-      // listed, an empty one as a rest day — it is also a drop target for
-      // dragging a workout onto a free day.
+      // #289: empty days are skipped again. Listing every day (#287) made the
+      // calendar jump about and show wrong days on an iPhone (owner); until
+      // that is understood and tested on a device, only days with something
+      // on them (and today) are listed.
+      if (!hasContent && dateStr !== todayStr) continue;
       list.push({ date: d, dateStr, scheduledList, dayLogs, dayHabits, checkinsToday, bodyStatsToday, hasContent });
     }
     return list;

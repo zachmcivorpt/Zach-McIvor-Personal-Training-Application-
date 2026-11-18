@@ -3932,6 +3932,14 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Check**: before/after screenshots at 390pt; full suite passes (layout only, no logic change).
 - **Date**: 2026-11-18
 
+### 289. Calendar jumped about and showed wrong days after #287 — reverted (owner, 2026-11-18)
+
+- **Problem**: after #287 listed every day (empty ones as "Rest day"), the owner's iPhone calendar "opened then shook the screen and every day is now a Sunday". It did not reproduce in the desktop browser harness (no habits, a Sunday check-in; 91 days, scrolled to today, correct weekdays), so the cause on the device is not yet known; the likeliest suspect is the much longer list feeding the load-more-on-scroll / keep-position code (`handleScroll` → `prependAdjustRef`) on iOS.
+- **Fix**: #287 reverted — the calendar lists only days with something on them, plus today (as before #287). Its test is replaced.
+- **Test**: `src/client/calendarRevert289.test.jsx` — today, Thu 19 and Sun 22 only, each with its own weekday. Full suite passes.
+- **Manual**: before listing every day again, test the calendar on a real iPhone (open, scroll up and down past the loaded range, drag a workout) — jsdom and desktop Chromium can't show this.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
