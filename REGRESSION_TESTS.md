@@ -3986,6 +3986,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `clientLook279.test.jsx` — fat 30/43 (70%) blue, 40/43 (93%) green, 74.5/43 red, no target → ink. Fails on the old code (fat was black). Full suite passes.
 - **Date**: 2026-11-18
 
+### 297. Home calorie ring: blue, green within 10% under, red once over (owner, 2026-11-18)
+
+- **Change**: the calorie ring follows the macro bars (#295/#296): blue below 90% of the target, green from 90% up to the target, red once over at all (#294). `calorieRingColor` (`ClientLook.jsx`); no target → blue.
+- **Test**: `clientLook279.test.jsx`, worked by hand: 1,678/2,400 (70%) blue, 2,159 (89.96%) blue, 2,160 (90%) green, 2,400 green, 2,401 red, no target blue; the rendered ring at 1,678/2,400 is blue (#2F8FFF). Fails on the old code (the ring was black under target). Full suite passes.
+- **Date**: 2026-11-18
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

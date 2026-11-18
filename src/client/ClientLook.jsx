@@ -238,6 +238,15 @@ function Ring({ value, max, size = 128, stroke = 7, dark, color }) {
   );
 }
 
+// Home's calorie ring (#294, #297, owner): red once over the target at all;
+// green within 10% under (≥ 90%); blue before that.
+export function calorieRingColor(cal, target, overColor) {
+  const t = Number(target) || 0;
+  if (t <= 0) return MEASURE_BLUE;
+  if (cal > t) return overColor;
+  return cal >= t * 0.9 ? GOAL_GREEN : MEASURE_BLUE;
+}
+
 // A Home macro bar's colour (#294, #295, #296, owner): protein, carbs and fat
 // are blue until within 10% of target, then green; carbs and fat red past 10%
 // over; protein never red.
@@ -272,8 +281,8 @@ export function HomeNutritionCard({ dark, nutrition, targets, dayLabel, isToday,
       </div>
       <div className="flex items-center gap-3 pt-0.5">
         <div className="relative shrink-0" style={{ width: 88, height: 88 }}>
-          {/* #294: the ring turns red too once the day is over target. */}
-          <Ring value={cal} max={targets.calories} size={88} stroke={5} dark={dark} color={over ? overColor : undefined} />
+          {/* #294/#297: red once over target; green within 10% under; blue before that. */}
+          <Ring value={cal} max={targets.calories} size={88} stroke={5} dark={dark} color={calorieRingColor(cal, targets.calories, overColor)} />
           <span className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-[18px] font-bold tabular-nums leading-none" style={over ? { color: overColor } : undefined}>
               {cal.toLocaleString()}

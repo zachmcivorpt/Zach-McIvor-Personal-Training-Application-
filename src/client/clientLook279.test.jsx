@@ -147,8 +147,8 @@ describe("client Home (#279)", () => {
     expect(screen.getByTestId("home-macro-bar-carbs").style.backgroundColor).not.toBe("rgb(239, 68, 68)"); // 306.7 / 323: under
     expect(screen.getByTestId("home-macro-bar-protein").style.backgroundColor).not.toBe("rgb(239, 68, 68)"); // 200 / 180: protein never red
     cleanup();
-    home(); // 1,678 / 2,400: under → black ring
-    expect(screen.getByTestId("home-nutrition").querySelectorAll("svg circle")[1].getAttribute("stroke")).not.toMatch(/#EF4444/i);
+    home(); // 1,678 / 2,400: under → blue ring (#297)
+    expect(screen.getByTestId("home-nutrition").querySelectorAll("svg circle")[1].getAttribute("stroke")).toBe("#2F8FFF");
   });
 
   it("#295/#296: protein, carbs and fat bars blue until within 10% of target, then green; carbs/fat red past 10% over", async () => {
@@ -167,6 +167,17 @@ describe("client Home (#279)", () => {
     expect(c("Fat", 74.5, 43)).toBe("RED");
     expect(c("Carbs", 50, 0)).toBe("INK"); // no target
     expect(c("Fat", 20, 0)).toBe("INK");
+  });
+
+  it("#297: the calorie ring is blue, green within 10% under, red once over", async () => {
+    const { calorieRingColor } = await import("./ClientLook");
+    const { GOAL_GREEN, MEASURE_BLUE } = await import("../theme");
+    expect(calorieRingColor(1678, 2400, "RED")).toBe(MEASURE_BLUE); // 70%
+    expect(calorieRingColor(2159, 2400, "RED")).toBe(MEASURE_BLUE); // 89.96%
+    expect(calorieRingColor(2160, 2400, "RED")).toBe(GOAL_GREEN); // exactly 90%
+    expect(calorieRingColor(2400, 2400, "RED")).toBe(GOAL_GREEN); // on target
+    expect(calorieRingColor(2401, 2400, "RED")).toBe("RED"); // over at all
+    expect(calorieRingColor(500, 0, "RED")).toBe(MEASURE_BLUE); // no target
   });
 
   it("#284: the week's focus shows on other days too", () => {
