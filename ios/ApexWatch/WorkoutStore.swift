@@ -79,7 +79,9 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: actions
 
-    func logSet(_ exercise: WatchExercise, index: Int, reps: Double, weight: Double) {
+    func logSet(_ exercise: WatchExercise, index: Int, reps: Double, weight rawWeight: Double) {
+        // The Crown lands just off a step (49.9963 for 50, #306): snap to 0.25 kg.
+        let weight = (rawWeight * 4).rounded() / 4
         pending[WorkoutStore.key(exercise.id, index)] = PendingSet(reps: reps, weight: weight)
         send(["type": "logSet", "exerciseId": exercise.id, "setIndex": index, "reps": Int(reps.rounded()), "weight": weight])
         WKInterfaceDevice.current().play(.success)
