@@ -220,9 +220,9 @@ exports.clientWeeklyReview = onSchedule(
 );
 
 // ---------------------------------------------------------------------
-// Inactivity-triggered "Reignition Workout" WOD — a client who's gone a few
-// days without logging a workout gets a notification AND a ready-to-go
-// full-body session auto-dropped onto today's calendar, pulled only from
+// Inactivity-triggered "Reignition Workout" WOD — a client who's gone 5
+// days without logging a workout gets a ready-to-go full-body session
+// auto-dropped onto today's calendar (no message or push since #311, owner), pulled only from
 // exercises already in their own assigned program (never invented), so
 // getting back in doesn't require them (or their coach) to do anything
 // first. Same split this app already uses everywhere else: a
@@ -230,7 +230,7 @@ exports.clientWeeklyReview = onSchedule(
 // it (real data only); the LLM, when configured, is only ever asked to
 // phrase a one-line blurb for it — see callClaude below.
 // ---------------------------------------------------------------------
-const INACTIVITY_DAYS = 4;
+const INACTIVITY_DAYS = 5; // #311 (owner): after 5 days with no training
 // Once nudged, leave it alone for a while rather than re-generating (and
 // re-notifying about) a new WOD every single day a client stays away —
 // one nudge, then let the existing one sit on their calendar.
@@ -442,25 +442,8 @@ exports.inactivityWod = onSchedule(
       });
       await userDoc.ref.update({ lastInactivityNudgeAt: Date.now() });
 
-      // A real chat message rather than a bare push notification — it
-      // persists in the client's Messages tab (so it's still there if the
-      // push gets missed/dismissed). This used to rely on the onNewMessage
-      // Firestore trigger (removed — see this file's header comment) to
-      // push a notification for any coach-authored message; that trigger
-      // only ever watched Firestore, so a client-side AppContext.jsx send
-      // still reaches /api/notify.js, but this server-side write never did
-      // and would otherwise go out silently with no push at all. Sends the
-      // same notification directly instead, matching what onNewMessage
-      // used to send for a coach-authored message.
-      const messageId = db.collection("messages").doc().id;
-      await db.collection("messages").doc(messageId).set({
-        id: messageId,
-        clientId: uid,
-        from: "coach",
-        text: `It's been ${daysSince} days since your last session — your "${label}" has been added to your calendar for today, built from your own program and ready whenever you are.`,
-        date: Date.now(),
-      });
-      await notifyUser(uid, { title: "Your coach sent a message", body: `It's been ${daysSince} days since your last session...` });
+      // #311 (owner): no chat message and no push any more — the workout
+      // just appears on their calendar.
     }
   }
 );

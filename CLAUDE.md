@@ -978,6 +978,10 @@ any Train Solo work from now on:
 - Numbers come from `coachedWeekReview` (`src/lib/weeklyReview.js`) on top of `weekScorecard` (#220): keep one source so the review and the coach's video-feedback panel agree. Nothing is stored; past weeks are worked out from the logs.
 - `src/client/WeeklyReview.jsx` (lazy) is the page: frosted glass over the blurred gym photo in the client's own light/dark (light = see-through white glass over the gym photo INVERTED on white — brightening the dark photo always reads grey; small hero type, tight spacing, #241/#242), ending with "Log this week's check-in" / "Skip for now" only when a check-in is due. "Weekly reviews" is the last section of the client's Progress and of the coach's client Progress tab (read-only, `coachView`).
 
+## Reignition workout (#311)
+
+- After 5 days with no training (`INACTIVITY_DAYS`), `inactivityWod` (functions/index.js) puts a Reignition workout on today's calendar, built only from the client's own current program (`buildInactivityWod`), never over a session already there. **No chat message and no push** (owner): don't add one back.
+
 ## Coach activity notifications (#215)
 
 - Workout / progress photo / weigh-in pushes to the coach come from server triggers (`functions/coachActivityNotify.js`), never from client-app code; switches are `notificationPrefs.workouts` / `progressPhotos` / `weighIns`. No RPE in them.
