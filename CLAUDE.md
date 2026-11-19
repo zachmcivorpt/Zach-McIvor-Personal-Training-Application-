@@ -875,6 +875,7 @@ any Train Solo work from now on:
   away after Discard (`clearWatchWorkout(reason)`), 4 h cap, under a minute
   never saved. Shows elapsed time + heart rate only, never calories. It
   never touches the APEX log. The Watch App ID needs HealthKit.
+- **Runs on watchOS 8** (Series 3, #305): deployment target 8.0; never use watchOS 9-only APIs (`NavigationStack`, `navigationDestination`, `NavigationLink(value:)`, `WKApplicationDelegate`) — `watchOS8_305.test.js` checks.
 - Ships in 1.0.5: `APEX_WATCH` is "true" since 2026-11-17 (#261) and
   project.yml / project-watch.yml are 1.0.5. Signing needs the Watch App ID
   + App Store profile in Codemagic (ROADMAP.txt item W). The iPhone side

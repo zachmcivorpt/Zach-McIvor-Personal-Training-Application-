@@ -4039,6 +4039,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Test**: `src/solo/soloLogo304.test.jsx` — in both themes the logo is 27px, not `mx-auto`, no filter, in a `px-2.5 pt-2` row; fails on the old header. `pageHeader174.test.js` updated to the new padding. Full suite passes.
 - **Date**: 2026-11-18
 
+### 305. Apple Watch app runs on watchOS 8 / Series 3 (owner, 2026-11-19)
+
+- **Problem**: APEX never appeared on the owner's Series 3 (watchOS 8.8.1, its last version): the Watch app required watchOS 9.
+- **Fix**: `ios/project-watch.yml` deploys to watchOS 8.0; the Watch app uses `NavigationView` + `NavigationLink(destination:)` instead of `NavigationStack`/`navigationDestination`, and `WKExtensionDelegate` instead of `WKApplicationDelegate` (all watchOS 9-only). Nothing else changed.
+- **Tests**: `src/lib/watchOS8_305.test.js` checks the 8.0 target and that no watchOS 9-only API is used; both fail without the change.
+- **Manual**: the next 1.0.5 TestFlight build shows APEX under Available Apps on a watchOS 8 Watch; start a workout on the phone → it shows on the Watch.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
