@@ -875,6 +875,7 @@ any Train Solo work from now on:
   away after Discard (`clearWatchWorkout(reason)`), 4 h cap, under a minute
   never saved. Shows elapsed time + heart rate only, never calories. It
   never touches the APEX log. The Watch App ID needs HealthKit.
+- **Same exercise order as the phone** (#308): the Watch gets `sectionedExercises(exercisesForSession)` flattened — whatever order the workout screen renders. Never send `exercisesForSession` in its raw order.
 - **Watch look and home** (#307): frosted glass over the blurred gym photo (`Glass.swift`: `glassRow`, `glassBox`, `glassScreen`, `GlassButtonStyle`; pre-blurred `Backdrop` asset, no Material on watchOS 8). Home = heart rate + resting (the Watch's own Health data), today + this week from the phone (`watchHome.js`, only after `dbReady`, never in View as Client). END WORKOUT = Complete / Save for later / Cancel (asks first), run through the workout screen's own handlers (`WATCH_END_ACTIONS`), never a second save path.
 - **Weights from the Watch are rounded** (#306): the Crown gives 49.9963 for 50; the Watch snaps to 0.25 kg and `applyWatchSet` to 2 decimals. Never store a raw Crown value.
 - **Runs on watchOS 8** (Series 3, #305): deployment target 8.0; never use watchOS 9-only APIs (`NavigationStack`, `navigationDestination`, `NavigationLink(value:)`, `WKApplicationDelegate`) — `watchOS8_305.test.js` checks.
