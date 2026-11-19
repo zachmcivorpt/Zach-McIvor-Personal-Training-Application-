@@ -219,7 +219,7 @@ export function HomeWorkoutCard({ session, minutes, exercises, label, started, d
           className="w-full text-center text-[11px] font-medium mt-2"
           style={{ color: L.muted }}
         >
-          {confirmDiscard ? "Tap again to discard these sets" : "Not started this — discard progress"}
+          {confirmDiscard ? "Tap again to discard these sets" : "Discard this workout"}
         </button>
       )}
     </div>

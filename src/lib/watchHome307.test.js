@@ -53,7 +53,8 @@ describe("Watch home (#307)", () => {
     const src = read("src/client/ClientApp.jsx");
     expect(src).toMatch(/if \(type === "finishWorkout"\) handleFinish\(\);/);
     expect(src).toMatch(/else if \(type === "discardWorkout"\) onDiscard\?\.\(\);/);
-    expect(src).toMatch(/onExit\?\.\(\);\s*\/\/[^\n]*\n\s*clearWatchWorkout\("saved"\);/);
+    expect(src).toMatch(/else if \(type === "saveForLater"\) saveForLater\(\);/);
+    expect(src).toMatch(/function saveForLater\(\) \{\s*onExit\?\.\(\);\s*clearWatchWorkout\("saved"\);/);
     expect(src).toMatch(/onDiscard=\{discardActiveSession\}/);
     expect(src).toMatch(/sendWatchHome\(JSON\.parse\(watchHomeJson\)\)/);
     expect(src).toMatch(/if \(!dbReady \|\| viewingAsClient \|\| !watchBridgeAvailable\(\)\) return null;/);

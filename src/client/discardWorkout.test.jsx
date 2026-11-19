@@ -21,7 +21,7 @@ describe("TodayWorkoutCard discard progress", () => {
     const onDiscard = vi.fn();
     render(<TodayWorkoutCard todaySession={SESSION} activeLog={ACTIVE_LOG} onStart={() => {}} onView={() => {}} onDiscard={onDiscard} isToday />);
 
-    const discardBtn = screen.getByText("Not started this — discard progress");
+    const discardBtn = screen.getByText("Discard this workout");
     fireEvent.click(discardBtn);
     expect(onDiscard).not.toHaveBeenCalled();
     expect(screen.getByText("Tap again to discard these sets")).toBeTruthy();
@@ -32,6 +32,6 @@ describe("TodayWorkoutCard discard progress", () => {
 
   it("does not show a discard option when the workout hasn't been started", () => {
     render(<TodayWorkoutCard todaySession={SESSION} activeLog={null} onStart={() => {}} onView={() => {}} onDiscard={vi.fn()} isToday />);
-    expect(screen.queryByText("Not started this — discard progress")).toBeNull();
+    expect(screen.queryByText("Discard this workout")).toBeNull();
   });
 });

@@ -4064,6 +4064,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `buildWatchWorkout` is fed `sectionedExercises(exercisesForSession)` flattened — the exact order the screen renders. Web-only: reaches the Watch on the app's next open, no new build.
 - **Tests**: `src/client/watchOrder308.test.jsx` renders the real WorkoutSession with sections saved out of order plus an added warm-up exercise and checks the Watch's order equals the screen's (Band Pull-apart, Arm Circles, Bench Press, Incline DB Press, Chest Stretch); fails without the fix.
 
+### 309. No clear way to not resume a workout on the phone, so it stayed open on the Watch (owner, 2026-11-19)
+
+- **Problem**: the workout screen's Cancel only closed it; the workout stayed "in progress" (Resume on Home) and kept showing on the Watch. The only discard was a small "Not started this — discard progress" line on Home.
+- **Fix**: Cancel with any set entered opens "Leave this workout?" (`WorkoutSession`): SAVE FOR LATER (closes it, kept for Resume, the Watch goes to its home screen — `clearWatchWorkout("saved")`, the same path as the Watch's Save for later), DISCARD WORKOUT (red, tap twice, then the existing `discardActiveSession`), Keep going. Nothing entered → Cancel leaves straight away as before (#301). Home's discard line now reads "Discard this workout" (ClientApp, TrainingGlass, ClientLook).
+- **Tests**: `src/client/leaveWorkout309.test.jsx` renders the real WorkoutSession (asks with 2 sets, Save for later exits + clears the Watch, Discard needs a second tap, Keep going does nothing, nothing logged leaves at once); 4 of 5 fail without the fix. `discardWorkout.test.jsx` / `todayWorkoutCardPhoto.test.jsx` updated for the new wording.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

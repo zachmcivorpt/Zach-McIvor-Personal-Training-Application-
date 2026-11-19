@@ -609,7 +609,7 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
                 }}
                 className={`w-full text-center text-[11px] font-medium mt-2.5 ${confirmDiscard ? "text-white" : "text-white/60"}`}
               >
-                {confirmDiscard ? "Tap again to discard these sets" : "Not started this — discard progress"}
+                {confirmDiscard ? "Tap again to discard these sets" : "Discard this workout"}
               </button>
             )}
           </div>
@@ -692,7 +692,7 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
             }}
             className={`w-full text-center text-[11px] font-medium mt-3 ${confirmDiscard ? primary : muted30}`}
           >
-            {confirmDiscard ? "Tap again to discard these sets" : "Not started this — discard progress"}
+            {confirmDiscard ? "Tap again to discard these sets" : "Discard this workout"}
           </button>
         )}
       </div>
@@ -1725,7 +1725,7 @@ function ClientSessionHero({ session, subtitle, activeLog, onStart, onDiscard, o
           className="w-full text-center text-[11px] font-medium mt-2"
           style={{ color: t.faint }}
         >
-          {confirmDiscard ? "Tap again to discard these sets" : "Not started this — discard progress"}
+          {confirmDiscard ? "Tap again to discard these sets" : "Discard this workout"}
         </button>
       )}
     </div>
@@ -3126,6 +3126,11 @@ export function WorkoutSession({
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null); // exercise object shown in the full-screen detail sheet
   const [sessionNoteOpen, setSessionNoteOpen] = useState(false);
+  // Cancel with sets entered asks: Save for later / Discard / Keep going
+  // (#309) — never leaves an unfinished workout running (and on the Watch)
+  // without the client choosing to keep it.
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [confirmLeaveDiscard, setConfirmLeaveDiscard] = useState(false);
   // `finishing` (a prop, backed by useState in the parent) only disables
   // the Complete Workout button once React commits that update — two
   // click dispatches landing in the same task (a touchend/click
@@ -3440,12 +3445,23 @@ export function WorkoutSession({
   watchEndRef.current = (type) => {
     if (type === "finishWorkout") handleFinish();
     else if (type === "discardWorkout") onDiscard?.();
-    else if (type === "saveForLater") {
-      onExit?.();
-      // The workout stays on the phone (Resume on Home); the Watch goes home.
-      clearWatchWorkout("saved");
-    }
+    else if (type === "saveForLater") saveForLater();
   };
+  // The workout stays on the phone (Resume on Home); the Watch goes home.
+  function saveForLater() {
+    onExit?.();
+    clearWatchWorkout("saved");
+  }
+  function handleCancel() {
+    if (onDiscard && hasEnteredSet(activeLog)) {
+      setConfirmLeaveDiscard(false);
+      setLeaveOpen(true);
+    } else onExit?.();
+  }
+  const enteredSetCount = Object.values(activeLog || {}).reduce(
+    (n, sets) => n + (sets || []).filter((x) => x && x.reps !== "" && x.reps != null).length,
+    0
+  );
 
   useEffect(() => {
     if (!watchBridgeAvailable()) return;
@@ -3491,7 +3507,7 @@ export function WorkoutSession({
               )}
             </button>
             <button
-              onClick={onExit}
+              onClick={handleCancel}
               disabled={finishing}
               className={
                 finishing
@@ -3594,6 +3610,40 @@ export function WorkoutSession({
             onSkip={() => setResting(false)}
           />
         )}
+
+        <BottomSheet dark={dark} open={leaveOpen} onClose={() => setLeaveOpen(false)} title="Leave this workout?">
+          <p className={dark ? "text-white/60 text-sm mb-5" : "text-black/60 text-sm mb-5"}>
+            You've logged {enteredSetCount} set{enteredSetCount === 1 ? "" : "s"}. Save it to finish later, or discard it.
+          </p>
+          <PrimaryButton
+            dark={dark}
+            className="w-full mb-2.5"
+            onClick={() => {
+              setLeaveOpen(false);
+              saveForLater();
+            }}
+          >
+            SAVE FOR LATER
+          </PrimaryButton>
+          <button
+            onClick={() => {
+              if (confirmLeaveDiscard) {
+                setLeaveOpen(false);
+                onDiscard?.();
+              } else setConfirmLeaveDiscard(true);
+            }}
+            className="w-full py-3 rounded-full text-sm font-bold tracking-wide text-white"
+            style={{ backgroundColor: OVER_RED }}
+          >
+            {confirmLeaveDiscard ? `TAP AGAIN TO DISCARD ${enteredSetCount} SET${enteredSetCount === 1 ? "" : "S"}` : "DISCARD WORKOUT"}
+          </button>
+          <button
+            onClick={() => setLeaveOpen(false)}
+            className={dark ? "w-full py-3 mt-1 text-sm font-medium text-white/60" : "w-full py-3 mt-1 text-sm font-medium text-black/60"}
+          >
+            Keep going
+          </button>
+        </BottomSheet>
 
         {sessionNoteOpen && (
           <SessionNoteScreen
