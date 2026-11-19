@@ -35,6 +35,11 @@ struct ApexWatchApp: App {
             NavigationView {
                 RootView()
             }
+            // The rest ring after a set logged on the Watch (#310).
+            .fullScreenCover(isPresented: $store.showRest) {
+                RestRingView()
+                    .environmentObject(store)
+            }
             .environmentObject(store)
             .environmentObject(health)
         }
@@ -66,15 +71,26 @@ struct RootView: View {
                 if store.restEndsAt != nil {
                     RestBanner()
                 }
-                ForEach(workout.exercises) { exercise in
-                    // NavigationLink(destination:), not value/navigationDestination
-                    // (watchOS 9+): runs on watchOS 8 (#305).
-                    NavigationLink {
-                        ExerciseView(exerciseId: exercise.id)
-                    } label: {
-                        ExerciseRow(exercise: exercise)
+                // Warm-up / Main Session / Cool-down, as on the phone (#310);
+                // headings only when there's more than one section.
+                let groups = WatchSectionGroup.groups(workout.exercises)
+                ForEach(groups) { group in
+                    if groups.count > 1 {
+                        Text(group.title)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .listRowBackground(Color.clear)
                     }
-                    .glassRow()
+                    ForEach(group.exercises) { exercise in
+                        // NavigationLink(destination:), not value/navigationDestination
+                        // (watchOS 9+): runs on watchOS 8 (#305).
+                        NavigationLink {
+                            ExerciseView(exerciseId: exercise.id)
+                        } label: {
+                            ExerciseRow(exercise: exercise)
+                        }
+                        .glassRow()
+                    }
                 }
                 // Complete / Save for later / Cancel from the Watch (#307).
                 NavigationLink {
@@ -180,7 +196,8 @@ struct RestBanner: View {
                     .frame(width: 60)
             }
             .onChange(of: left) { value in
-                if value == 0 && !alerted {
+                // The rest ring buzzes itself when it's up (#310).
+                if value == 0 && !alerted && !store.showRest {
                     alerted = true
                     WKInterfaceDevice.current().play(.notification)
                 }
@@ -340,5 +357,111 @@ struct SetEntryView: View {
             }
         }
         focus = .reps
+    }
+}
+
+// The phone's sections, in its order (#310).
+struct WatchSectionGroup: Identifiable {
+    let id: String
+    let title: String
+    let exercises: [WatchExercise]
+
+    static func groups(_ list: [WatchExercise]) -> [WatchSectionGroup] {
+        let order = [("warmup", "WARM-UP"), ("main", "MAIN SESSION"), ("cooldown", "COOL-DOWN")]
+        return order.compactMap { key, title in
+            let items = list.filter { ($0.section ?? "main") == key }
+            return items.isEmpty ? nil : WatchSectionGroup(id: key, title: title, exercises: items)
+        }
+    }
+}
+
+// Full-screen rest after a set logged on the Watch (#310, owner-approved
+// mock-up): a blue ring counting down, the next set, +15s and Skip. Closes
+// itself (with a buzz) at 0, or when the phone skips the rest; the back
+// button leaves the small rest bar running instead.
+struct RestRingView: View {
+    @EnvironmentObject var store: WorkoutStore
+    @State private var alerted = false
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let left = max(0, Int(((store.restEndsAt ?? context.date).timeIntervalSince(context.date)).rounded(.up)))
+            let fraction = store.restTotal > 0 ? min(1, Double(left) / store.restTotal) : 0
+            VStack(spacing: 6) {
+                HStack {
+                    Button {
+                        store.showRest = false
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 24, height: 24)
+                            .background(Circle().fill(Color.white.opacity(0.12)))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Back")
+                    Spacer()
+                }
+                ZStack {
+                    Circle().stroke(Color.white.opacity(0.15), lineWidth: 6)
+                    Circle()
+                        .trim(from: 0, to: fraction)
+                        .stroke(measureBlue, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .shadow(color: measureBlue.opacity(0.8), radius: 3)
+                    VStack(spacing: 0) {
+                        Text("REST")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(measureBlue)
+                        Text(String(format: "%d:%02d", left / 60, left % 60))
+                            .font(.system(size: 28, weight: .semibold).monospacedDigit())
+                        if let next = nextLabel {
+                            Text(next)
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                }
+                .frame(width: 100, height: 100)
+                HStack(spacing: 6) {
+                    Button("+15s") { store.extendRest() }
+                        .buttonStyle(GlassButtonStyle())
+                    Button("SKIP") { store.skipRest() }
+                        .buttonStyle(GlassButtonStyle(kind: .blue))
+                }
+            }
+            .onChange(of: left) { value in
+                if value == 0 && !alerted {
+                    alerted = true
+                    WKInterfaceDevice.current().play(.notification)
+                    store.showRest = false
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .glassScreen()
+        .onChange(of: store.restEndsAt) { end in
+            alerted = false
+            if end == nil { store.showRest = false }
+        }
+    }
+
+    // The next set of this exercise, else the next exercise.
+    private var nextLabel: String? {
+        guard let workout = store.workout,
+              let i = workout.exercises.firstIndex(where: { $0.id == store.restExerciseId })
+        else { return nil }
+        let exercise = workout.exercises[i]
+        if let set = exercise.sets.map({ store.display(exercise, $0) }).first(where: { !$0.done }) {
+            return "Next: Set \(set.index + 1)"
+        }
+        let ordered = WatchSectionGroup.groups(workout.exercises).flatMap { $0.exercises }
+        if let j = ordered.firstIndex(where: { $0.id == exercise.id }), j + 1 < ordered.count {
+            return "Next: \(ordered[j + 1].name)"
+        }
+        return nil
     }
 }

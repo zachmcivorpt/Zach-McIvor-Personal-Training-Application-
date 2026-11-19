@@ -11,7 +11,7 @@
 //                                 rest), and { action: "clear" } when it ends.
 //   Watch → iPhone app → page  : window "apexWatch" CustomEvent per action
 //                                 ({ id, type: logSet | startRest | skipRest |
-//                                 addSet | requestState | finishWorkout |
+//                                 addSet | extendRest | requestState | finishWorkout |
 //                                 saveForLater | discardWorkout, ... }); the page
 //                                 applies it exactly as if the client had
 //                                 typed it, then acks the id.
@@ -61,6 +61,7 @@ export function buildWatchWorkout({ sessionId, label, exercises, rest }) {
       name: ex.name || "Exercise",
       target: ex.target || "",
       timed: !!ex.timed,
+      section: ["warmup", "main", "cooldown"].includes(ex.section) ? ex.section : "main",
       restSeconds: Number.isFinite(Number(ex.restSeconds)) ? Number(ex.restSeconds) : 90,
       sets: (ex.rows || []).map((row, i) => {
         const prev = (ex.previousSets || [])[i] || null;
