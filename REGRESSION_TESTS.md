@@ -4076,6 +4076,11 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/lib/watchSectionsRest310.test.js` (sections sent, unknown → main; the wiring on both sides) and `src/client/watchExtendRest310.test.jsx` (real WorkoutSession: section in the Watch's copy, +15s from the Watch makes rest 90 → 105 s and moves its end ≥ 14 s, nothing without a running rest). 4 of 5 fail without the change.
 - **Manual (real Watch)**: a 3-section workout shows the three headings; log a set → the ring; +15s adds 15 s on the phone too; Skip; back keeps the bar; at 0 it buzzes once and closes.
 
+### 311. Reignition workout: no more message (owner, 2026-11-19)
+
+- **Change**: after 5 days with no training (`INACTIVITY_DAYS`, was 4), `inactivityWod` (functions/index.js, 8am Sydney) still builds a Reignition workout from the client's OWN current program (`buildInactivityWod`: their phase's main lifts, never invented). It still puts it on today's calendar and never over a session already there. It no longer writes the coach chat message or sends the "Your coach sent a message" push.
+- **Tests**: `functions/inactivityWod.test.js` checks the scheduled handler: it still builds from their program and writes `scheduledWorkouts`, sends no `messages` doc and no `notifyUser`, and fires at 5 days. The last two fail on the code before this change (checked by restoring it).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
