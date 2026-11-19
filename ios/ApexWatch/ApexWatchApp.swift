@@ -11,7 +11,9 @@ let measureBlue = Color(red: 0x2F / 255.0, green: 0x8F / 255.0, blue: 0xFF / 255
 // The iPhone starts the Watch app when a workout begins (HKHealthStore
 // startWatchApp, WatchBridge.swift) and watchOS hands over the workout here;
 // a session kept running after a relaunch is recovered (#262).
-final class ApexWatchDelegate: NSObject, WKApplicationDelegate {
+// WKExtensionDelegate (not WKApplicationDelegate, watchOS 9+) so the app
+// runs on watchOS 8 — the last version for Series 3 (#305).
+final class ApexWatchDelegate: NSObject, WKExtensionDelegate {
     func handle(_ workoutConfiguration: HKWorkoutConfiguration) {
         WorkoutSessionManager.shared.start(apexSessionId: nil, configuration: workoutConfiguration)
     }
@@ -23,13 +25,13 @@ final class ApexWatchDelegate: NSObject, WKApplicationDelegate {
 
 @main
 struct ApexWatchApp: App {
-    @WKApplicationDelegateAdaptor(ApexWatchDelegate.self) private var delegate
+    @WKExtensionDelegateAdaptor(ApexWatchDelegate.self) private var delegate
     @StateObject private var store = WorkoutStore()
     @StateObject private var health = WorkoutSessionManager.shared
 
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
+            NavigationView {
                 RootView()
             }
             .environmentObject(store)
@@ -64,15 +66,16 @@ struct RootView: View {
                     RestBanner()
                 }
                 ForEach(workout.exercises) { exercise in
-                    NavigationLink(value: exercise.id) {
+                    // NavigationLink(destination:), not value/navigationDestination
+                    // (watchOS 9+): runs on watchOS 8 (#305).
+                    NavigationLink {
+                        ExerciseView(exerciseId: exercise.id)
+                    } label: {
                         ExerciseRow(exercise: exercise)
                     }
                 }
             }
             .navigationTitle(workout.label)
-            .navigationDestination(for: String.self) { id in
-                ExerciseView(exerciseId: id)
-            }
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {

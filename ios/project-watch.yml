@@ -14,7 +14,8 @@ targets:
   ApexWatch:
     type: application
     platform: watchOS
-    deploymentTarget: "9.0"
+    # watchOS 8 = Series 3's last version; keep it running there (#305).
+    deploymentTarget: "8.0"
     sources:
       - path: ApexWatch
         excludes:
