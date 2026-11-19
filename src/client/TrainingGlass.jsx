@@ -214,7 +214,7 @@ export function TrainingTodayCard({ todaySession, activeLog, onStart, onView, on
           className="w-full text-center text-[11px] font-medium"
           style={{ color: confirmDiscard ? c.text : c.muted }}
         >
-          {confirmDiscard ? "Tap again to discard these sets" : "Not started this — discard progress"}
+          {confirmDiscard ? "Tap again to discard these sets" : "Discard this workout"}
         </button>
       )}
     </section>

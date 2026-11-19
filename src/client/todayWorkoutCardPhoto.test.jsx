@@ -38,7 +38,7 @@ describe.each([[true], ["bare"]])("TodayWorkoutCard photo=%s", (photo) => {
     const onDiscard = vi.fn();
     render(<TodayWorkoutCard photo={photo} todaySession={SESSION} activeLog={ACTIVE_LOG} onStart={() => {}} onView={() => {}} onDiscard={onDiscard} isToday />);
     expect(screen.getByText("RESUME WORKOUT")).toBeTruthy();
-    fireEvent.click(screen.getByText("Not started this — discard progress"));
+    fireEvent.click(screen.getByText("Discard this workout"));
     expect(onDiscard).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText("Tap again to discard these sets"));
     expect(onDiscard).toHaveBeenCalledTimes(1);
