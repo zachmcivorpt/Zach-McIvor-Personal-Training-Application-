@@ -130,7 +130,10 @@ export function onWatchAction(listener) {
 export function applyWatchSet(activeLog, exerciseId, setIndex, { reps, weight }) {
   const idx = Number(setIndex);
   const r = toNumber(reps);
-  const w = toNumber(weight);
+  // The Watch's Crown gives values like 49.9963 for 50 (#306): keep the
+  // weight to 2 decimals (enough for 1.25 kg plates), never the raw float.
+  const rawW = toNumber(weight);
+  const w = rawW == null ? null : Math.round(rawW * 100) / 100;
   if (!exerciseId || !Number.isInteger(idx) || idx < 0 || idx > 49) return null;
   if (r == null || r < 0 || r > 9999 || !Number.isInteger(r)) return null;
   if (w != null && (w < 0 || w > 2000)) return null;

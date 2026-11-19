@@ -4046,6 +4046,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/lib/watchOS8_305.test.js` checks the 8.0 target and that no watchOS 9-only API is used; both fail without the change.
 - **Manual**: the next 1.0.5 TestFlight build shows APEX under Available Apps on a watchOS 8 Watch; start a workout on the phone → it shows on the Watch.
 
+### 306. A 50 kg set logged on the Apple Watch saved as 49.9963 (owner, 2026-11-19)
+
+- **Problem**: the Crown's value lands just off its 2.5 kg step, and the raw float went into the log.
+- **Fix**: the Watch snaps the weight to 0.25 kg before sending (`WorkoutStore.logSet`), and `applyWatchSet` keeps 2 decimals, so an older Watch build can't save a long float either.
+- **Tests**: `src/lib/watchWeight306.test.js` (49.99634 → "50", 82.50001 → "82.5", 31.25 kept; the Watch's snap); both fail without the fix.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
