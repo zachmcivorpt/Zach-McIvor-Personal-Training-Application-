@@ -3,8 +3,9 @@ import WatchKit
 import HealthKit
 
 // APEX on Apple Watch (REGRESSION_TESTS.md #189): log the sets of the
-// workout that's running in the APEX iPhone app. Black, one accent
-// (MEASURE_BLUE), large figures — the app's own look.
+// workout that's running in the APEX iPhone app. Frosted glass over the
+// blurred gym photo (#307, Glass.swift), one accent (MEASURE_BLUE), large
+// figures — the app's own look.
 
 let measureBlue = Color(red: 0x2F / 255.0, green: 0x8F / 255.0, blue: 0xFF / 255.0) // MEASURE_BLUE #2F8FFF
 
@@ -73,25 +74,22 @@ struct RootView: View {
                     } label: {
                         ExerciseRow(exercise: exercise)
                     }
+                    .glassRow()
                 }
+                // Complete / Save for later / Cancel from the Watch (#307).
+                NavigationLink {
+                    EndWorkoutView()
+                } label: {
+                    Text("END WORKOUT")
+                        .font(.system(size: 13, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                }
+                .listRowBackground(Capsule().fill(Color.white.opacity(0.1)).overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.5)))
             }
+            .glassScreen()
             .navigationTitle(workout.label)
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("APEX")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(measureBlue)
-                    Text("No workout running")
-                        .font(.system(size: 20, weight: .semibold))
-                    Text("Start your workout in the APEX app on your iPhone. It shows here to log your sets.")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                    Button("Check again") { store.refresh() }
-                        .padding(.top, 6)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            HomeView()
         }
     }
 }
@@ -178,7 +176,7 @@ struct RestBanner: View {
                 }
                 Spacer()
                 Button("Skip") { store.skipRest() }
-                    .font(.system(size: 13, weight: .bold))
+                    .buttonStyle(GlassButtonStyle())
                     .frame(width: 60)
             }
             .onChange(of: left) { value in
@@ -189,6 +187,7 @@ struct RestBanner: View {
             }
         }
         .onChange(of: store.restEndsAt) { _ in alerted = false }
+        .glassRow()
     }
 }
 
@@ -239,13 +238,16 @@ struct ExerciseView: View {
                             }
                         }
                     }
+                    .glassRow()
                 }
                 Button {
                     store.addSet(exercise)
                 } label: {
                     Label("Add set", systemImage: "plus")
                 }
+                .glassRow()
             }
+            .glassScreen()
             .navigationTitle(exercise.name)
         } else {
             Text("This exercise is no longer in the workout.")
@@ -283,17 +285,15 @@ struct SetEntryView: View {
             Text("Turn the Crown to change")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
-            Button {
+            Button("LOG SET") {
                 store.logSet(exercise, index: index, reps: reps.rounded(), weight: weight)
                 dismiss()
-            } label: {
-                Text("LOG SET")
-                    .font(.system(size: 15, weight: .bold))
-                    .frame(maxWidth: .infinity)
             }
-            .tint(measureBlue)
+            .buttonStyle(GlassButtonStyle(kind: .blue))
             .disabled(reps <= 0)
+            .opacity(reps <= 0 ? 0.5 : 1)
         }
+        .glassScreen()
         .navigationTitle("Set \(index + 1)")
         .onAppear(perform: loadStartingValues)
     }
@@ -310,6 +310,7 @@ struct SetEntryView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.09)))
         .overlay(
             RoundedRectangle(cornerRadius: 10)
                 .stroke(focus == field ? measureBlue : Color.white.opacity(0.2), lineWidth: focus == field ? 2 : 1)

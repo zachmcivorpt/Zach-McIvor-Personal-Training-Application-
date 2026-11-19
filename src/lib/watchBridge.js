@@ -4,12 +4,15 @@
 // workout screen stays the one place a workout lives. This module is the
 // page's side of the bridge:
 //
+//   page  → iPhone app → Watch : postMessage({ action: "home", home }) — the
+//                                 home screen's today + this week (#307)
 //   page  → iPhone app → Watch : postMessage({ action: "workout", workout })
 //                                 every time the workout changes (sets,
 //                                 rest), and { action: "clear" } when it ends.
 //   Watch → iPhone app → page  : window "apexWatch" CustomEvent per action
 //                                 ({ id, type: logSet | startRest | skipRest |
-//                                 addSet | requestState, ... }); the page
+//                                 addSet | requestState | finishWorkout |
+//                                 saveForLater | discardWorkout, ... }); the page
 //                                 applies it exactly as if the client had
 //                                 typed it, then acks the id.
 //
@@ -81,11 +84,21 @@ export function sendWorkoutToWatch(workout) {
   post({ action: "workout", workout });
 }
 
-// `reason` ("finished" | "discarded") tells the Watch to save or throw away
-// its Apple Health workout (#262); anything else is treated as finished.
+// `reason` ("finished" | "saved" | "discarded") tells the Watch to save or
+// throw away its Apple Health workout (#262; "saved" = Save for later, #307);
+// anything else is treated as finished.
 export function clearWatchWorkout(reason) {
-  post(reason === "finished" || reason === "discarded" ? { action: "clear", reason } : { action: "clear" });
+  post(["finished", "saved", "discarded"].includes(reason) ? { action: "clear", reason } : { action: "clear" });
 }
+
+// The Watch's home screen (#307, built by watchHome.js). The iPhone app
+// only passes it on when it changed.
+export function sendWatchHome(home) {
+  if (home) post({ action: "home", home });
+}
+
+// End workout from the Watch (#307): the phone does what its own buttons do.
+export const WATCH_END_ACTIONS = ["finishWorkout", "saveForLater", "discardWorkout"];
 
 export function ackWatchAction(id) {
   if (id) post({ action: "ack", id: String(id) });

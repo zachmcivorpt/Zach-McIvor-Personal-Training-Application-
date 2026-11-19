@@ -29,6 +29,8 @@ final class WatchBridge: NSObject, WCSessionDelegate {
 
     private let pendingKey = "apexWatchPendingActions"
     private let contextKey = "apexWatchLastWorkout"
+    // The Watch's home screen (#307): today's session + this week's count.
+    private let homeKey = "apexWatchHome"
     private var pageHasWorkout = false
 
     private override init() {
@@ -63,6 +65,15 @@ final class WatchBridge: NSObject, WCSessionDelegate {
             UserDefaults.standard.removeObject(forKey: pendingKey)
             UserDefaults.standard.removeObject(forKey: launchedKey)
             pushContext(nil, ended: body["reason"] as? String)
+        case "home":
+            guard let home = body["home"],
+                  JSONSerialization.isValidJSONObject(home),
+                  let data = try? JSONSerialization.data(withJSONObject: home),
+                  let json = String(data: data, encoding: .utf8)
+            else { return }
+            guard UserDefaults.standard.string(forKey: homeKey) != json else { return }
+            UserDefaults.standard.set(json, forKey: homeKey)
+            pushContext(UserDefaults.standard.string(forKey: contextKey))
         case "ack":
             guard let id = body["id"] as? String else { return }
             var pending = loadPending()
@@ -108,6 +119,7 @@ final class WatchBridge: NSObject, WCSessionDelegate {
         var context: [String: Any] = ["sentAt": Date().timeIntervalSince1970]
         if let json = json { context["workout"] = json }
         if json == nil, let ended = ended { context["ended"] = ended }
+        if let home = UserDefaults.standard.string(forKey: homeKey) { context["home"] = home }
         try? session.updateApplicationContext(context)
         // Live too when the Watch app is open, so a logged set shows at once.
         if session.isReachable {
