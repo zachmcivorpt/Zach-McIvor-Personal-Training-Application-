@@ -4070,6 +4070,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: Cancel with any set entered opens "Leave this workout?" (`WorkoutSession`): SAVE FOR LATER (closes it, kept for Resume, the Watch goes to its home screen — `clearWatchWorkout("saved")`, the same path as the Watch's Save for later), DISCARD WORKOUT (red, tap twice, then the existing `discardActiveSession`), Keep going. Nothing entered → Cancel leaves straight away as before (#301). Home's discard line now reads "Discard this workout" (ClientApp, TrainingGlass, ClientLook).
 - **Tests**: `src/client/leaveWorkout309.test.jsx` renders the real WorkoutSession (asks with 2 sets, Save for later exits + clears the Watch, Discard needs a second tap, Keep going does nothing, nothing logged leaves at once); 4 of 5 fail without the fix. `discardWorkout.test.jsx` / `todayWorkoutCardPhoto.test.jsx` updated for the new wording.
 
+### 310. Apple Watch: section headings and a full-screen rest timer (owner, 2026-11-19)
+
+- **Change** (owner-approved mock-up): the Watch's workout list has small WARM-UP / MAIN SESSION / COOL-DOWN headings, as on the phone, only when there's more than one section (`WatchSectionGroup`; the phone sends `section`, anything unknown = main). Logging a set on the Watch opens a full-screen rest ring (`RestRingView`, a `fullScreenCover`, shown 0.4 s after the set screen closes): blue ring, time left, "Next: Set N" / next exercise, +15s and SKIP; it closes itself with a buzz at 0 or when the phone skips; back leaves the small rest bar running (which no longer buzzes a second time). The Watch's +15s is an `extendRest` action the phone applies with the rest bar's own `addRest15` (also re-schedules the lock-screen alert).
+- **Tests**: `src/lib/watchSectionsRest310.test.js` (sections sent, unknown → main; the wiring on both sides) and `src/client/watchExtendRest310.test.jsx` (real WorkoutSession: section in the Watch's copy, +15s from the Watch makes rest 90 → 105 s and moves its end ≥ 14 s, nothing without a running rest). 4 of 5 fail without the change.
+- **Manual (real Watch)**: a 3-section workout shows the three headings; log a set → the ring; +15s adds 15 s on the phone too; Skip; back keeps the bar; at 0 it buzzes once and closes.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

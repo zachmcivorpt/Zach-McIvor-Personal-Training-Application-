@@ -3436,6 +3436,8 @@ export function WorkoutSession({
       handleStartRest(exMeta, true);
     } else if (action.type === "skipRest") {
       setResting(false);
+    } else if (action.type === "extendRest") {
+      if (resting && restEndAtRef.current) addRest15();
     }
     ackWatchAction(action.id);
   };
@@ -3451,6 +3453,13 @@ export function WorkoutSession({
   function saveForLater() {
     onExit?.();
     clearWatchWorkout("saved");
+  }
+  // +15s on the rest timer — the phone's button and the Watch's (#310).
+  function addRest15() {
+    restEndAtRef.current += 15000;
+    setRestTime((t) => t + 15);
+    setRestTotal((t) => t + 15);
+    scheduleRestNotification((restEndAtRef.current - performance.now()) / 1000, restLabel);
   }
   function handleCancel() {
     if (onDiscard && hasEnteredSet(activeLog)) {
@@ -3476,6 +3485,8 @@ export function WorkoutSession({
           name: exercisesById[exMeta.exerciseId]?.name,
           target: `${exMeta.targetSets} × ${formatTargetReps(exMeta)}`,
           timed: exMeta.targetType === "time",
+          // The phone's section headings, shown on the Watch too (#310).
+          section: exMeta.section || "main",
           restSeconds: exMeta.restSeconds ?? 90,
           rows: rowsFor(exMeta),
           previousSets: getPreviousSets(logsForClient, exMeta.exerciseId),
@@ -3601,12 +3612,7 @@ export function WorkoutSession({
           <RestBar
             restTime={restTime}
             restTotal={restTotal}
-            onAdd15={() => {
-              restEndAtRef.current += 15000;
-              setRestTime((t) => t + 15);
-              setRestTotal((t) => t + 15);
-              scheduleRestNotification((restEndAtRef.current - performance.now()) / 1000, restLabel);
-            }}
+            onAdd15={addRest15}
             onSkip={() => setResting(false)}
           />
         )}

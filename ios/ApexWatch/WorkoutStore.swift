@@ -25,6 +25,9 @@ struct WatchExercise: Codable, Identifiable {
     let name: String
     let target: String
     let timed: Bool
+    // "warmup" | "main" | "cooldown" — the phone's section headings (#310).
+    // Optional: an older phone page doesn't send it.
+    let section: String?
     let restSeconds: Double
     var sets: [WatchSet]
 }
@@ -72,6 +75,9 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
     @Published private(set) var restTotal: Double = 0
     @Published private(set) var phoneReachable = false
     @Published private(set) var home: WatchHome?
+    // The full-screen rest ring after a set logged here (#310).
+    @Published var showRest = false
+    @Published private(set) var restExerciseId: String?
 
     // A workout ended here is not shown again if the phone re-sends it
     // before the end reaches it (asleep, locked) — for a minute (#307).
@@ -112,6 +118,12 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
         if exercise.restSeconds > 0 {
             restEndsAt = Date().addingTimeInterval(exercise.restSeconds)
             restTotal = exercise.restSeconds
+            restExerciseId = exercise.id
+            // After the set screen has closed, so the two never overlap.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                guard let self = self, (self.restEndsAt?.timeIntervalSinceNow ?? 0) > 1 else { return }
+                self.showRest = true
+            }
             send(["type": "startRest", "exerciseId": exercise.id])
         }
     }
@@ -137,6 +149,7 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
         workout = nil
         pending = [:]
         restEndsAt = nil
+        showRest = false
         WKInterfaceDevice.current().play(type == "discardWorkout" ? .directionDown : .success)
     }
 
@@ -147,7 +160,16 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
 
     func skipRest() {
         restEndsAt = nil
+        showRest = false
         send(["type": "skipRest"])
+    }
+
+    /// +15s, like the phone's rest bar (#310).
+    func extendRest() {
+        guard let end = restEndsAt, end > Date() else { return }
+        restEndsAt = end.addingTimeInterval(15)
+        restTotal += 15
+        send(["type": "extendRest", "seconds": 15])
     }
 
     func refresh() {
@@ -194,6 +216,7 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
                     self.workout = nil
                     self.pending = [:]
                     self.restEndsAt = nil
+                    self.showRest = false
                 }
                 return
             }
