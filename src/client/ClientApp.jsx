@@ -100,7 +100,8 @@ import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
 import { hasFoodLogged, buildFrequentFoods, baseFoodName, entryAmountLabel, entrySourceFood, sourceSnapshot } from "../lib/nutritionLog";
 import { scheduleRestNotification, cancelRestNotification } from "../lib/restNotification";
-import { watchBridgeAvailable, buildWatchWorkout, sendWorkoutToWatch, clearWatchWorkout, ackWatchAction, alreadyApplied, onWatchAction, applyWatchSet } from "../lib/watchBridge";
+import { watchBridgeAvailable, buildWatchWorkout, sendWorkoutToWatch, clearWatchWorkout, ackWatchAction, alreadyApplied, onWatchAction, applyWatchSet, sendWatchHome, WATCH_END_ACTIONS } from "../lib/watchBridge";
+import { buildWatchHome } from "../lib/watchHome";
 import { useVoiceRecorder, voiceNotesSupported, nativeMicAllowed } from "../lib/voiceNote";
 import { VoiceRecordingBar, VoiceNotePlayer } from "../components/VoiceNote";
 import { formCheckSet, formCheckMessageText, formCheckLabel, latestFormFeedback } from "../lib/formCheck";
@@ -3079,6 +3080,7 @@ export function WorkoutSession({
   onFinish,
   finishing,
   onExit,
+  onDiscard,
   onSaveNote,
   clientId,
   onLiveUpdate,
@@ -3407,6 +3409,15 @@ export function WorkoutSession({
       ackWatchAction(action.id);
       return;
     }
+    // End workout from the Watch (#307): Complete / Save for later / Cancel,
+    // exactly as this screen's own buttons. Run a moment later so a set the
+    // Watch logged just before has reached activeLog first.
+    if (WATCH_END_ACTIONS.includes(action.type)) {
+      ackWatchAction(action.id);
+      const type = action.type;
+      setTimeout(() => watchEndRef.current?.(type), 400);
+      return;
+    }
     const exMeta = action.exerciseId ? exercisesForSession.find((e) => e.exerciseId === action.exerciseId) : null;
     if (action.type === "logSet" && exMeta) {
       const applied = applyWatchSet(activeLog, exMeta.exerciseId, action.setIndex, action);
@@ -3424,6 +3435,17 @@ export function WorkoutSession({
     ackWatchAction(action.id);
   };
   useEffect(() => onWatchAction((action) => watchActionRef.current?.(action)), []);
+  // The latest render's handlers, for the Watch's end actions (#307).
+  const watchEndRef = useRef(null);
+  watchEndRef.current = (type) => {
+    if (type === "finishWorkout") handleFinish();
+    else if (type === "discardWorkout") onDiscard?.();
+    else if (type === "saveForLater") {
+      onExit?.();
+      // The workout stays on the phone (Resume on Home); the Watch goes home.
+      clearWatchWorkout("saved");
+    }
+  };
 
   useEffect(() => {
     if (!watchBridgeAvailable()) return;
@@ -9775,6 +9797,24 @@ export default function ClientApp() {
   const logsForClient = db.workoutLogs[currentUser.id] || EMPTY_LIST;
   const completedToday = isDateActuallyCompleted(todayDateKey, logsForClient);
   const todaySession = completedToday ? sessionForDate(todayDateKey, logsForClient) : scheduledToSession(scheduledWorkoutsByDate[todayDateKey]);
+  // The Apple Watch home screen (#307): today's session + this week, only
+  // once data has loaded (never a 0 that jumps), never in View as Client.
+  const watchHomeJson = useMemo(() => {
+    if (!dbReady || viewingAsClient || !watchBridgeAvailable()) return null;
+    return JSON.stringify(
+      buildWatchHome({
+        todayKey: todayDateKey,
+        todaySession,
+        completedToday,
+        scheduledKeys: Object.keys(scheduledWorkoutsByDate),
+        isDone: (key) => isDateActuallyCompleted(key, logsForClient),
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbReady, viewingAsClient, todayDateKey, completedToday, todaySession?.label, todaySession?.exercises, scheduledWorkoutsByDate, logsForClient]);
+  useEffect(() => {
+    if (watchHomeJson) sendWatchHome(JSON.parse(watchHomeJson));
+  }, [watchHomeJson]);
   const nutritionLogsForClient = db.nutritionLogs[currentUser.id] || EMPTY_LIST;
   // #279 Home: the day streak and this week's focus, from the client's own logs.
   // #290: the same streak as Progress's "Current Streak" (sessionStreak).
@@ -10739,6 +10779,7 @@ export default function ClientApp() {
             extraExercises={extraExercises}
             setExtraExercises={setExtraExercises}
             onFinish={finishWorkout}
+            onDiscard={discardActiveSession}
             finishing={finishingWorkout}
             onExit={() => {
               setSessionOpen(false);

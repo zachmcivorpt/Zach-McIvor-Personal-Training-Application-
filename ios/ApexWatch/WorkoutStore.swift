@@ -42,6 +42,24 @@ struct WatchWorkout: Codable {
     var rest: WatchRest?
 }
 
+// The home screen when no workout runs (#307): today's session and this
+// week's count, from the phone (src/lib/watchHome.js).
+struct WatchHomeToday: Codable {
+    let label: String
+    let exercises: Int
+    let done: Bool
+}
+
+struct WatchHomeWeek: Codable {
+    let done: Int
+    let target: Int
+}
+
+struct WatchHome: Codable {
+    let today: WatchHomeToday?
+    let week: WatchHomeWeek?
+}
+
 struct PendingSet {
     let reps: Double
     let weight: Double
@@ -53,6 +71,12 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
     @Published private(set) var restEndsAt: Date?
     @Published private(set) var restTotal: Double = 0
     @Published private(set) var phoneReachable = false
+    @Published private(set) var home: WatchHome?
+
+    // A workout ended here is not shown again if the phone re-sends it
+    // before the end reaches it (asleep, locked) — for a minute (#307).
+    private var endedSessionId: String?
+    private var endedAt: Date?
 
     override init() {
         super.init()
@@ -101,6 +125,26 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
         send(["type": "addSet", "exerciseId": exercise.id])
     }
 
+    /// End workout from the Watch (#307): "finishWorkout" (Complete),
+    /// "saveForLater" or "discardWorkout". The phone does exactly what its
+    /// own buttons do; the Watch goes back to its home screen at once.
+    func endWorkout(_ type: String) {
+        guard let w = workout else { return }
+        send(["type": type])
+        endedSessionId = w.sessionId
+        endedAt = Date()
+        WorkoutSessionManager.shared.end(save: type != "discardWorkout")
+        workout = nil
+        pending = [:]
+        restEndsAt = nil
+        WKInterfaceDevice.current().play(type == "discardWorkout" ? .directionDown : .success)
+    }
+
+    func loggedSetCount() -> Int {
+        guard let w = workout else { return 0 }
+        return w.exercises.reduce(0) { $0 + doneCount($1) }
+    }
+
     func skipRest() {
         restEndsAt = nil
         send(["type": "skipRest"])
@@ -134,7 +178,11 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
 
     private func apply(_ context: [String: Any]) {
         let json = context["workout"] as? String
+        let homeJSON = context["home"] as? String
         DispatchQueue.main.async {
+            if let h = homeJSON?.data(using: .utf8), let next = try? JSONDecoder().decode(WatchHome.self, from: h) {
+                self.home = next
+            }
             guard let json = json,
                   let data = json.data(using: .utf8),
                   let next = try? JSONDecoder().decode(WatchWorkout.self, from: data)
@@ -147,6 +195,10 @@ final class WorkoutStore: NSObject, ObservableObject, WCSessionDelegate {
                     self.pending = [:]
                     self.restEndsAt = nil
                 }
+                return
+            }
+            if let ended = self.endedSessionId, ended == next.sessionId,
+               let at = self.endedAt, Date().timeIntervalSince(at) < 60 {
                 return
             }
             if self.workout?.sessionId != next.sessionId { self.pending = [:] }

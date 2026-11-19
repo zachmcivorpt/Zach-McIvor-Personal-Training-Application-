@@ -4052,6 +4052,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: the Watch snaps the weight to 0.25 kg before sending (`WorkoutStore.logSet`), and `applyWatchSet` keeps 2 decimals, so an older Watch build can't save a long float either.
 - **Tests**: `src/lib/watchWeight306.test.js` (49.99634 → "50", 82.50001 → "82.5", 31.25 kept; the Watch's snap); both fail without the fix.
 
+### 307. Apple Watch: glass look, home screen with heart rate, End workout (owner, 2026-11-19)
+
+- **Change** (owner-approved glass mock-ups): every Watch screen is frosted glass over the blurred black-and-white gym photo (`Glass.swift`, pre-blurred `Backdrop` asset — watchOS 8 has no Material). The "No workout running" screen is now a home screen (`HomeAndEnd.swift`): latest heart rate (last hour) and resting heart rate (last week) from Apple Health on the Watch, today's session and this week's done/scheduled count from the phone (`src/lib/watchHome.js` → `sendWatchHome` → WatchBridge `home` in every context; the same "done" test as Home's week strip; only after `dbReady`, never in View as Client). The workout list ends with END WORKOUT: Complete (the phone's own Finish), Save for later (closes the session, kept for Resume, Watch goes home, Health workout saved), Cancel workout (asks first, then the phone's discard; Health workout thrown away). End actions run 400 ms after arriving so a set logged just before is in the log; repeats are dropped like every Watch action. The Watch ignores a re-sent copy of the workout it just ended for a minute.
+- **Tests**: `src/lib/watchHome307.test.js` (Monday-start weeks from the given today, done/target counted by hand, no today tile, the bridge message, the wiring on both sides, Cancel asks first, no calories) and `src/client/watchEnd307.test.jsx` (renders the real WorkoutSession: Complete finishes with the set logged just before, a repeated Complete finishes once, Save for later exits + clears the Watch as "saved", Cancel discards). The wiring and render tests fail without the change (7 of 10).
+- **Manual (TestFlight, real Watch)**: home shows heart rate, resting, today and this week; END WORKOUT → each of the three from the Watch, checking the phone; looks right on a Series 3 (watchOS 8).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

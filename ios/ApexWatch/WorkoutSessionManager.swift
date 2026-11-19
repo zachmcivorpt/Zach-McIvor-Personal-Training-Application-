@@ -46,7 +46,34 @@ final class WorkoutSessionManager: NSObject, ObservableObject, HKWorkoutSessionD
         var set: Set<HKObjectType> = []
         if let t = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) { set.insert(t) }
         if let t = HKQuantityType.quantityType(forIdentifier: .heartRate) { set.insert(t) }
+        if let t = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) { set.insert(t) }
         return set
+    }
+
+    // MARK: home screen (#307)
+
+    /// The Watch's latest heart rate (last hour) and resting heart rate (last
+    /// week) from Apple Health, for the home screen when no workout runs.
+    @Published private(set) var latestHeartRate: Double?
+    @Published private(set) var restingHeartRate: Double?
+
+    func refreshHealthStats() {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        healthStore.requestAuthorization(toShare: shareTypes, read: readTypes) { _, _ in
+            self.latest(.heartRate, within: 3600) { self.latestHeartRate = $0 }
+            self.latest(.restingHeartRate, within: 7 * 86400) { self.restingHeartRate = $0 }
+        }
+    }
+
+    private func latest(_ id: HKQuantityTypeIdentifier, within seconds: TimeInterval, _ done: @escaping (Double?) -> Void) {
+        guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return }
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        let since = HKQuery.predicateForSamples(withStart: Date().addingTimeInterval(-seconds), end: nil, options: [])
+        let query = HKSampleQuery(sampleType: type, predicate: since, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
+            let value = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+            DispatchQueue.main.async { done(value) }
+        }
+        healthStore.execute(query)
     }
 
     // MARK: start / end
