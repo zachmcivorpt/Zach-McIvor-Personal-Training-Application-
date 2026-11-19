@@ -3454,7 +3454,8 @@ export function WorkoutSession({
       buildWatchWorkout({
         sessionId: daySession.workoutLogId || `${daySession.id || ""}:${daySession.label || ""}`,
         label: daySession.label,
-        exercises: exercisesForSession.map((exMeta) => ({
+        // The phone's own order (#308): by section, as the screen shows them.
+        exercises: sectionedExercises(exercisesForSession).flatMap((group) => group.items.map(({ exMeta }) => exMeta)).map((exMeta) => ({
           id: exMeta.exerciseId,
           name: exercisesById[exMeta.exerciseId]?.name,
           target: `${exMeta.targetSets} × ${formatTargetReps(exMeta)}`,

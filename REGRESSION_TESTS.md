@@ -4058,6 +4058,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/lib/watchHome307.test.js` (Monday-start weeks from the given today, done/target counted by hand, no today tile, the bridge message, the wiring on both sides, Cancel asks first, no calories) and `src/client/watchEnd307.test.jsx` (renders the real WorkoutSession: Complete finishes with the set logged just before, a repeated Complete finishes once, Save for later exits + clears the Watch as "saved", Cancel discards). The wiring and render tests fail without the change (7 of 10).
 - **Manual (TestFlight, real Watch)**: home shows heart rate, resting, today and this week; END WORKOUT → each of the three from the Watch, checking the phone; looks right on a Series 3 (watchOS 8).
 
+### 308. Apple Watch listed exercises in a different order from the phone (owner, 2026-11-19)
+
+- **Problem**: the phone's workout screen groups exercises by section (Warm-up, Main Session, Cool-down, `sectionedExercises`), but the Watch got them in the order they were saved, so a warm-up saved after a main lift showed below it on the Watch.
+- **Fix**: `buildWatchWorkout` is fed `sectionedExercises(exercisesForSession)` flattened — the exact order the screen renders. Web-only: reaches the Watch on the app's next open, no new build.
+- **Tests**: `src/client/watchOrder308.test.jsx` renders the real WorkoutSession with sections saved out of order plus an added warm-up exercise and checks the Watch's order equals the screen's (Band Pull-apart, Arm Circles, Bench Press, Incline DB Press, Chest Stretch); fails without the fix.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
