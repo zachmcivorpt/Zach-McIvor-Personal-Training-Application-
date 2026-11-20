@@ -20,7 +20,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
           SRC: restore-1120
           NAME: rusiru
-          WRITE: "0"
+          WRITE: "1"
         run: |
           mkdir -p "$RUNNER_TEMP/r" && cp scripts/restore-client.mjs "$RUNNER_TEMP/r/r.mjs"
           cd "$RUNNER_TEMP/r" && npm init -y >/dev/null && npm i firebase-admin@12 --silent
