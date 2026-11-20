@@ -1,0 +1,18 @@
+# One-off (owner, 2026-11-20): delete the restore-1120 backup copy now the
+# client is restored. Runs only on pushes to this working branch.
+name: Delete restore copy (one-off)
+on:
+  push:
+    branches: [claude/fitness-app-ui-oa3o5k]
+    paths: [".github/workflows/delete-restore-db.yml"]
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Credentials
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/firebase-sa.json"
+      - name: Delete restore-1120
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/firebase-sa.json" --quiet
+          gcloud firestore databases delete --database=restore-1120 --project=zach-mcivor-pt-app --quiet
+          gcloud firestore databases list --project=zach-mcivor-pt-app --format="value(name)"
