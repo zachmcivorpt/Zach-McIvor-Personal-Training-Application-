@@ -1,0 +1,27 @@
+# One-off (owner, 2026-11-20): put back a client removed by mistake, from the
+# restore-1120 backup copy. Runs only on pushes to this working branch.
+name: Restore client (one-off)
+on:
+  push:
+    branches: [claude/fitness-app-ui-oa3o5k]
+    paths: [".github/workflows/restore-client.yml", "scripts/restore-client.mjs"]
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Credentials
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/firebase-sa.json"
+      - name: Restore
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
+          SRC: restore-1120
+          NAME: rusiru
+          WRITE: "0"
+        run: |
+          mkdir -p "$RUNNER_TEMP/r" && cp scripts/restore-client.mjs "$RUNNER_TEMP/r/r.mjs"
+          cd "$RUNNER_TEMP/r" && npm init -y >/dev/null && npm i firebase-admin@12 --silent
+          node r.mjs
