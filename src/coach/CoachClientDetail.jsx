@@ -5709,6 +5709,8 @@ function LiveSessionBanner({ live, exercises }) {
   );
 }
 
+export const REMOVE_CONFIRM_DELAY_MS = 1000;
+
 export default function CoachClientDetail({ clientId, onClose, showToast, initialTab, openMessages }) {
   const navigate = useNavigate();
   const { db, removeClient, startViewAsClient, setClientAccessPaused } = useApp();
@@ -5716,6 +5718,15 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
   const [messaging, setMessaging] = useState(!!openMessages);
   const [sendOpen, setSendOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  // #314: Remove client's Confirm appears where "Remove client" was, so a
+  // double tap (or a second tap because nothing seemed to happen) landed on
+  // Confirm and removed the client. Taps on Confirm in its first second are
+  // ignored.
+  const confirmShownAtRef = React.useRef(0);
+  useEffect(() => {
+    if (confirmRemove) confirmShownAtRef.current = Date.now();
+  }, [confirmRemove]);
+  const confirmTooSoon = () => Date.now() - confirmShownAtRef.current < REMOVE_CONFIRM_DELAY_MS;
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   // Pausing cuts the client off from the app immediately, and this button
   // sits right next to "View as Client"/"Message" in a tight row of
@@ -5835,6 +5846,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               </button>
               <button
                 onClick={() => {
+                  if (confirmTooSoon()) return;
                   removeClient(client.id);
                   showToast("Client archived — restore within 30 days from Archived");
                   onClose();
@@ -5952,6 +5964,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
             </button>
             <button
               onClick={() => {
+                if (confirmTooSoon()) return;
                 removeClient(client.id);
                 showToast("Client archived — restore within 30 days from Archived");
                 onClose();
