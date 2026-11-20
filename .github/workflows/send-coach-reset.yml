@@ -1,0 +1,37 @@
+# One-off (owner, 2026-11-20): the coach asked to change their password and
+# the in-app "Forgot password?" failed (#316). Sends Firebase's plain reset
+# email to the coach account.
+name: Send coach password reset (one-off)
+on:
+  push:
+    branches: [claude/fitness-app-ui-oa3o5k]
+    paths: [".github/workflows/send-coach-reset.yml"]
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Credentials
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/firebase-sa.json"
+      - name: Send
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
+        run: |
+          mkdir -p "$RUNNER_TEMP/s" && cd "$RUNNER_TEMP/s" && npm init -y >/dev/null && npm i firebase-admin@12 --silent
+          cat > s.mjs <<'JS'
+          import { initializeApp } from "firebase-admin/app";
+          import { getAuth } from "firebase-admin/auth";
+          initializeApp({ projectId: "zach-mcivor-pt-app" });
+          const user = await getAuth().getUser("FFDxAJPwO9RxUVEahsS2cjewdxL2");
+          const res = await fetch("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=AIzaSyAmKtzgfyJ14CjybJzoz2vabfsGxOZw0I4", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ requestType: "PASSWORD_RESET", email: user.email }),
+          });
+          const body = await res.json();
+          console.log(res.ok ? "Reset email sent to " + user.email.replace(/^(.{2}).*(@.*)$/, "$1***$2") : "Failed: " + JSON.stringify(body.error?.message));
+          process.exit(res.ok ? 0 : 1);
+          JS
+          node s.mjs

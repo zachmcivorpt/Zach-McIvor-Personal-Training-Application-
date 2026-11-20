@@ -4,7 +4,6 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  sendPasswordResetEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
   verifyBeforeUpdateEmail,
@@ -29,6 +28,7 @@ import {
 import { httpsCallable } from "firebase/functions";
 import { auth, db as firestore, functions } from "./firebase";
 import { nameConfirmed, bulkConfirmed, deviceLabel } from "./clientRemoval";
+import { sendResetEmail } from "./passwordReset";
 import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
 import { muscleCorrections, canonicalMuscleFields } from "./exerciseMuscles";
@@ -1089,10 +1089,8 @@ export function AppProvider({ children }) {
           // this is the "Continue" link back into the app it shows them —
           // without it they'd be left on a bare Firebase page with nowhere
           // to go next.
-          await sendPasswordResetEmail(auth, email, {
-            url: `${window.location.origin}/login`,
-            handleCodeInApp: false,
-          });
+          // #316: falls back to a plain reset email if Firebase refuses the link back.
+          await sendResetEmail(auth, email, "/login");
         } catch (err) {
           throw new Error("Couldn't send that reset email — " + (err.message || "please try again."));
         }
