@@ -4094,6 +4094,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/lib/AppContext.archiveClient313.test.jsx` runs the REAL AppProvider with Firebase mocked. Remove → archived, nothing deleted. An archived client is out of `db.users`, in `db.archivedClients`, and Restore puts their old access back. Delete now still deletes. All 3 fail on the code before this change (checked by restoring it). `src/coach/CoachClientsArchived313.test.jsx` renders the real Clients page: the Archived row shows days left, Restore works, and Delete now needs a second tap. `functions/clientArchive.test.js`: 30-day rule, never the coach, and the purge uses it. Archived section checked in Chromium at 390px (no sideways scroll).
 - **Also recommended**: turn on Firestore Point-in-time recovery (7 days) in Google Cloud.
 
+### 314. A double tap on Remove client removed a client (Rusiru, 4:11pm) (owner, 2026-11-20)
+
+- **Problem**: Cloud Logging shows `deleteClientAuthAccount` ran at 16:11:53 AEDT on 2026-11-20, which only the coach console's Remove client can call. The owner never meant to remove him. On the client page (iPad/desktop sidebar), "Remove client" sat in plain white text just above "Return to overview". One tap swapped it for Cancel | Confirm in the SAME spot, so a double tap, or a second tap because nothing seemed to happen, hit Confirm. That removed the client and all his data with no typing and no undo. The header menu's Confirm row had the same two-tap path.
+- **Fix**: both Confirm buttons on the client page (`CoachClientDetail.jsx`) ignore taps in the first second after they appear (`REMOVE_CONFIRM_DELAY_MS`, `confirmTooSoon`). Since #313, Remove client also only archives (Restore for 30 days).
+- **Tests**: `src/coach/removeDoubleTap314.test.jsx` renders the REAL CoachClientDetail. Remove client then an immediate Confirm doesn't remove. A Confirm 2 s later does. It fails on the code before this fix (checked by restoring it).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
