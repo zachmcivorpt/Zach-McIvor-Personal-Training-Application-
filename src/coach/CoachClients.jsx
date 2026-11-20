@@ -6,7 +6,7 @@ import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, Da
 import CoachClientDetail from "./CoachClientDetail";
 import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
 import { DarkPage, DarkPanel, DarkPageHeader, GLASS_BLUE } from "./darkUI";
-import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X, Repeat, Lock, Unlock, AlertTriangle } from "lucide-react";
+import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X, Repeat, Lock, Unlock, AlertTriangle, RotateCcw, Archive } from "lucide-react";
 
 const APP_STORE_URL = "https://apps.apple.com/app/id6810194114";
 
@@ -371,7 +371,8 @@ function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
 
 export default function CoachClients({ showToast, search, setSearch, openClientId, openClientAction, onOpenClientHandled }) {
   const navigate = useNavigate();
-  const { db, removeClient, startViewAsClient, setClientAccessPaused, usersReady: dbReady } = useApp();
+  const { db, removeClient, restoreClient, deleteClientNow, startViewAsClient, setClientAccessPaused, usersReady: dbReady } = useApp();
+  const [confirmDeleteNowId, setConfirmDeleteNowId] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   // Which tab (and whether to jump straight into the messages thread)
@@ -431,7 +432,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
 
   function bulkRemove() {
     checkedIds.forEach((id) => removeClient(id));
-    showToast(`Removed ${checkedIds.size} client${checkedIds.size === 1 ? "" : "s"}`);
+    showToast(`Archived ${checkedIds.size} client${checkedIds.size === 1 ? "" : "s"} — restore within 30 days from Archived`);
     setCheckedIds(new Set());
     setConfirmRemove(false);
   }
@@ -713,6 +714,59 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
         })}
       </div>
 
+      {(db.archivedClients || []).length > 0 && (
+        // #313: archived clients — restore, or delete now (two taps).
+        <section className="mt-8" data-testid="archived-clients">
+          <h2 className="text-white text-sm font-semibold flex items-center gap-2 px-1">
+            <Archive size={14} /> Archived
+          </h2>
+          <p className="text-white/50 text-xs px-1 mt-1">Deleted for good 30 days after archiving.</p>
+          <div className="mt-2 border-t divide-y" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            {db.archivedClients.map((c) => {
+              const daysLeft = Math.max(0, 30 - Math.floor((Date.now() - Number(c.archivedAt)) / 86400000));
+              return (
+                <div key={c.id} className="flex items-center gap-3 px-1 py-3" style={{ borderColor: CLIENT_DARK_BORDER }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{c.name}</p>
+                    <p className="text-white/50 text-xs truncate">
+                      {c.email} · {daysLeft} day{daysLeft === 1 ? "" : "s"} left
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      restoreClient(c.id);
+                      showToast(`${c.name} restored`);
+                    }}
+                    className="h-8 px-3 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5"
+                    style={GLASS_BLUE}
+                  >
+                    <RotateCcw size={12} /> Restore
+                  </button>
+                  {confirmDeleteNowId === c.id ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        deleteClientNow(c.id);
+                        setConfirmDeleteNowId(null);
+                        showToast(`${c.name} deleted`);
+                      }}
+                      className="h-8 px-3 rounded-lg text-xs font-semibold bg-red-600 text-white"
+                    >
+                      Tap again to delete
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => setConfirmDeleteNowId(c.id)} className="h-8 px-3 rounded-lg text-xs font-semibold text-red-300">
+                      Delete now
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <AddClientSheet open={addOpen} onClose={() => setAddOpen(false)} onCreated={(id) => openClient(id)} />
       {selectedId && (
         <CoachClientDetail
@@ -737,8 +791,8 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
         title="Remove selected clients?"
       >
         <p className="text-black/50 text-sm mb-4">
-          This permanently deletes {checkedIds.size} client{checkedIds.size === 1 ? "" : "s"} and all their workout history,
-          messages, and progress data. This can't be undone.
+          Archives {checkedIds.size} client{checkedIds.size === 1 ? "" : "s"}: their access stops and they leave your lists.
+          Restore any time in the next 30 days from Archived at the bottom of Clients; after that they're deleted for good.
         </p>
         <Field label={`Type REMOVE to confirm`}>
           <TextInput value={confirmRemoveText} onChange={(e) => setConfirmRemoveText(e.target.value)} placeholder="REMOVE" />
@@ -764,8 +818,9 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
         title="Remove this client?"
       >
         <p className="text-black/50 text-sm mb-4">
-          This permanently deletes {db.users.find((u) => u.id === confirmRemoveId)?.name || "this client"} and all their
-          workout history, messages, and progress data. This can't be undone.
+          Archives {db.users.find((u) => u.id === confirmRemoveId)?.name || "this client"}: their access stops and they leave
+          your lists. Restore any time in the next 30 days from Archived at the bottom of Clients; after that they're deleted
+          for good.
         </p>
         <Field label={`Type their name (${db.users.find((u) => u.id === confirmRemoveId)?.name || ""}) to confirm`}>
           <TextInput value={confirmRemoveText} onChange={(e) => setConfirmRemoveText(e.target.value)} placeholder="Full name" />
@@ -778,7 +833,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
           }
           onClick={() => {
             removeClient(confirmRemoveId);
-            showToast("Client removed");
+            showToast("Client archived — restore within 30 days from Archived");
             setConfirmRemoveId(null);
             setConfirmRemoveText("");
           }}

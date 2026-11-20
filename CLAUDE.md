@@ -1058,6 +1058,8 @@ any Train Solo work from now on:
 - **Back from View as Client** (#247): returns to the client page/tab (or list) it started from via `startViewAsClient(..., returnTo)` → `peekViewAsReturn` in CoachShell; never a fresh Overview. CoachShell preloads ClientApp when idle.
 - **View as Client survives a reload** (#230): kept on the phone (`VIEW_AS_KEY`, coach uid-checked), cleared by `stopViewAsClient` / logout. Never hold it only in React state.
 
+- **Remove client archives, never deletes at once** (#313, owner): an activated client gets `archivedAt` + `accessPaused`, leaves every coach list (`db.users` excludes them for the coach) and shows in Clients → Archived (`db.archivedClients`) with Restore (`restoreClient`) and a two-tap Delete now (`deleteClientNow`). The server's `purgeArchivedClients` deletes them for good after 30 days (`functions/clientArchive.js`, `purgeClientData`). Never bring back an immediate delete behind Remove client.
+
 - Subscribe a collection only for the roles firestore.rules lets read
   it. A refused listener isn't harmless: `subscribeWithRetry` retries it
   forever (backing off to every 16s) on every phone with the app open.
