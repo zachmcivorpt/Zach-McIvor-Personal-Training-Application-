@@ -9,9 +9,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { AppProvider, useApp } from "./AppContext";
 
-const fb = vi.hoisted(() => ({ authCb: null, listeners: {}, updates: [], deletes: [] }));
-vi.mock("./firebase", () => ({ auth: {}, db: {}, functions: {} }));
-vi.mock("firebase/functions", () => ({ httpsCallable: vi.fn(() => vi.fn(() => Promise.resolve())) }));
+const fb = vi.hoisted(() => ({ authCb: null, listeners: {}, updates: [], deletes: [], calls: [] }));
+vi.mock("./firebase", () => ({ auth: { currentUser: { uid: "coach1" } }, db: {}, functions: {} }));
+vi.mock("firebase/functions", () => ({
+  httpsCallable: vi.fn((_f, name) =>
+    vi.fn((data) => {
+      fb.calls.push([name, data]);
+      return Promise.resolve({ data: { deleted: true } });
+    })
+  ),
+}));
 vi.mock("firebase/auth", () => ({
   onAuthStateChanged: (_a, cb) => {
     fb.authCb = cb;
@@ -78,7 +85,7 @@ function setup(users) {
 
 beforeEach(() => {
   localStorage.clear();
-  Object.assign(fb, { authCb: null, listeners: {}, updates: [], deletes: [] });
+  Object.assign(fb, { authCb: null, listeners: {}, updates: [], deletes: [], calls: [] });
 });
 afterEach(cleanup);
 
@@ -86,7 +93,7 @@ describe("Remove client archives instead of deleting (#313)", () => {
   it("Remove archives: access paused, nothing deleted", async () => {
     setup([rusiru]);
     expect(api.db.users.some((u) => u.id === "r1")).toBe(true);
-    await act(async () => api.removeClient("r1"));
+    await act(async () => api.removeClient("r1", "Rusiru"));
     expect(fb.deletes).toEqual([]);
     const [path, data] = fb.updates.find(([p, d]) => p === "users/r1" && d.archivedAt);
     expect(path).toBe("users/r1");
@@ -98,13 +105,54 @@ describe("Remove client archives instead of deleting (#313)", () => {
     expect(api.db.users.some((u) => u.id === "r1")).toBe(false);
     expect(api.db.archivedClients.map((u) => u.id)).toEqual(["r1"]);
     await act(async () => api.restoreClient("r1"));
-    expect(fb.updates.at(-1)).toEqual(["users/r1", { archivedAt: "__delete__", archivedPrevAccessPaused: "__delete__", accessPaused: false }]);
+    expect(fb.updates.at(-1)).toEqual([
+      "users/r1",
+      {
+        archivedAt: "__delete__",
+        archivedPrevAccessPaused: "__delete__",
+        archivedBy: "__delete__",
+        archivedVia: "__delete__",
+        archivedDevice: "__delete__",
+        accessPaused: false,
+      },
+    ]);
     expect(fb.deletes).toEqual([]);
   });
 
-  it("Delete now still deletes for good", async () => {
+  it("Delete now still deletes for good (#315: on the server, with the typed name)", async () => {
     setup([{ ...rusiru, archivedAt: Date.now(), accessPaused: true }]);
+    await act(async () => api.deleteClientNow("r1", "Rusiru"));
+    expect(fb.calls).toEqual([["deleteArchivedClient", expect.objectContaining({ uid: "r1", confirmName: "Rusiru" })]]);
+  });
+});
+
+describe("Nothing is archived or deleted without the typed name (#315)", () => {
+  it("removeClient with no / wrong name writes nothing; bulk needs REMOVE", async () => {
+    setup([rusiru]);
+    await act(async () => api.removeClient("r1"));
+    await act(async () => api.removeClient("r1", "Rus"));
+    await act(async () => api.removeClient("r1", "remove", { bulk: false }));
+    await act(async () => api.removeClient("r1", "nope", { bulk: true }));
+    expect(fb.updates.filter(([p]) => p === "users/r1")).toEqual([]);
+    await act(async () => api.removeClient("r1", "remove", { bulk: true, via: "clients-bulk" }));
+    const [, data] = fb.updates.find(([p, d]) => p === "users/r1" && d.archivedAt);
+    expect(data).toMatchObject({ accessPaused: true, archivedVia: "clients-bulk", archivedBy: "coach1" });
+    expect(typeof data.archivedDevice).toBe("string");
+    expect(fb.deletes).toEqual([]);
+  });
+
+  it("deleteClientNow refuses without the name, and for a client who isn't archived", async () => {
+    setup([rusiru]);
     await act(async () => api.deleteClientNow("r1"));
-    expect(fb.deletes).toContain("users/r1");
+    await act(async () => api.deleteClientNow("r1", "Rusiru")); // live, not archived
+    expect(fb.calls).toEqual([]);
+    expect(fb.deletes).toEqual([]);
+  });
+
+  it("the app never deletes an activated client's records itself", async () => {
+    setup([{ ...rusiru, archivedAt: Date.now(), accessPaused: true }]);
+    await act(async () => api.deleteClientNow("r1", "Rusiru"));
+    expect(fb.deletes).toEqual([]);
+    expect(fb.calls.map(([n]) => n)).toEqual(["deleteArchivedClient"]);
   });
 });

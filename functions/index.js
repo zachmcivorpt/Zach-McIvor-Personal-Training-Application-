@@ -78,7 +78,7 @@ async function notifyUser(uid, { title, body }, prefKey) {
 
 // Every per-client collection keyed by a `clientId` field (see
 // AppContext.jsx's per-client Firestore listeners for the same list).
-const { isArchiveExpired } = require("./clientArchive");
+const { isArchiveExpired, deleteNowRefusal } = require("./clientArchive");
 const CLIENT_ID_COLLECTIONS = [
   "workoutLogs", "messages", "workoutComments", "progressPhotos", "savedMeals",
   "habits", "clientPhases", "formSchedules", "formResponses", "weighIns",
@@ -458,6 +458,13 @@ exports.inactivityWod = onSchedule(
 // step with "email already in use" — the account looks live because it
 // technically still is. This deletes the Auth account in the same breath as
 // the Firestore cleanup, for every removal from now on.
+//
+// #315 (owner): a live client was deleted through this call from the coach's
+// iPhone (16:11:56, 2026-11-20) with three taps. It now ONLY clears an
+// orphaned login — one with no users/{uid} doc at all. It refuses for any
+// client whose profile still exists (an older saved copy of the app could
+// still call it on Remove client). Real deletes go through
+// deleteArchivedClient below.
 exports.deleteClientAuthAccount = onCall(async (request) => {
   const callerUid = request.auth?.uid;
   if (!callerUid) throw new HttpsError("unauthenticated", "Sign in required.");
@@ -467,11 +474,48 @@ exports.deleteClientAuthAccount = onCall(async (request) => {
   }
   const uid = request.data?.uid;
   if (!uid || typeof uid !== "string") throw new HttpsError("invalid-argument", "Missing uid.");
+  if (uid === callerUid) throw new HttpsError("permission-denied", "Not your own account.");
+  const profile = await db.collection("users").doc(uid).get();
+  if (profile.exists) {
+    console.warn(`deleteClientAuthAccount REFUSED for ${uid}: profile still exists (caller ${callerUid})`);
+    throw new HttpsError("failed-precondition", "This client still exists. Archive them from Remove client instead.");
+  }
   try {
     await adminAuth.deleteUser(uid);
   } catch (err) {
     // Already gone (e.g. this ran once before, or the client never actually
     // activated) — not an error worth surfacing to the coach.
+    if (err.code !== "auth/user-not-found") throw new HttpsError("internal", err.message);
+  }
+  console.info(`deleteClientAuthAccount: orphaned login ${uid} cleared by ${callerUid}`);
+  return { deleted: true };
+});
+
+// #315: Clients → Archived → "Delete now". The ONLY way to delete a client
+// before the 30-day purge. Refuses unless the client is already archived and
+// the coach typed their full name (deleteNowRefusal). Every call is logged
+// with who, which device and the outcome.
+exports.deleteArchivedClient = onCall(async (request) => {
+  const callerUid = request.auth?.uid;
+  if (!callerUid) throw new HttpsError("unauthenticated", "Sign in required.");
+  const callerSnap = await db.collection("users").doc(callerUid).get();
+  if (callerSnap.data()?.role !== "coach") {
+    throw new HttpsError("permission-denied", "Only the coach can do this.");
+  }
+  const uid = request.data?.uid;
+  if (!uid || typeof uid !== "string" || uid === callerUid) throw new HttpsError("invalid-argument", "Missing uid.");
+  const snap = await db.collection("users").doc(uid).get();
+  const refusal = deleteNowRefusal(snap.exists ? snap.data() : null, request.data?.confirmName);
+  const device = String(request.data?.device || "").slice(0, 40);
+  if (refusal) {
+    console.warn(`deleteArchivedClient REFUSED (${refusal}) for ${uid} by ${callerUid} on ${device}`);
+    throw new HttpsError("failed-precondition", "Not deleted: the client must be archived and their full name typed.");
+  }
+  console.info(`deleteArchivedClient: deleting ${uid} (${snap.data().name}) by ${callerUid} on ${device}`);
+  await purgeClientData(uid);
+  try {
+    await adminAuth.deleteUser(uid);
+  } catch (err) {
     if (err.code !== "auth/user-not-found") throw new HttpsError("internal", err.message);
   }
   return { deleted: true };
@@ -561,6 +605,7 @@ exports.purgeArchivedClients = onSchedule(
     const snap = await db.collection("users").where("role", "==", "client").get();
     for (const d of snap.docs) {
       if (!isArchiveExpired(d.data())) continue;
+      console.info(`purgeArchivedClients: deleting ${d.id} (${d.data().name}), archived ${new Date(d.data().archivedAt).toISOString()}`);
       try {
         await purgeClientData(d.id);
         await adminAuth.deleteUser(d.id).catch((err) => {

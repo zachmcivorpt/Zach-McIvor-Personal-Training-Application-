@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
-// #314 (owner): a client was removed at 4:11pm without the coach meaning to.
-// Remove client turned into Cancel | Confirm in the same spot, so a double
-// tap confirmed it. Confirm now ignores taps in its first second.
-// (setup copied from #208:) the coach's client page in Jarvis mode — glass panels, a "Needs
-// you" list with one-tap actions, Session History filters, and calendar
-// tiles (workout chips, habits as dots). Renders the REAL CoachClientDetail
-// with db shaped exactly as AppContext builds it (grouped by client, #167).
+// #315 (owner): a client was removed from the coach's iPhone at 16:11:56 on
+// 2026-11-20 (Cloud Run log: iPhone app, the only delete call in 30 days).
+// On a phone that took ⋮ → Remove client → Confirm: three taps, no typing.
+// Every Remove client on the client page now opens a sheet that needs the
+// client's full name typed. Renders the REAL CoachClientDetail with db
+// shaped as AppContext builds it (#167). Replaces #314's double-tap test.
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -67,16 +66,28 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("Remove client can't be confirmed by a double tap (#314)", () => {
-  it("a second tap straight after Remove client does nothing; a deliberate Confirm still works", () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-20T16:11:53"));
+describe("Remove client on the client page needs the full name typed (#315)", () => {
+  it("phone path ⋮ → Remove client: taps alone never archive; the typed name does", () => {
+    setup("summary");
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove client" }).at(-1));
+    const archive = screen.getByRole("button", { name: "Archive client" });
+    // The 16:11 path: more taps where Confirm used to be.
+    fireEvent.click(archive);
+    fireEvent.click(archive);
+    expect(screen.queryByRole("button", { name: "Confirm" })).toBeNull();
+    fireEvent.change(screen.getByPlaceholderText("Full name"), { target: { value: "Zach" } });
+    fireEvent.click(archive);
+    expect(ctx.removeClient).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByPlaceholderText("Full name"), { target: { value: "  zach  mcivor " } });
+    fireEvent.click(archive);
+    expect(ctx.removeClient).toHaveBeenCalledWith("u1", "  zach  mcivor ", { via: "client-page" });
+  });
+
+  it("sidebar Remove client opens the same sheet; Cancel archives nobody", () => {
     setup("summary");
     fireEvent.click(screen.getAllByRole("button", { name: "Remove client" })[0]);
-    fireEvent.click(screen.getAllByRole("button", { name: "Confirm" })[0]); // the double tap
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(ctx.removeClient).not.toHaveBeenCalled();
-    vi.setSystemTime(new Date("2026-11-20T16:11:55"));
-    fireEvent.click(screen.getAllByRole("button", { name: "Confirm" })[0]);
-    expect(ctx.removeClient).toHaveBeenCalledWith("u1");
   });
 });

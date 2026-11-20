@@ -49,7 +49,13 @@ service cloud.firestore {
         (isSignedIn() && request.auth.uid == userId &&
          request.resource.data.role == resource.data.role);
 
-      allow delete: if isCoach();
+      // #315 (owner): a client's profile is NEVER deleted from an app — only
+      // by the server (deleteArchivedClient after a typed name, or the
+      // 30-day purge of archived clients). The coach may still delete a
+      // pending invite's draft doc (no role) and other non-client docs.
+      allow delete: if isCoach() &&
+        (resource == null || resource.data.get("role", "") != "client" ||
+         exists(/databases/$(database)/documents/invites/$(userId)));
     }
 
     // --- invites/{email} ----------------------------------------------

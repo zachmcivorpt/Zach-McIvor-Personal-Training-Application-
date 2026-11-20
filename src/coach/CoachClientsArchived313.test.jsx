@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 // #313: Clients → Archived lists archived clients with Restore and a
-// two-tap Delete now. Renders the REAL CoachClients.
+// Delete now that needs the full name typed (#315). Renders the REAL CoachClients.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import CoachClients from "./CoachClients";
 
 const app = vi.hoisted(() => ({ restoreClient: vi.fn(), deleteClientNow: vi.fn() }));
@@ -40,11 +40,17 @@ describe("Clients → Archived (#313)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Restore/ }));
     expect(app.restoreClient).toHaveBeenCalledWith("r1");
   });
-  it("Delete now needs a second tap", () => {
+  it("Delete now needs the full name typed (#315)", async () => {
     render(<CoachClients showToast={() => {}} search="" setSearch={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "Delete now" }));
+    const del = screen.getByRole("button", { name: /Delete for good/ });
+    fireEvent.click(del);
     expect(app.deleteClientNow).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Tap again to delete" }));
-    expect(app.deleteClientNow).toHaveBeenCalledWith("r1");
+    fireEvent.change(screen.getByPlaceholderText("Full name"), { target: { value: "Rusir" } });
+    fireEvent.click(del);
+    expect(app.deleteClientNow).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByPlaceholderText("Full name"), { target: { value: "rusiru" } });
+    await act(async () => fireEvent.click(del));
+    expect(app.deleteClientNow).toHaveBeenCalledWith("r1", "rusiru");
   });
 });

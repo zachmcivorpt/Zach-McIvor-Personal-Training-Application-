@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { sendResetEmail } from "./passwordReset";
 import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  sendPasswordResetEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
   deleteUser,
@@ -747,7 +747,7 @@ export function SoloAppProvider({ children }) {
       // Continue link comes back to Train Solo's sign-in, not Coaching's.
       async sendSoloPasswordReset(email) {
         try {
-          await sendPasswordResetEmail(soloAuth, email.trim(), { url: `${window.location.origin}/solo/login`, handleCodeInApp: false });
+          await sendResetEmail(soloAuth, email.trim(), "/solo/login"); // #316: plain email if the link back is refused
         } catch (err) {
           const code = err?.code || "";
           if (code.includes("user-not-found")) return; // never say whether an account exists

@@ -4,7 +4,6 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  sendPasswordResetEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
   verifyBeforeUpdateEmail,
@@ -28,6 +27,8 @@ import {
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { auth, db as firestore, functions } from "./firebase";
+import { nameConfirmed, bulkConfirmed, deviceLabel } from "./clientRemoval";
+import { sendResetEmail } from "./passwordReset";
 import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
 import { muscleCorrections, canonicalMuscleFields } from "./exerciseMuscles";
@@ -181,20 +182,6 @@ async function seedCoachData() {
     await progBatch.commit();
   } catch (err) {
     console.error("seedCoachData failed:", err);
-  }
-}
-
-// Best-effort delete of every doc in `collectionName` where clientId
-// matches — used to clean up a removed client's history.
-async function deleteWhereClientId(collectionName, clientId) {
-  try {
-    const snap = await getDocs(query(collection(firestore, collectionName), where("clientId", "==", clientId)));
-    if (!snap.docs.length) return;
-    const batch = writeBatch(firestore);
-    snap.docs.forEach((d) => batch.delete(d.ref));
-    await batch.commit();
-  } catch (err) {
-    console.error(`cleanup ${collectionName} for ${clientId} failed:`, err);
   }
 }
 
@@ -1102,10 +1089,8 @@ export function AppProvider({ children }) {
           // this is the "Continue" link back into the app it shows them —
           // without it they'd be left on a bare Firebase page with nowhere
           // to go next.
-          await sendPasswordResetEmail(auth, email, {
-            url: `${window.location.origin}/login`,
-            handleCodeInApp: false,
-          });
+          // #316: falls back to a plain reset email if Firebase refuses the link back.
+          await sendResetEmail(auth, email, "/login");
         } catch (err) {
           throw new Error("Couldn't send that reset email — " + (err.message || "please try again."));
         }
@@ -1173,17 +1158,28 @@ export function AppProvider({ children }) {
       // (purgeArchivedClients) deletes them for good after 30 days; "Delete
       // now" there runs the old immediate delete. A pending invite has no
       // history, so it's still removed outright.
-      removeClient(clientId) {
+      // #315: refuses unless `confirmation` is the client's full name as the
+      // coach typed it (or REMOVE for a bulk remove, `{ bulk: true }`). No
+      // caller can archive anyone on a tap alone. `via` names the button.
+      removeClient(clientId, confirmation, { via = "unknown", bulk = false } = {}) {
         const target = db.users.find((u) => u.id === clientId);
         if (!target) return;
+        const ok = bulk ? bulkConfirmed(confirmation) : nameConfirmed(confirmation, target.name);
+        if (!ok) {
+          console.error("removeClient refused: not confirmed by typing", clientId);
+          return;
+        }
         if (target._source !== "invite") {
           return updateDoc(doc(firestore, "users", clientId), {
             archivedAt: Date.now(),
             accessPaused: true,
             archivedPrevAccessPaused: !!target.accessPaused,
+            archivedBy: auth.currentUser?.uid || null,
+            archivedVia: via,
+            archivedDevice: deviceLabel(),
           }).catch(console.error);
         }
-        return a.deleteClientNow(clientId);
+        return a.deleteClientNow(clientId, target.name);
       },
 
       restoreClient(clientId) {
@@ -1192,55 +1188,42 @@ export function AppProvider({ children }) {
         return updateDoc(doc(firestore, "users", clientId), {
           archivedAt: deleteField(),
           archivedPrevAccessPaused: deleteField(),
+          archivedBy: deleteField(),
+          archivedVia: deleteField(),
+          archivedDevice: deleteField(),
           accessPaused: !!target.archivedPrevAccessPaused,
         }).catch(console.error);
       },
 
-      deleteClientNow(clientId) {
+      // #315: deleting for good also needs the client's typed full name. A
+      // pending invite (no history) is removed here. An activated client is
+      // deleted ONLY by the server (deleteArchivedClient), which refuses
+      // unless they're already archived and the name matches — the app no
+      // longer deletes a client's records itself.
+      deleteClientNow(clientId, confirmation) {
         const target = [...db.users, ...(db.archivedClients || [])].find((u) => u.id === clientId);
         if (!target) return;
+        if (!nameConfirmed(confirmation, target.name)) {
+          console.error("deleteClientNow refused: not confirmed by typing", clientId);
+          return;
+        }
         if (target._source === "invite") {
-          deleteDoc(doc(firestore, "invites", clientId)).catch(console.error);
           // The invite id IS the draft doc's id (see createInvite/updateUser's
           // comments) — filling in Personal Details before activation writes
           // to users/{clientId} as a draft. Leaving it behind after removing
-          // the invite orphans it forever: it has no name/email/username of
-          // its own, so the db.users normalizer falls back to its doc id
-          // (the email) for its username — which then permanently blocks
-          // that exact email from ever getting a clean invite again, forcing
-          // every future attempt into an ever-growing "+1", "+2", "+3" chain.
-          deleteDoc(doc(firestore, "users", clientId)).catch(() => {});
+          // the invite orphans it forever and blocks a clean re-invite. The
+          // draft goes first: firestore.rules (#315) lets it go while its
+          // invite still exists.
+          return deleteDoc(doc(firestore, "users", clientId))
+            .catch(() => {})
+            .then(() => deleteDoc(doc(firestore, "invites", clientId)))
+            .catch(console.error);
+        }
+        if (!target.archivedAt) {
+          console.error("deleteClientNow refused: archive the client first", clientId);
           return;
         }
-        // Firestore cleanup below only ever removes THIS app's own data —
-        // the Firebase Auth account underneath it is a separate system the
-        // client SDK can't touch for anyone but the currently signed-in
-        // user, hence a server-side call. Fire-and-forget: an activated
-        // client is always identified below by their own real uid, so this
-        // can run independently of (and doesn't need to block) the
-        // Firestore deletes: if it fails, the account is orphaned exactly
-        // like it always was before this existed, and cleanupOrphanedInvite
-        // (AppContext.jsx's activateAccount) still recovers it automatically
-        // the next time someone tries to re-invite this same email.
-        httpsCallable(functions, "deleteClientAuthAccount")({ uid: clientId }).catch(console.error);
-        deleteDoc(doc(firestore, "users", clientId)).catch(console.error);
-        deleteDoc(doc(firestore, "habitLog", clientId)).catch(() => {});
-        [
-          "workoutLogs",
-          "messages",
-          "progressPhotos",
-          "savedMeals",
-          "habits",
-          "clientPhases",
-          "formSchedules",
-          "formResponses",
-          "clientNotes",
-          "weighIns",
-          "scheduledWorkouts",
-          "bodyStatsSchedules",
-          "notifications",
-          "videoFeedback",
-        ].forEach((name) => deleteWhereClientId(name, clientId));
+        return httpsCallable(functions, "deleteArchivedClient")({ uid: clientId, confirmName: confirmation, device: deviceLabel() });
       },
 
       // Coach-side edit of a client's own name/email. Trickier than a plain
