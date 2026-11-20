@@ -607,6 +607,7 @@ any Train Solo work from now on:
   the week numbers (logs are keyed on them). Never add a second way to put
   a program on the calendar. An archived program's calendar is its history:
   only the sessions done before it was archived, never one "to do" (#169).
+- **Train Solo's Delete account never deletes a coaching login** (#312): Train Solo and Coaching share one login per email. `deleteMySoloAccount` checks `users/{uid}` first (`soloLoginMayBeDeleted`); if Coaching uses the login, only Train Solo's data goes and the login stays. A failed check deletes nothing. Never call `deleteUser` from Train Solo without that check.
 - **Deleting an archived program** (#168): swipe → Delete → confirm, through
   `removeSoloProgram` / `planRemoveProgram` only. Logged sessions are never
   deleted (Progress keeps them), only detached from the program. A bought

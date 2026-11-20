@@ -4081,6 +4081,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Change**: after 5 days with no training (`INACTIVITY_DAYS`, was 4), `inactivityWod` (functions/index.js, 8am Sydney) still builds a Reignition workout from the client's OWN current program (`buildInactivityWod`: their phase's main lifts, never invented). It still puts it on today's calendar and never over a session already there. It no longer writes the coach chat message or sends the "Your coach sent a message" push.
 - **Tests**: `functions/inactivityWod.test.js` checks the scheduled handler: it still builds from their program and writes `scheduledWorkouts`, sends no `messages` doc and no `notifyUser`, and fires at 5 days. The last two fail on the code before this change (checked by restoring it).
 
+### 312. Train Solo's Delete account deleted the shared login, taking a coaching account with it (owner, 2026-11-20)
+
+- **Problem**: Train Solo and Coaching use the same Firebase project, so one email is ONE login (same uid) in both. `deleteMySoloAccount` (SoloAppContext.jsx) ended with `deleteUser(user)`. A coached client (or the coach) who had used Train Solo with their coaching email and tapped Train Solo → Profile → Delete account lost their coaching login too. Raised while a client (Rusiru) reported his account gone and signed out. Whether that was his cause can't be seen from code; check Firebase Authentication / Firestore `users`.
+- **Fix**: before anything is deleted, Train Solo reads `users/{uid}` (`soloLoginMayBeDeleted`, `src/solo/soloAccountDeletion.js`). If a coaching profile uses the login, only Train Solo's own data and `soloUsers/{uid}` are deleted, and the member is signed out of Train Solo. The login and everything in Coaching stay. A Train Solo-only account is deleted fully as before (App Store 5.1.1(v)). If the check can't be made (offline), nothing is deleted and they're asked to try again.
+- **Tests**: `src/lib/SoloAppContext.deleteKeepsCoaching312.test.jsx` runs the REAL `deleteMySoloAccount` with Firebase mocked. Coached client → Train Solo data deleted, `deleteUser` never called, signed out. Solo-only → login deleted. Failed check → nothing deleted. The first and third fail on the code before this fix (checked by restoring it).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
