@@ -1,0 +1,61 @@
+# One-off (owner, 2026-11-20): the owner was NOT on their phone at 16:11.
+# Which coach account / device made the delete call? Read-only.
+name: Investigate client removal 2 (one-off)
+on:
+  push:
+    branches: [claude/fitness-app-ui-oa3o5k]
+    paths: [".github/workflows/investigate-removal.yml"]
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Credentials
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" -q
+          gcloud config set project zach-mcivor-pt-app -q
+      - name: Every account with coach rights + its login info
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          mkdir -p "$RUNNER_TEMP/s" && cd "$RUNNER_TEMP/s" && npm init -y >/dev/null && npm i firebase-admin@12 --silent
+          cat > s.mjs <<'JS'
+          import { initializeApp } from "firebase-admin/app";
+          import { getFirestore } from "firebase-admin/firestore";
+          import { getAuth } from "firebase-admin/auth";
+          initializeApp({ projectId: "zach-mcivor-pt-app" });
+          const db = getFirestore();
+          const mask = (e) => String(e || "").replace(/^(.{2}).*(@.*)$/, "$1***$2");
+          const coaches = await db.collection("users").where("role", "==", "coach").get();
+          console.log("Coach-role users docs:", coaches.size);
+          for (const d of coaches.docs) {
+            let a = {};
+            try { a = await getAuth().getUser(d.id); } catch (e) { a = { err: e.code }; }
+            console.log(JSON.stringify({ uid: d.id, name: d.data().name, email: mask(d.data().email || a.email), created: a.metadata?.creationTime, lastSignIn: a.metadata?.lastSignInTime, lastRefresh: a.metadata?.lastRefreshTime, tokensValidAfter: a.tokensValidAfterTime, providers: (a.providerData || []).map((p) => p.providerId), err: a.err }));
+          }
+          const r = await db.collection("users").doc("GgefGSjAGifvO6f97HXpsIChwcI3").get();
+          const x = r.data() || {};
+          console.log("Restored client doc keys:", Object.keys(x).sort().join(","));
+          console.log("role:", x.role, "archivedAt:", x.archivedAt, "accessPaused:", x.accessPaused);
+          process.exit(0);
+          JS
+          node s.mjs
+      - name: Requests from 139.178.131.* (30 days)
+        continue-on-error: true
+        run: |
+          gcloud logging read 'resource.type="cloud_run_revision" AND httpRequest.remoteIp:"139.178.131."' --freshness=30d --limit=100 \
+            --format='table(timestamp,resource.labels.service_name,httpRequest.status,httpRequest.userAgent)'
+      - name: All iPhone-app callable requests by address (7 days)
+        continue-on-error: true
+        run: |
+          gcloud logging read 'resource.type="cloud_run_revision" AND httpRequest.userAgent:"iPhone" AND httpRequest.requestMethod="POST"' --freshness=7d --limit=1000 \
+            --format='value(httpRequest.remoteIp,resource.labels.service_name,httpRequest.userAgent)' \
+            | awk -F'\t' '{split($1,a,"."); print a[1]"."a[2]"."a[3]".x\t"$2"\t"$3}' | sort | uniq -c | sort -rn | head -60
+      - name: All requests 16:05–16:15 AEDT any service (incl. /api on Vercel not here)
+        continue-on-error: true
+        run: |
+          gcloud logging read 'timestamp>="2026-11-20T05:05:00Z" AND timestamp<="2026-11-20T05:15:00Z" AND NOT resource.labels.service_name="deleteclientauthaccount"' --limit=100 --order=asc \
+            --format='table(timestamp,resource.type,resource.labels.service_name,httpRequest.userAgent,textPayload)'
