@@ -17,6 +17,7 @@ import {
   deleteField,
   getDocs,
   getDocFromServer,
+  getDoc,
   writeBatch,
   onSnapshot,
   collection,
@@ -24,6 +25,7 @@ import {
   where,
   increment,
 } from "firebase/firestore";
+import { soloLoginMayBeDeleted } from "../solo/soloAccountDeletion";
 import { httpsCallable } from "firebase/functions";
 import { soloAuth, soloDb, soloFunctions } from "./firebase";
 import { isComplete } from "../solo/onboarding/questionnaireConfig";
@@ -1126,6 +1128,14 @@ export function SoloAppProvider({ children }) {
         } catch (err) {
           throw new Error("Couldn't cancel your subscription — please try again. " + (err?.message || ""));
         }
+        // #312: never delete a login that a coaching account also uses
+        // (same email = same login). Checked before anything is removed.
+        let deleteLogin;
+        try {
+          deleteLogin = await soloLoginMayBeDeleted(async () => (await getDoc(doc(soloDb, "users", user.uid))).exists());
+        } catch (err) {
+          throw new Error("Couldn't delete your account — please try again. " + (err?.message || ""));
+        }
         try {
           // soloPurchases are NOT deleted: firestore.rules never lets a
           // customer delete one (`allow delete: if false` — they're the
@@ -1170,7 +1180,8 @@ export function SoloAppProvider({ children }) {
           deletingAccountRef.current = true;
           clearCachedProfile();
           await deleteDoc(doc(soloDb, "soloUsers", user.uid));
-          await deleteUser(user);
+          if (deleteLogin) await deleteUser(user);
+          else await signOut(soloAuth); // #312: their coaching login stays
         } catch (err) {
           deletingAccountRef.current = false;
           throw new Error(err.message || "Couldn't delete your account — please try again.");
