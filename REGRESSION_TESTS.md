@@ -4108,7 +4108,7 @@ each lights exactly that muscle's outline (screenshots in the session).
 
 ### 316. "Forgot password?" failed: Domain not allowlisted (auth/unauthorized-continue-uri) (owner, 2026-11-20)
 
-- **Problem**: the coach tried to reset their password in the iPhone app and got "Firebase: Domain not allowlisted by project (auth/unauthorized-continue-uri)". The reset email asks for a "Continue" link back to `window.location.origin`, and Firebase refuses the whole email when that site isn't an authorised domain. Same code in Train Solo's reset.
+- **Problem**: the coach tried to reset their password in the iPhone app and got "Firebase: Domain not allowlisted by project (auth/unauthorized-continue-uri)". The reset email asks for a "Continue" link back to `window.location.origin`, and Firebase refuses the whole email when that site isn't an authorised domain. Same code in Train Solo's reset. Checked against the live Firebase with a real account: the app's own site (`apexcoachingplatform-appl.vercel.app`) is refused (UNAUTHORIZED_DOMAIN), so every reset — coach, client, the coach's "Resend login help", Train Solo — was failing. Without the link back the same email is accepted.
 - **Fix**: `sendResetEmail` (`src/lib/passwordReset.js`), used by Coaching's `sendPasswordReset` and Train Solo's `sendSoloPasswordReset`: if Firebase refuses the link back, the plain reset email is sent instead. Other errors are still shown.
 - **Tests**: `src/lib/passwordReset316.test.js` — link back accepted → one email; refused → the plain email still goes; other errors still thrown. Fails without the fix (module missing).
 
