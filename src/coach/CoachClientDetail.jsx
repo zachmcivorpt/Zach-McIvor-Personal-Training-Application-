@@ -5836,7 +5836,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               <button
                 onClick={() => {
                   removeClient(client.id);
-                  showToast("Client removed");
+                  showToast("Client archived — restore within 30 days from Archived");
                   onClose();
                 }}
                 className="flex-1 bg-red-500/20 text-red-300 text-xs font-semibold py-2 rounded-lg"
@@ -5946,14 +5946,14 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
         </div>
         {confirmRemove && (
           <div className="flex items-center gap-2.5 px-3 pb-3 pt-1">
-            <p className="text-white text-xs font-medium flex-1">Remove {client.name} and all their data?</p>
+            <p className="text-white text-xs font-medium flex-1">Archive {client.name}? Restore within 30 days from Clients → Archived.</p>
             <button onClick={() => setConfirmRemove(false)} className="bg-white/8 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0">
               Cancel
             </button>
             <button
               onClick={() => {
                 removeClient(client.id);
-                showToast("Client removed");
+                showToast("Client archived — restore within 30 days from Archived");
                 onClose();
               }}
               className="bg-red-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0"

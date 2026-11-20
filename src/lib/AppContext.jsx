@@ -721,12 +721,17 @@ export function AppProvider({ children }) {
     // though nothing was actually deleted. Normalizing right here, once, at
     // the single source every screen reads from, means no downstream screen
     // can ever be taken down by one bad record again.
-    const users = [...usersFromAuth, ...usersFromInvites].map((u) => ({
+    const allUsers = [...usersFromAuth, ...usersFromInvites].map((u) => ({
       ...u,
       name: u.name || "Unnamed client",
       username: u.username || u.email || u.id,
       email: u.email || "",
     }));
+    // #313: Remove client archives (archivedAt) for 30 days instead of
+    // deleting. Archived clients are kept out of every coach list and shown
+    // only in Clients → Archived, where they can be restored.
+    const users = role === "coach" ? allUsers.filter((u) => !u.archivedAt) : allUsers;
+    const archivedClients = role === "coach" ? allUsers.filter((u) => u.archivedAt && u.role === "client") : [];
 
     function bucket(list, sortFn) {
       const out = {};
@@ -753,6 +758,7 @@ export function AppProvider({ children }) {
 
     return {
       users,
+      archivedClients,
       exercises: raw.exercises?.length ? raw.exercises : SEED_EXERCISES,
       programs: raw.programs?.length ? raw.programs : SEED_PROGRAMS,
       soloProgramCategories: raw.soloProgramCategories || [],
@@ -852,8 +858,8 @@ export function AppProvider({ children }) {
     }
   }, [viewAsClientId, profile, viewAsOwnerOk, usersReady, viewAsClient]);
 
-  const actions = useMemo(
-    () => ({
+  const actions = useMemo(() => {
+    const a = {
       async login(email, password) {
         try {
           const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
@@ -1159,8 +1165,39 @@ export function AppProvider({ children }) {
         await signOut(auth).catch(() => {});
       },
 
+      // #313 (owner): Remove client never deletes an activated client
+      // straight away (a client's whole history was lost that way, with no
+      // backup). It archives them: access stops at once (accessPaused, which
+      // the client app and every server job already honour), they leave the
+      // coach's lists, and Clients → Archived can restore them. The server
+      // (purgeArchivedClients) deletes them for good after 30 days; "Delete
+      // now" there runs the old immediate delete. A pending invite has no
+      // history, so it's still removed outright.
       removeClient(clientId) {
         const target = db.users.find((u) => u.id === clientId);
+        if (!target) return;
+        if (target._source !== "invite") {
+          return updateDoc(doc(firestore, "users", clientId), {
+            archivedAt: Date.now(),
+            accessPaused: true,
+            archivedPrevAccessPaused: !!target.accessPaused,
+          }).catch(console.error);
+        }
+        return a.deleteClientNow(clientId);
+      },
+
+      restoreClient(clientId) {
+        const target = (db.archivedClients || []).find((u) => u.id === clientId);
+        if (!target) return;
+        return updateDoc(doc(firestore, "users", clientId), {
+          archivedAt: deleteField(),
+          archivedPrevAccessPaused: deleteField(),
+          accessPaused: !!target.archivedPrevAccessPaused,
+        }).catch(console.error);
+      },
+
+      deleteClientNow(clientId) {
+        const target = [...db.users, ...(db.archivedClients || [])].find((u) => u.id === clientId);
         if (!target) return;
         if (target._source === "invite") {
           deleteDoc(doc(firestore, "invites", clientId)).catch(console.error);
@@ -2899,9 +2936,9 @@ export function AppProvider({ children }) {
       dismissErrorLog(id) {
         deleteDoc(doc(firestore, "errorLogs", id)).catch(console.error);
       },
-    }),
-    [db, raw, hasCoach]
-  );
+    };
+    return a;
+  }, [db, raw, hasCoach]);
 
   const value = {
     db,

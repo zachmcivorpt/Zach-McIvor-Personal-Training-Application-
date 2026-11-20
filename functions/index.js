@@ -78,6 +78,7 @@ async function notifyUser(uid, { title, body }, prefKey) {
 
 // Every per-client collection keyed by a `clientId` field (see
 // AppContext.jsx's per-client Firestore listeners for the same list).
+const { isArchiveExpired } = require("./clientArchive");
 const CLIENT_ID_COLLECTIONS = [
   "workoutLogs", "messages", "workoutComments", "progressPhotos", "savedMeals",
   "habits", "clientPhases", "formSchedules", "formResponses", "weighIns",
@@ -476,23 +477,10 @@ exports.deleteClientAuthAccount = onCall(async (request) => {
   return { deleted: true };
 });
 
-// App Store Guideline 5.1.1(v): any app that supports account creation must
-// also offer account deletion within the app, self-service — not "email us
-// to ask." Firestore's own rules only ever let a client's users/{uid} doc be
-// deleted by the coach (see FIRESTORE_RULES.txt), so this can't be a plain
-// client-side deleteDoc() call; it runs here with Admin SDK privileges
-// instead, same as the two functions above. Deliberately takes NO uid
-// parameter from the caller — it only ever acts on request.auth.uid, the
-// signed-in caller's own account, so there is no way to point this at
-// someone else's.
-exports.deleteMyAccount = onCall(async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
-
-  const selfSnap = await db.collection("users").doc(uid).get();
-  const role = selfSnap.data()?.role;
-
-  if (role === "client") {
+// Deletes everything a coached client owns (Firestore + their chat files).
+// Used by deleteMyAccount and, after 30 days archived, purgeArchivedClients
+// (#313). The caller removes the Auth account.
+async function purgeClientData(uid) {
     for (const name of CLIENT_ID_COLLECTIONS) {
       const snap = await db.collection(name).where("clientId", "==", uid).get();
       if (snap.empty) continue;
@@ -522,6 +510,26 @@ exports.deleteMyAccount = onCall(async (request) => {
         storageBucket.deleteFiles({ prefix: `${prefix}/${uid}/` }).catch(() => {})
       )
     );
+}
+
+// App Store Guideline 5.1.1(v): any app that supports account creation must
+// also offer account deletion within the app, self-service — not "email us
+// to ask." Firestore's own rules only ever let a client's users/{uid} doc be
+// deleted by the coach (see FIRESTORE_RULES.txt), so this can't be a plain
+// client-side deleteDoc() call; it runs here with Admin SDK privileges
+// instead, same as the two functions above. Deliberately takes NO uid
+// parameter from the caller — it only ever acts on request.auth.uid, the
+// signed-in caller's own account, so there is no way to point this at
+// someone else's.
+exports.deleteMyAccount = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+
+  const selfSnap = await db.collection("users").doc(uid).get();
+  const role = selfSnap.data()?.role;
+
+  if (role === "client") {
+    await purgeClientData(uid);
   } else if (role === "coach") {
     // Deletes the coach's own account/profile, not the clients, programs,
     // and library they manage — that data isn't personal to the coach in
@@ -544,6 +552,26 @@ exports.deleteMyAccount = onCall(async (request) => {
   }
   return { deleted: true };
 });
+
+// #313: clients archived by Remove client are deleted for good after 30
+// days (data, then their login). Until then Clients → Archived restores them.
+exports.purgeArchivedClients = onSchedule(
+  { schedule: "30 3 * * *", timeZone: "Australia/Sydney" },
+  async () => {
+    const snap = await db.collection("users").where("role", "==", "client").get();
+    for (const d of snap.docs) {
+      if (!isArchiveExpired(d.data())) continue;
+      try {
+        await purgeClientData(d.id);
+        await adminAuth.deleteUser(d.id).catch((err) => {
+          if (err.code !== "auth/user-not-found") throw err;
+        });
+      } catch (err) {
+        console.error(`purgeArchivedClients: ${d.id} failed:`, err.message);
+      }
+    }
+  }
+);
 
 // The self-healing counterpart for every account already stuck in that
 // orphaned state from before deleteClientAuthAccount existed (or from any
