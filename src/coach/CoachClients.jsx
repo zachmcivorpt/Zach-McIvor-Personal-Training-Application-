@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp, getCurrentPhase, getNextPhase, needsNewPhaseSoon } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
+import { nameConfirmed, bulkConfirmed } from "../lib/clientRemoval";
 import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar } from "../components/ui";
 import CoachClientDetail from "./CoachClientDetail";
 import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
@@ -373,6 +374,9 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
   const navigate = useNavigate();
   const { db, removeClient, restoreClient, deleteClientNow, startViewAsClient, setClientAccessPaused, usersReady: dbReady } = useApp();
   const [confirmDeleteNowId, setConfirmDeleteNowId] = useState(null);
+  const [deleteNowText, setDeleteNowText] = useState("");
+  const [deleteNowBusy, setDeleteNowBusy] = useState(false);
+  const deleteNowTarget = (db.archivedClients || []).find((u) => u.id === confirmDeleteNowId) || null;
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   // Which tab (and whether to jump straight into the messages thread)
@@ -431,7 +435,8 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
   }
 
   function bulkRemove() {
-    checkedIds.forEach((id) => removeClient(id));
+    if (!bulkConfirmed(confirmRemoveText)) return;
+    checkedIds.forEach((id) => removeClient(id, confirmRemoveText, { bulk: true, via: "clients-bulk" }));
     showToast(`Archived ${checkedIds.size} client${checkedIds.size === 1 ? "" : "s"} — restore within 30 days from Archived`);
     setCheckedIds(new Set());
     setConfirmRemove(false);
@@ -731,6 +736,11 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                     <p className="text-white/50 text-xs truncate">
                       {c.email} · {daysLeft} day{daysLeft === 1 ? "" : "s"} left
                     </p>
+                    {/* #315: when and where it was archived, so it's never a guess. */}
+                    <p className="text-white/40 text-[11px] truncate">
+                      Archived {new Date(Number(c.archivedAt)).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+                      {c.archivedDevice ? ` on ${c.archivedDevice}` : ""}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -743,23 +753,9 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                   >
                     <RotateCcw size={12} /> Restore
                   </button>
-                  {confirmDeleteNowId === c.id ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        deleteClientNow(c.id);
-                        setConfirmDeleteNowId(null);
-                        showToast(`${c.name} deleted`);
-                      }}
-                      className="h-8 px-3 rounded-lg text-xs font-semibold bg-red-600 text-white"
-                    >
-                      Tap again to delete
-                    </button>
-                  ) : (
-                    <button type="button" onClick={() => setConfirmDeleteNowId(c.id)} className="h-8 px-3 rounded-lg text-xs font-semibold text-red-300">
-                      Delete now
-                    </button>
-                  )}
+                  <button type="button" onClick={() => setConfirmDeleteNowId(c.id)} className="h-8 px-3 rounded-lg text-xs font-semibold text-red-300">
+                    Delete now
+                  </button>
                 </div>
               );
             })}
@@ -799,13 +795,59 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
         </Field>
         <DangerButton
           className="w-full mt-3 disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={confirmRemoveText.trim().toUpperCase() !== "REMOVE"}
+          disabled={!bulkConfirmed(confirmRemoveText)}
           onClick={() => {
             bulkRemove();
             setConfirmRemoveText("");
           }}
         >
           <Trash2 size={14} /> Remove {checkedIds.size} client{checkedIds.size === 1 ? "" : "s"}
+        </DangerButton>
+      </BottomSheet>
+
+      {/* #315: Delete now needs the full name typed; the server checks it too. */}
+      <BottomSheet
+        open={!!confirmDeleteNowId}
+        onClose={() => {
+          setConfirmDeleteNowId(null);
+          setDeleteNowText("");
+        }}
+        title="Delete this client for good?"
+      >
+        <p className="text-black/50 text-sm mb-4">
+          Deletes {deleteNowTarget?.name || "this client"}, their login and every record now. This can't be undone.
+        </p>
+        <Field label={`Type their full name (${deleteNowTarget?.name || ""}) to confirm`}>
+          <TextInput
+            value={deleteNowText}
+            onChange={(e) => setDeleteNowText(e.target.value)}
+            placeholder="Full name"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+        </Field>
+        <DangerButton
+          className="w-full mt-3 !text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={!deleteNowTarget || !nameConfirmed(deleteNowText, deleteNowTarget.name) || deleteNowBusy}
+          onClick={async () => {
+            if (!deleteNowTarget || !nameConfirmed(deleteNowText, deleteNowTarget.name)) return;
+            const name = deleteNowTarget.name;
+            setDeleteNowBusy(true);
+            try {
+              await deleteClientNow(deleteNowTarget.id, deleteNowText);
+              showToast(`${name} deleted`);
+              setConfirmDeleteNowId(null);
+              setDeleteNowText("");
+            } catch (err) {
+              showToast(err?.message || "Couldn't delete — nothing was removed.");
+            } finally {
+              setDeleteNowBusy(false);
+            }
+          }}
+        >
+          <Trash2 size={14} /> Delete for good
         </DangerButton>
       </BottomSheet>
 
@@ -827,12 +869,10 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
         </Field>
         <DangerButton
           className="w-full mt-3 disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={
-            confirmRemoveText.trim().toLowerCase() !==
-            (db.users.find((u) => u.id === confirmRemoveId)?.name || "").trim().toLowerCase()
-          }
+          disabled={!nameConfirmed(confirmRemoveText, db.users.find((u) => u.id === confirmRemoveId)?.name)}
           onClick={() => {
-            removeClient(confirmRemoveId);
+            if (!nameConfirmed(confirmRemoveText, db.users.find((u) => u.id === confirmRemoveId)?.name)) return;
+            removeClient(confirmRemoveId, confirmRemoveText, { via: "clients-row" });
             showToast("Client archived — restore within 30 days from Archived");
             setConfirmRemoveId(null);
             setConfirmRemoveText("");

@@ -219,7 +219,10 @@ service cloud.firestore {
         (isSignedIn() && request.auth.uid == userId &&
          request.resource.data.role == resource.data.role);
 
-      allow delete: if isCoach();
+      // #315: a client's profile is never deleted from an app (server only).
+      allow delete: if isCoach() &&
+        (resource == null || resource.data.get("role", "") != "client" ||
+         exists(/databases/$(database)/documents/invites/$(userId)));
     }
 
     // --- invites/{email} ----------------------------------------------

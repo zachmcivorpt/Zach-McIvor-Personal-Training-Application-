@@ -15,7 +15,8 @@ import {
   computeSessionInsights,
 } from "../lib/trainingStats";
 import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
-import { DarkPanel, CoachGlass, GlassButton, GLASS, GLASS_BLUE, JARVIS_BACKDROP } from "./darkUI";
+import { DarkPanel, CoachGlass, GlassButton, GLASS, GLASS_BLUE, JARVIS_BACKDROP, SHEET_GLASS } from "./darkUI";
+import { nameConfirmed } from "../lib/clientRemoval";
 import { NutritionTargetsCard } from "./NutritionTargetsCard";
 import CoachFeedbackPanel from "./videoFeedback/CoachFeedbackPanel";
 // Re-exported for anything still importing it from here.
@@ -5709,24 +5710,22 @@ function LiveSessionBanner({ live, exercises }) {
   );
 }
 
-export const REMOVE_CONFIRM_DELAY_MS = 1000;
-
 export default function CoachClientDetail({ clientId, onClose, showToast, initialTab, openMessages }) {
   const navigate = useNavigate();
   const { db, removeClient, startViewAsClient, setClientAccessPaused } = useApp();
   const [clientTab, setClientTab] = useState(initialTab || "summary");
   const [messaging, setMessaging] = useState(!!openMessages);
   const [sendOpen, setSendOpen] = useState(false);
+  // #315 (owner): Remove client opens a sheet where the coach types the
+  // client's full name; nothing else archives them. Replaces #314's
+  // Cancel | Confirm row: on the iPhone that was ⋮ → Remove client → Confirm,
+  // three taps and no typing, and a client was removed that way.
   const [confirmRemove, setConfirmRemove] = useState(false);
-  // #314: Remove client's Confirm appears where "Remove client" was, so a
-  // double tap (or a second tap because nothing seemed to happen) landed on
-  // Confirm and removed the client. Taps on Confirm in its first second are
-  // ignored.
-  const confirmShownAtRef = React.useRef(0);
-  useEffect(() => {
-    if (confirmRemove) confirmShownAtRef.current = Date.now();
-  }, [confirmRemove]);
-  const confirmTooSoon = () => Date.now() - confirmShownAtRef.current < REMOVE_CONFIRM_DELAY_MS;
+  const [confirmRemoveText, setConfirmRemoveText] = useState("");
+  const closeRemove = () => {
+    setConfirmRemove(false);
+    setConfirmRemoveText("");
+  };
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   // Pausing cuts the client off from the app immediately, and this button
   // sits right next to "View as Client"/"Message" in a tight row of
@@ -5832,31 +5831,12 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
         </div>
 
         <div className="p-3 border-t space-y-1" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-          {!confirmRemove ? (
-            <button
-              onClick={() => setConfirmRemove(true)}
-              className="w-full text-left px-3.5 py-2 text-white hover:text-white text-xs font-medium"
-            >
-              Remove client
-            </button>
-          ) : (
-            <div className="flex gap-1.5 px-1">
-              <button onClick={() => setConfirmRemove(false)} className="flex-1 bg-white/8 text-white text-xs font-semibold py-2 rounded-lg">
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (confirmTooSoon()) return;
-                  removeClient(client.id);
-                  showToast("Client archived — restore within 30 days from Archived");
-                  onClose();
-                }}
-                className="flex-1 bg-red-500/20 text-red-300 text-xs font-semibold py-2 rounded-lg"
-              >
-                Confirm
-              </button>
-            </div>
-          )}
+          <button
+            onClick={() => setConfirmRemove(true)}
+            className="w-full text-left px-3.5 py-2 text-white hover:text-white text-xs font-medium"
+          >
+            Remove client
+          </button>
           <button onClick={onClose} className="w-full flex items-center gap-2 px-3.5 py-2.5 text-white hover:text-white text-sm font-medium">
             <ArrowLeft size={15} /> Return to overview
           </button>
@@ -5956,25 +5936,6 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
             );
           })}
         </div>
-        {confirmRemove && (
-          <div className="flex items-center gap-2.5 px-3 pb-3 pt-1">
-            <p className="text-white text-xs font-medium flex-1">Archive {client.name}? Restore within 30 days from Clients → Archived.</p>
-            <button onClick={() => setConfirmRemove(false)} className="bg-white/8 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0">
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                if (confirmTooSoon()) return;
-                removeClient(client.id);
-                showToast("Client archived — restore within 30 days from Archived");
-                onClose();
-              }}
-              className="bg-red-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0"
-            >
-              Confirm
-            </button>
-          </div>
-        )}
       </div>
 
       {/* main panel */}
@@ -5995,6 +5956,45 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
 
       {messaging && <ThreadView client={client} onClose={() => setMessaging(false)} />}
       <SendLoginSheet open={sendOpen} onClose={() => setSendOpen(false)} client={client} showToast={showToast} />
+      <BottomSheet open={confirmRemove} onClose={closeRemove} title="Remove this client?" dark surface={SHEET_GLASS}>
+        <div className="px-4 pb-4 space-y-4 text-white">
+          <p className="text-white/70 text-sm leading-snug">
+            Archives {client.name}: their access stops and they leave your lists. Restore any time in the next 30 days
+            from Clients → Archived; after that they're deleted for good.
+          </p>
+          <Field dark label={`Type their full name (${client.name}) to confirm`}>
+            <TextInput
+              dark
+              value={confirmRemoveText}
+              onChange={(e) => setConfirmRemoveText(e.target.value)}
+              placeholder="Full name"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+            />
+          </Field>
+          <div className="flex items-center gap-3">
+            <SecondaryButton dark className="flex-1" onClick={closeRemove}>
+              Cancel
+            </SecondaryButton>
+            <DangerButton
+              dark
+              className="flex-1 py-3.5 !text-red-300 !border-red-400/30 disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={!nameConfirmed(confirmRemoveText, client.name)}
+              onClick={() => {
+                if (!nameConfirmed(confirmRemoveText, client.name)) return;
+                removeClient(client.id, confirmRemoveText, { via: "client-page" });
+                showToast("Client archived — restore within 30 days from Archived");
+                closeRemove();
+                onClose();
+              }}
+            >
+              Archive client
+            </DangerButton>
+          </div>
+        </div>
+      </BottomSheet>
       <BottomSheet
         open={confirmPause}
         onClose={() => {
