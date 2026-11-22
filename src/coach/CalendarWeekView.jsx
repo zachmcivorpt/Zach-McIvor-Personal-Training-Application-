@@ -10,7 +10,7 @@ import { MEASURE_BLUE, GOAL_GREEN, OVER_RED } from "../theme";
 import { GLASS, GLASS_BLUE } from "./darkUI";
 import { weekKeys, weekRangeLabel, dayLabel, splitDay, weekSummary, addDays, keyToDate } from "./calendarWeek";
 
-export const CAL_VIEWS = [
+const CAL_VIEWS = [
   ["month", "Month"],
   ["week", "Week"],
   ["day", "Day"],
