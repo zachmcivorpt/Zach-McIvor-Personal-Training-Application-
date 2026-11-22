@@ -3,6 +3,8 @@
 // worked out from the SAME day items the month grid already uses
 // (CalendarPanel's itemsForDate) — no new data, nothing stored.
 
+import { isTrainingSession } from "./commandCentre";
+
 const DAY_MS = 86400000;
 
 // Date keys ("YYYY-MM-DD") are UTC-anchored day counters, like the month
@@ -52,12 +54,18 @@ export function timeLabel(ms) {
 // One day's items (from itemsForDate) split the way the Week view shows them.
 // Workouts = strength sessions (scheduled or logged); cardio = logs with a
 // `cardio` block (never a workout); habits = that day's assigned habits.
-export function splitDay(items, dateKey, todayKey) {
+//
+// Audit 2026-11-22: a scheduled entry that isn't TRAINING (all Cardio /
+// Warm-up / Cool-down, #269's `isTrainingSession`) still shows as a card but
+// is `training: false`, so the week's Workouts total never counts it — the
+// same rule as the Overview command centre and Weekly Coach Review.
+export function splitDay(items, dateKey, todayKey, exercisesById = {}) {
   const list = items || [];
   const workouts = list
     .filter((it) => it.type === "workout" && it.category !== "cardio")
     .map((it) => ({
       ...it,
+      training: it.done || !it.entry || isTrainingSession(it.entry, exercisesById),
       status: it.done ? "done" : dateKey < todayKey ? "missed" : "planned",
       time: it.done ? timeLabel(it.log?.date) : "",
     }));
@@ -82,6 +90,7 @@ export function weekSummary(days, todayKey) {
   let cardioMinutes = 0;
   for (const d of days) {
     for (const w of d.split.workouts) {
+      if (w.training === false) continue;
       workoutsTotal += 1;
       if (w.status === "done") workoutsDone += 1;
     }

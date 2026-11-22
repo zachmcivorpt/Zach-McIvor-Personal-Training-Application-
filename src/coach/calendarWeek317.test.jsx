@@ -141,3 +141,16 @@ describe("coach client Calendar on phones (#317)", () => {
     expect(screen.getByLabelText("Previous month")).toBeTruthy();
   });
 });
+
+describe("Week totals count only scheduled TRAINING (audit 2026-11-22, #269 rule)", () => {
+  it("a scheduled cardio-only day shows but isn't counted in Workouts", () => {
+    const ex = { run: { id: "run", category: "Cardio" }, bp: { id: "bp", category: "Chest" } };
+    const cardioDay = { type: "workout", category: "workout", done: false, key: "s1", entry: { label: "Zone 2", exercises: [{ exerciseId: "run" }] } };
+    const strengthDay = { type: "workout", category: "workout", done: false, key: "s2", entry: { label: "Upper", exercises: [{ exerciseId: "bp" }] } };
+    const a = splitDay([cardioDay], "2026-11-24", "2026-11-26", ex);
+    expect(a.workouts).toHaveLength(1);
+    expect(a.workouts[0].training).toBe(false);
+    const sum = weekSummary([{ key: "2026-11-24", split: a }, { key: "2026-11-25", split: splitDay([strengthDay], "2026-11-25", "2026-11-26", ex) }], "2026-11-26");
+    expect(sum.workoutsTotal).toBe(1);
+  });
+});

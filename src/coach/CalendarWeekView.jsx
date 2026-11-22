@@ -139,8 +139,8 @@ function CardioCell({ cardio }) {
   );
 }
 
-function DayRow({ dayKey, todayKey, items, onOpenDay, onOpenWorkout, onAddSession, expanded }) {
-  const split = splitDay(items, dayKey, todayKey);
+function DayRow({ dayKey, todayKey, items, exercisesById, onOpenDay, onOpenWorkout, onAddSession, expanded }) {
+  const split = splitDay(items, dayKey, todayKey, exercisesById);
   const d = keyToDate(dayKey);
   const isToday = dayKey === todayKey;
   return (
@@ -220,12 +220,12 @@ function WeekSummary({ summary }) {
 }
 
 // view: "week" | "day". `itemsFor(key)` = CalendarPanel's itemsForDate.
-export default function CalendarWeekView({ view, onViewChange, anchorKey, onAnchorChange, todayKey, itemsFor, onOpenDay, onOpenWorkout, onAddSession }) {
+export default function CalendarWeekView({ view, onViewChange, anchorKey, onAnchorChange, todayKey, itemsFor, exercisesById, onOpenDay, onOpenWorkout, onAddSession }) {
   const isWeek = view === "week";
   const keys = isWeek ? weekKeys(anchorKey) : [anchorKey];
   const days = keys.map((key) => {
     const items = itemsFor(key);
-    return { key, items, split: splitDay(items, key, todayKey) };
+    return { key, items, split: splitDay(items, key, todayKey, exercisesById) };
   });
   const summary = weekSummary(isWeek ? days : [], todayKey);
   return (
@@ -252,6 +252,7 @@ export default function CalendarWeekView({ view, onViewChange, anchorKey, onAnch
           dayKey={d.key}
           todayKey={todayKey}
           items={d.items}
+          exercisesById={exercisesById}
           expanded={!isWeek}
           onOpenDay={onOpenDay}
           onOpenWorkout={onOpenWorkout}
