@@ -75,14 +75,14 @@ function WorkoutCard({ item, onOpen }) {
       onClick={onOpen}
       data-testid="week-workout"
       data-status={item.status}
-      className="w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left"
+      className="w-full flex items-center gap-2.5 rounded-2xl px-2.5 py-1.5 text-left"
       style={item.status === "done" ? GLASS_BLUE : GLASS}
     >
-      <span className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(47,143,255,0.14)" }}>
-        <Dumbbell size={19} className="text-white" />
+      <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(47,143,255,0.14)" }}>
+        <Dumbbell size={16} className="text-white" />
       </span>
       <span className="flex-1 min-w-0">
-        <span className="block text-white text-[15px] font-bold truncate">{item.label}</span>
+        <span className="block text-white text-[14.5px] font-bold truncate leading-tight">{item.label}</span>
         <span className="flex items-center gap-1.5 text-[12.5px] text-white/75">
           {item.time && <span>{item.time} ·</span>}
           <span>{s.text}</span>
@@ -147,31 +147,31 @@ function DayRow({ dayKey, todayKey, items, onOpenDay, onOpenWorkout, onAddSessio
     <div
       data-testid="week-day"
       data-date={dayKey}
-      className="rounded-2xl px-2.5 py-2.5 flex gap-2.5"
+      className="rounded-2xl px-2.5 py-2 flex gap-2.5"
       style={isToday ? { ...GLASS, boxShadow: `inset 0 0 0 1px ${MEASURE_BLUE}` } : GLASS}
     >
       {!expanded && (
         <button type="button" onClick={() => onOpenDay(dayKey)} className="w-11 shrink-0 text-left pt-1" aria-label={`Open ${dayLabel(dayKey)}`}>
           <span className="block text-white text-[14px] font-semibold">{d.toLocaleDateString("en-AU", { weekday: "short", timeZone: "UTC" })}</span>
-          <span className="block text-white text-[24px] font-bold leading-none mt-0.5" style={isToday ? { color: MEASURE_BLUE } : undefined}>
+          <span className="block text-white text-[22px] font-bold leading-none mt-0.5" style={isToday ? { color: MEASURE_BLUE } : undefined}>
             {d.getUTCDate()}
           </span>
         </button>
       )}
-      <div className="flex-1 min-w-0 space-y-2">
+      <div className="flex-1 min-w-0 space-y-1.5">
         {split.workouts.length > 0 ? (
           split.workouts.map((w) => <WorkoutCard key={w.key} item={w} onOpen={() => onOpenWorkout(dayKey)} />)
         ) : (
           <button
             type="button"
             onClick={() => onAddSession(dayKey)}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-white/85 text-[13px] font-semibold"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl py-2 text-white/85 text-[13px] font-semibold"
             style={{ border: "1px dashed rgba(255,255,255,0.22)" }}
           >
             <Plus size={16} /> Add Session
           </button>
         )}
-        <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="flex items-center gap-2 rounded-xl px-2.5 py-1" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="flex-1 min-w-0">
             <HabitRow habits={split.habits} future={dayKey > todayKey} />
           </div>
@@ -229,7 +229,7 @@ export default function CalendarWeekView({ view, onViewChange, anchorKey, onAnch
   });
   const summary = weekSummary(isWeek ? days : [], todayKey);
   return (
-    <div className="space-y-2.5" data-testid={isWeek ? "calendar-week" : "calendar-day"}>
+    <div className="space-y-2" data-testid={isWeek ? "calendar-week" : "calendar-day"}>
       <div className="flex flex-col gap-2">
         <CalendarViewSwitch view={view} onChange={onViewChange} />
         <RangeNav
