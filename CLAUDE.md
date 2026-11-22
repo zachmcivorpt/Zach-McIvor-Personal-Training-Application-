@@ -912,6 +912,7 @@ any Train Solo work from now on:
 - **Nutrition tab matches Training** (#266, owner): it opens with `NutritionCommandHeader` (same build as `TrainingCommandHeader`: "NAME · NUTRITION", the target, EDIT TARGETS / MEAL GUIDE), and every box on it is a `DarkPanel` inside the page gutter — never a square full-bleed box (`-mx-4`) or a solid card with blue lines.
 - **Calendar tab** (#224, #267, owner): no "Recent Training Load" card and no month adherence card, for any client; it opens on the calendar. Don't bring either back.
 - **Calendar tiles**: workouts are chips (done = solid blue, planned = outlined), habits one line of dots, nutrition one kcal line, with a filter. Bulk delete keeps the full per-item list.
+- **Calendar on phones: Month / Week / Day, opening on Week** (#317, owner's approved reference): below `md` only (`useIsPhone`, 767px) — iPad and desktop keep the month grid unchanged. `CalendarWeekView.jsx` stacks the seven days (Mon–Sun): workout card(s) with Completed (time) / Planned / Missed, the day's assigned habits with ticks, cardio minutes; empty day = Add Session (opens Schedule Workout on that date); then the week's totals (workouts done / scheduled, habits done / due up to today, cardio sessions + minutes) and "Switch to Month View". Every figure comes from CalendarPanel's own `itemsForDate` via `calendarWeek.js` — never a second data path; taps open the same DayDetailSheet / schedule sheets. Month on a phone is the existing grid (drag, filter, bulk delete) with the switch above it.
 
 ## Login area look (#207)
 
