@@ -17,6 +17,7 @@ import {
 import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
 import { DarkPanel, CoachGlass, GlassButton, GLASS, GLASS_BLUE, JARVIS_BACKDROP, SHEET_GLASS } from "./darkUI";
 import { nameConfirmed } from "../lib/clientRemoval";
+import CalendarWeekView, { CalendarViewSwitch } from "./CalendarWeekView";
 import { NutritionTargetsCard } from "./NutritionTargetsCard";
 import CoachFeedbackPanel from "./videoFeedback/CoachFeedbackPanel";
 // Re-exported for anything still importing it from here.
@@ -430,6 +431,22 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
 }
 
 const CAL_WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// #317: phones (< md, 768px) get the Month / Week / Day calendar; iPad and
+// desktop keep the month grid exactly as it was.
+const PHONE_QUERY = "(max-width: 767px)";
+function useIsPhone() {
+  const get = () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(PHONE_QUERY).matches;
+  const [phone, setPhone] = useState(get);
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia(PHONE_QUERY);
+    const on = () => setPhone(mq.matches);
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+  return phone;
+}
 // Extracts the plain "YYYY-MM-DD" a UTC-anchored grid cell (built via
 // Date.UTC in buildMonthGrid, below) already represents — deliberately
 // UTC, not localDateKey, since these Date objects were never meant to
@@ -1256,6 +1273,11 @@ function CalendarPanel({ client, showToast }) {
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
+  // #317: phones open on Week; Month is the grid below, unchanged.
+  const isPhone = useIsPhone();
+  const [calView, setCalView] = useState("week");
+  const [anchorKey, setAnchorKey] = useState(() => localDateKey(new Date()));
+  const [scheduleDate, setScheduleDate] = useState(null);
 
   const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
   const bodyStatsSchedules = (db.bodyStatsSchedules || {})[client.id] || [];
@@ -1495,9 +1517,42 @@ function CalendarPanel({ client, showToast }) {
   const selectedItems = selectedDate ? itemsForDate(new Date(selectedDate + "T00:00:00Z")) : [];
   const monthLabel = new Date(Date.UTC(viewYear, viewMonth, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
 
+  function changeCalView(next) {
+    if (next === "month") {
+      // Open the month that holds the week/day being looked at.
+      setViewYear(Number(anchorKey.slice(0, 4)));
+      setViewMonth(Number(anchorKey.slice(5, 7)) - 1);
+    }
+    if (next !== "month" && selectMode) exitSelectMode();
+    setCalView(next);
+  }
+  const phoneWeekOrDay = isPhone && calView !== "month";
+
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
+      {phoneWeekOrDay && (
+        <CalendarWeekView
+          view={calView}
+          onViewChange={changeCalView}
+          anchorKey={anchorKey}
+          onAnchorChange={setAnchorKey}
+          todayKey={todayStr}
+          itemsFor={(key) => itemsForDate(new Date(key + "T00:00:00Z"))}
+          onOpenDay={(key) => setSelectedDate(key)}
+          onOpenWorkout={(key) => setSelectedDate(key)}
+          onAddSession={(key) => {
+            setScheduleDate(key);
+            setScheduleKind("workout");
+          }}
+        />
+      )}
+      {isPhone && calView === "month" && (
+        <div className="mb-3">
+          <CalendarViewSwitch view={calView} onChange={changeCalView} />
+        </div>
+      )}
       {/* No Recent Training Load (#224) and no month adherence card (#267, owner). */}
+      {!phoneWeekOrDay && (
       <DarkPanel className="p-4 md:p-5">
         <div className="relative flex items-center justify-between mb-4 flex-wrap gap-2">
           <div className="flex items-center gap-3">
@@ -1800,6 +1855,7 @@ function CalendarPanel({ client, showToast }) {
           </div>
         </div>
       </DarkPanel>
+      )}
 
       <DayDetailSheet
         date={selectedDate}
@@ -1830,9 +1886,12 @@ function CalendarPanel({ client, showToast }) {
 
       <ScheduleWorkoutSheet
         open={scheduleKind === "workout"}
-        onClose={() => setScheduleKind(null)}
+        onClose={() => {
+          setScheduleKind(null);
+          setScheduleDate(null);
+        }}
         client={client}
-        initialDate={selectedDate}
+        initialDate={scheduleDate || selectedDate}
         showToast={showToast}
       />
       <ScheduleBodyStatsSheet
