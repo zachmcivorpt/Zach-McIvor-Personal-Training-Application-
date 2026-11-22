@@ -1337,6 +1337,7 @@ function CalendarPanel({ client, showToast }) {
         label: w.label,
         done: !!matchedLog,
         log: matchedLog,
+        entry: w,
         category: matchedLog?.cardio ? "cardio" : "workout",
         key: matchedLog ? `log:${matchedLog.id}` : `sched:${dateStr}`,
       });
@@ -1538,6 +1539,7 @@ function CalendarPanel({ client, showToast }) {
           onAnchorChange={setAnchorKey}
           todayKey={todayStr}
           itemsFor={(key) => itemsForDate(new Date(key + "T00:00:00Z"))}
+          exercisesById={exercisesById}
           onOpenDay={(key) => setSelectedDate(key)}
           onOpenWorkout={(key) => setSelectedDate(key)}
           onAddSession={(key) => {
