@@ -4150,6 +4150,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/client/chatScroll321.test.jsx` (REAL MessagesSheet): it's a fixed page as tall as the visible area, not a sheet; the list has `overscroll-contain`; the bar's bottom padding is the inset less 14px, `pb-2` while typing; Back closes it; closed renders nothing; opens at the newest and a send keeps it there. `clientMessaging320.test.jsx` (thin frames, keyboard stays up, drag-down dismiss, every BottomSheet header above videos) and `coachMessaging319.test.jsx` updated and passing. The new page checks fail on the code before this change (it was a sheet). Checked in Chromium at 390×844 with touch: page 844px tall, message bar's bottom at 844, newest message above the bar after Send, the page itself doesn't scroll, no errors.
 - **Manual (real iPhone)**: open the coach chat, drag the messages hard both ways (no white beyond them), tap the box (bar sits on the keyboard), Send twice, Back.
 
+### 323. Client chat: the page behind showed through around the keyboard; swipe down to close (owner, 2026-11-23)
+
+- **Problem** (owner's screenshot): with the keyboard up, the Profile page behind the full-screen chat ("Push Notifications") showed through the new iPhone keyboard's see-through margins around its toolbar — the chat page stopped at the keyboard's edge. The owner also wanted a swipe down to close the chat.
+- **Fix**: `client-chat-underlay`, a fixed layer in the chat's own colour from the top to 100vh past the bottom, sits under the chat (like BottomSheet's under-keyboard surface, #138). Swipe down: from the header (grab bar added) or from the messages when they're scrolled to the top, the page follows the finger; past 110px (`SWIPE_CLOSE_PX`) it closes, otherwise it springs back. While the message box has focus, a drag only puts the keyboard away (#320), never closes.
+- **Tests**: `src/client/chatScroll321.test.jsx` (#323 block, REAL MessagesSheet): the underlay runs 100vh past the bottom in the chat's colour; a 50px header drag moves the page and springs back, a 160px drag closes; a drag while typing never closes (and blurs the box); a drag on the messages while scrolled up never closes. The underlay and swipe tests fail on the code before this change (2 of 4; the other two guard against closing). Checked in Chromium at 390px with real touch events (CDP): a 220px drag down from the header closes the chat; the page behind isn't hit-testable at the bottom edge.
+- **Manual (real iPhone)**: open the chat, tap the box (nothing of the page behind around the keyboard toolbar), drag down on the header to close.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

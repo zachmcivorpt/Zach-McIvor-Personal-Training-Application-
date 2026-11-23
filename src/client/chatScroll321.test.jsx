@@ -99,3 +99,52 @@ describe("coach chat stays on the newest message (#321)", () => {
     expect(intoView).not.toHaveBeenCalled();
   });
 });
+
+describe("#323 client chat: nothing shows through under the keyboard; swipe down closes", () => {
+  const props = () => ({ open: true, onClose: vi.fn(), user: { id: "c1" }, thread: [msg(1), msg(2)], onSend() {}, coachName: "Coach" });
+  it("the chat's colour runs on under the keyboard (an underlay past the bottom)", () => {
+    render(<MessagesSheet {...props()} />);
+    const under = screen.getByTestId("client-chat-underlay");
+    expect(under.style.bottom).toBe("-100vh");
+    expect(under.style.backgroundColor).toBe(screen.getByTestId("client-chat").style.backgroundColor);
+  });
+  it("dragging down from the header far enough closes; a short drag springs back", () => {
+    const p = props();
+    render(<MessagesSheet {...p} />);
+    const page = screen.getByTestId("client-chat");
+    const header = page.querySelector("[data-chat-header]");
+    fireEvent.touchStart(header, { touches: [{ clientY: 100 }] });
+    fireEvent.touchMove(header, { touches: [{ clientY: 150 }] });
+    expect(page.style.transform).toBe("translateY(50px)");
+    fireEvent.touchEnd(header);
+    expect(p.onClose).not.toHaveBeenCalled();
+    expect(page.style.transform).toBe("");
+    fireEvent.touchStart(header, { touches: [{ clientY: 100 }] });
+    fireEvent.touchMove(header, { touches: [{ clientY: 260 }] });
+    fireEvent.touchEnd(header);
+    expect(p.onClose).toHaveBeenCalledTimes(1);
+  });
+  it("never closes from a drag while typing (that drag puts the keyboard away)", () => {
+    const p = props();
+    render(<MessagesSheet {...p} />);
+    const page = screen.getByTestId("client-chat");
+    const list = page.querySelector(".overflow-y-auto");
+    list.scrollTop = 0;
+    act(() => screen.getByPlaceholderText("Message your coach...").focus());
+    fireEvent.touchStart(list, { touches: [{ clientY: 100 }] });
+    fireEvent.touchMove(list, { touches: [{ clientY: 300 }] });
+    fireEvent.touchEnd(list);
+    expect(p.onClose).not.toHaveBeenCalled();
+    expect(document.activeElement?.tagName).not.toBe("TEXTAREA");
+  });
+  it("from the messages: closes only when they're at the top", () => {
+    const p = props();
+    render(<MessagesSheet {...p} />);
+    const list = screen.getByTestId("client-chat").querySelector(".overflow-y-auto");
+    list.scrollTop = 500; // reading older messages further up
+    fireEvent.touchStart(list, { touches: [{ clientY: 100 }] });
+    fireEvent.touchMove(list, { touches: [{ clientY: 300 }] });
+    fireEvent.touchEnd(list);
+    expect(p.onClose).not.toHaveBeenCalled();
+  });
+});
