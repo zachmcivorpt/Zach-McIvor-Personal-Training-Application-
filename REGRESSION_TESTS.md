@@ -4168,6 +4168,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/client/posePhotos325.test.jsx` (REAL ProgressScreen): the three Add Front / Side / Back buttons; Add Side opens the Side guide with all four steps, Take Side Photo (capture="environment") and Choose from Library; choosing a file calls `onAddPhoto("c1", dataUrl, "", <date>, "side")` and the guide moves to Front; first vs latest Front shows 84 DAYS / −3.4 KG and the two dated frames; a pose with no photo says so; Train Solo's section (no `poses`) still shows its old "Add photo". 3 of the 4 fail on the code before this change (the fourth guards Train Solo). `src/coach/progressPhotos324.test.jsx` updated for the new figures and checks the Slider shows Before 1 Sept / After 24 Nov. Checked in Chromium at 390px, light and dark: client card, guide, coach viewer, compare side by side and slider render with no errors (screenshots in the session).
 - **Manual (real iPhone)**: Add Front → Take Front Photo opens the camera; the photo appears on the Front tile; on the coach's console it shows tagged Front.
 
+### 326. Log Body Stats photos match Progress Photos (owner, 2026-11-24)
+
+- **Problem** (owner: "it should have the same instructions as the actual progress photo area as clients will get confused"): the Log Body Stats sheet still had a plain "Add" box with no pose and no instructions, while Progress Photos (#325) asks for Front / Side / Back with a guide.
+- **Fix**: the sheet's PROGRESS PHOTOS section is `PoseSlots` (`src/client/PosePhotos.jsx`): Add Front / Add Side / Add Back tiles that open the same `PosePhotoGuide` (same steps, same "every time" conditions; its date row hidden because the sheet has its own date). Picked photos show on their pose's tile with a remove button and are saved with their pose (`files: [{ file, pose }]`, `handleAddPhoto` takes either shape).
+- **Tests**: `src/client/bodyStatsPhotos326.test.jsx` (REAL BodyStatsCheckInSheet): the three Add buttons; Add Back opens the guide with all four Back steps and no date row; a chosen photo shows on the Back tile; SAVE CHECK-IN sends `files: [{ file, pose: "back" }]` on the sheet's date. Fails on the code before this change. `bodyStatsAndCardioEdit.test.jsx` still passes. Checked in Chromium at 390px: sheet and guide render, no errors.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

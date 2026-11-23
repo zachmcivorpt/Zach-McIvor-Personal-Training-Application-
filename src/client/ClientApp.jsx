@@ -159,7 +159,7 @@ import { MICRO_FIELDS, getAllFoods, unitsFor, scaleFoodByUnit } from "../lib/foo
 import { diverseBestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
-import { PoseProgressSection } from "./PosePhotos";
+import { PoseProgressSection, PoseSlots } from "./PosePhotos";
 // Only a coach browsing as this client edits workouts here, so the editor
 // (and the coach exercise screens it pulls in) loads when first opened,
 // not with every client's app start (#126).
@@ -7074,13 +7074,14 @@ function WhoopCard({ bodyMetrics, dark }) {
 // through the same log call its own card uses.
 export function BodyStatsCheckInSheet({ open, onClose, onSave, lastValues, busy }) {
   const dark = useClientDark();
-  const fileRef = useRef(null);
   const [dateKey, setDateKey] = useState(() => localDateKey());
   const [values, setValues] = useState({});
   const [showMeasurements, setShowMeasurements] = useState(false);
+  // #326: photos picked as Front / Side / Back (the same guide as Progress
+  // Photos): [{ file, pose }]; previews made per file.
   const [files, setFiles] = useState([]);
-  const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
-  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
+  const previews = useMemo(() => files.map((f) => ({ ...f, url: URL.createObjectURL(f.file) })), [files]);
+  useEffect(() => () => previews.forEach((p) => URL.revokeObjectURL(p.url)), [previews]);
 
   useEffect(() => {
     if (open) {
@@ -7148,41 +7149,12 @@ export function BodyStatsCheckInSheet({ open, onClose, onSave, lastValues, busy 
       )}
 
       <p className={`text-xs tracking-wide mt-5 mb-2 ${dark ? "text-white/40" : "text-black/40"}`}>PROGRESS PHOTOS</p>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          const picked = Array.from(e.target.files || []);
-          if (picked.length) setFiles((f) => [...f, ...picked]);
-          e.target.value = "";
-        }}
+      <PoseSlots
+        items={previews}
+        dark={dark}
+        onAdd={(picked, pose) => setFiles((f) => [...f, ...picked.map((file) => ({ file, pose }))])}
+        onRemove={(item) => setFiles((f) => f.filter((x) => x.file !== item.file))}
       />
-      <div className="grid grid-cols-4 gap-2">
-        {previews.map((url, i) => (
-          <div key={url} className={`relative aspect-square rounded-xl overflow-hidden ${dark ? "bg-white/5" : "bg-black/5"}`}>
-            <img src={url} alt="" className="w-full h-full object-cover" />
-            <button
-              type="button"
-              aria-label="Remove photo"
-              onClick={() => setFiles((f) => f.filter((_, j) => j !== i))}
-              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center"
-            >
-              <X size={12} />
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className={`aspect-square rounded-xl border border-dashed flex flex-col items-center justify-center gap-1 ${dark ? "border-white/15 bg-white/[0.03] text-white/40" : "border-black/15 bg-black/[0.03] text-black/40"}`}
-        >
-          <ImageIcon size={16} />
-          <span className="text-[10px] font-medium">Add</span>
-        </button>
-      </div>
 
       <PrimaryButton dark={dark} className="w-full mt-5" disabled={!canSave} onClick={save}>
         <Check size={16} /> {busy ? "Uploading…" : "SAVE CHECK-IN"}
@@ -7279,13 +7251,14 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
   // files is an array — any number of photos can be added in one go, all
   // backdated to the same chosen date, instead of one file at a time
   // always stamped "now" (the same backdate-friendly pattern as weigh-ins).
+  // files: File[] (all `pose`), or [{ file, pose }] from the check-in sheet.
   async function handleAddPhoto(files, dateKey, pose) {
     setUploading(true);
     try {
-      for (const file of files) {
+      for (const item of files) {
         try {
-          const dataUrl = await fileToCompressedDataUrl(file);
-          onAddPhoto(userId, dataUrl, "", dateKey, pose);
+          const dataUrl = await fileToCompressedDataUrl(item.file || item);
+          onAddPhoto(userId, dataUrl, "", dateKey, item.pose || pose);
         } catch {
           // skip a bad file in the batch — keep going with the rest
         }
