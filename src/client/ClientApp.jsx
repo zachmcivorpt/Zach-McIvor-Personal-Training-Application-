@@ -159,6 +159,7 @@ import { MICRO_FIELDS, getAllFoods, unitsFor, scaleFoodByUnit } from "../lib/foo
 import { diverseBestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
+import { PoseProgressSection } from "./PosePhotos";
 // Only a coach browsing as this client edits workouts here, so the editor
 // (and the coach exercise screens it pulls in) loads when first opened,
 // not with every client's app start (#126).
@@ -6856,10 +6857,13 @@ function AddPhotoSheet({ open, onClose, onAdd, busy }) {
 // Exported (no behavior change — purely prop-driven, no useApp()) so Train
 // Solo's own Progress tab can reuse it directly rather than duplicating
 // it. See src/solo/SoloProgressScreen.jsx.
-export function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
+export function PhotosSection({ photos, onAdd, onDelete, busy, weighIns, poses = false }) {
   const dark = useClientDark();
   const [addOpen, setAddOpen] = useState(false);
   const [viewing, setViewing] = useState(null);
+  // #325: the coached client adds Front / Side / Back with a guide for each;
+  // Train Solo (no `poses`) keeps this section exactly as it was.
+  if (poses) return <PoseProgressSection photos={photos} onAdd={onAdd} onDelete={onDelete} busy={busy} weighIns={weighIns} dark={dark} />;
 
   return (
     <Card dark={dark}>
@@ -7275,13 +7279,13 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
   // files is an array — any number of photos can be added in one go, all
   // backdated to the same chosen date, instead of one file at a time
   // always stamped "now" (the same backdate-friendly pattern as weigh-ins).
-  async function handleAddPhoto(files, dateKey) {
+  async function handleAddPhoto(files, dateKey, pose) {
     setUploading(true);
     try {
       for (const file of files) {
         try {
           const dataUrl = await fileToCompressedDataUrl(file);
-          onAddPhoto(userId, dataUrl, "", dateKey);
+          onAddPhoto(userId, dataUrl, "", dateKey, pose);
         } catch {
           // skip a bad file in the batch — keep going with the rest
         }
@@ -7375,7 +7379,7 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
 
         <ConsistencyHeatmap logs={logsForClient} scheduledWorkouts={scheduledWorkouts} dark={dark} />
 
-        <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} weighIns={weighIns} />
+        <PhotosSection poses photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} weighIns={weighIns} />
 
         <Card dark={dark}>
           <div className="flex items-center justify-between">
@@ -10871,8 +10875,8 @@ export default function ClientApp() {
           <ProgressScreen
             userId={currentUser.id}
             photos={photos}
-            onAddPhoto={(clientId, dataUrl, caption, dateKey) =>
-              localFirst(addProgressPhoto(clientId, dataUrl, caption, dateKey))
+            onAddPhoto={(clientId, dataUrl, caption, dateKey, pose) =>
+              localFirst(addProgressPhoto(clientId, dataUrl, caption, dateKey, pose))
                 .then(() => showToast("Photo saved"))
                 .catch((err) => showToast(err.message || "Couldn't save that photo — check your connection and try again", true))
             }
