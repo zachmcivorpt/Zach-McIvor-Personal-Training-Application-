@@ -4172,6 +4172,7 @@ each lights exactly that muscle's outline (screenshots in the session).
 
 - **Problem** (owner: "it should have the same instructions as the actual progress photo area as clients will get confused"): the Log Body Stats sheet still had a plain "Add" box with no pose and no instructions, while Progress Photos (#325) asks for Front / Side / Back with a guide.
 - **Fix**: the sheet's PROGRESS PHOTOS section is `PoseSlots` (`src/client/PosePhotos.jsx`): Add Front / Add Side / Add Back tiles that open the same `PosePhotoGuide` (same steps, same "every time" conditions; its date row hidden because the sheet has its own date). Picked photos show on their pose's tile with a remove button and are saved with their pose (`files: [{ file, pose }]`, `handleAddPhoto` takes either shape).
+- **Also**: on the iPhone the sheet's DATE box ran past the right edge (owner's screenshot): iOS WebKit gives a native date input its own minimum width. `index.css` drops the native appearance on `input[type="date"]` (block, max-width 100%, left-aligned value), so every date box keeps its given width.
 - **Tests**: `src/client/bodyStatsPhotos326.test.jsx` (REAL BodyStatsCheckInSheet): the three Add buttons; Add Back opens the guide with all four Back steps and no date row; a chosen photo shows on the Back tile; SAVE CHECK-IN sends `files: [{ file, pose: "back" }]` on the sheet's date. Fails on the code before this change. `bodyStatsAndCardioEdit.test.jsx` still passes. Checked in Chromium at 390px: sheet and guide render, no errors.
 
 ## What still requires manual testing

@@ -147,3 +147,17 @@ html.apex-photo-page body {
     animation: none;
   }
 }
+
+/* #326: iOS WebKit gives a native date box its own minimum width, so in a
+   narrow sheet it ran past the right edge (Log Body Stats). Without the
+   native appearance it keeps the width it's given. */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  max-width: 100%;
+  min-height: 2.5rem;
+}
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
