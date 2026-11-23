@@ -4130,6 +4130,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/coach/coachMessaging319.test.jsx` renders the REAL ThreadMessages: Send's pointerdown/mousedown are prevented and the message (with its line breaks) is sent; a 10px drag keeps typing, a 40px drag blurs; the box's max height is 220px; a media-only video is in a p-1 frame without mt-2, one with text keeps the bubble; the Messages tab composer has no safe-area padding, the full-screen thread keeps it; the page reserve is 53px + TAB_BAR_BOTTOM. All 5 fail on the code before this fix (checked by restoring it). Checked in Chromium at 390px with touch: 10 lines → 204px box, focus kept after Send, thin photo frame, no sideways scroll.
 - **Manual (real iPhone)**: type two paragraphs, Send twice — keyboard stays up; drag the messages down — keyboard goes; no band under the box.
 
+### 320. Client chat on the iPhone: videos over the header, thick video frames, keyboard and paragraphs (owner, 2026-11-23)
+
+- **Problem** (owner's screenshots, View as Client): in the client's chat sheet a video scrolled under the sheet's pinned header was drawn ON TOP of it (the title disappeared under the video) — the header had no stacking order and iOS paints `<video>` on its own layer; videos sat in a thick blue bubble frame; the coach-side pains (#319) applied too: keyboard dropping on Send, cramped paragraphs, no way to put the keyboard away.
+- **Fix**: `BottomSheet` header `z-10` + `translateZ(0)` (every sheet; nothing else changes); the client composer bar `z-10`. MessagesSheet: `keepFocus`, `inputMaxHeight={220}`, drag-down blurs the box, media-only photos/videos in a thin frame (`ChatBubble media`, `isMediaOnly` moved to Chat.jsx and shared with the coach).
+- **Tests**: `src/client/clientMessaging320.test.jsx` renders the REAL MessagesSheet (exported for the test) and BottomSheet: header z-10 with its own layer; media-only video thin-framed, one with text keeps the bubble; Send's pointerdown is prevented and a two-paragraph message is sent intact; max 220px; a 50px drag blurs the box. All 3 fail on the code before this fix (checked by restoring it). `coachMessaging319.test.jsx` still passes. Checked in Chromium at 390px: scrolled photo stays under the header, thin frame, no sideways scroll.
+- **Manual (real iPhone)**: open the coach chat with a video in it, scroll it under the header — the title stays on top.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

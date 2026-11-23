@@ -586,9 +586,12 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
           } ${visible ? "translate-y-0" : "translate-y-full"}`}
           style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, ...surface, maxHeight: Math.round(viewport.height * 0.88) }}
         >
+          {/* z-10 + its own layer (#320): an iPhone <video> (and a reaction
+              badge) scrolled under the pinned header painted ON TOP of it. */}
           <div
-            className="sticky top-0 pt-3 pb-2 px-5 border-b flex items-center justify-between"
-            style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER, ...(surface && { backgroundColor: "transparent" }) }}
+            className="sticky top-0 z-10 pt-3 pb-2 px-5 border-b flex items-center justify-between"
+            style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER, transform: "translateZ(0)", ...(surface && { backgroundColor: "transparent" }) }}
+            data-testid="sheet-header"
           >
             <div className="w-8" />
             <div className={`w-10 h-1 rounded-full absolute left-1/2 -translate-x-1/2 top-2 ${dark ? "bg-white/20" : "bg-black/20"}`} />

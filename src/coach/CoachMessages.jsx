@@ -7,7 +7,8 @@ import { useVoiceRecorder, voiceNotesSupported } from "../lib/voiceNote";
 import { VoiceRecordingBar, VoiceNotePlayer } from "../components/VoiceNote";
 import { formCheckLabel } from "../lib/formCheck";
 import { CLIENT_DARK_BG, CLIENT_DARK_BORDER, MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../theme";
-import { ChatBubble, ChatComposer, ChatDayDivider, NO_TEXT_SELECT, bubbleTone, chatRows, chatTime } from "../components/Chat";
+import { ChatBubble, ChatComposer, ChatDayDivider, NO_TEXT_SELECT, bubbleTone, chatRows, chatTime, isMediaOnly } from "../components/Chat";
+export { isMediaOnly };
 import { useTextEntryFocused } from "../lib/textEntryFocus";
 
 // tone="mine" = the coach's own (blue) bubble; tone="theirs" = the client's
@@ -49,12 +50,6 @@ function AttachmentPill({ attachment, tone = "theirs", flush = false }) {
       <span className="text-xs font-medium truncate">{attachment.name}</span>
     </a>
   );
-}
-
-// A photo or video sent with no text and no form-check / reply label.
-export function isMediaOnly(m) {
-  const t = m?.attachment?.type;
-  return (t === "video" || t === "image") && !m.text && !m.attachment?.formCheck && !m.replyTo;
 }
 
 // The message list + composer, with no header/chrome of its own — reused by

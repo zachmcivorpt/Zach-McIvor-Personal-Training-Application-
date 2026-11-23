@@ -104,6 +104,13 @@ function ReactionPicker({ mine, dark, current, onPick, onClose }) {
   );
 }
 
+// A photo or video sent with no text and no form-check / reply label
+// (#319, #320): shown in a thin-framed bubble.
+export function isMediaOnly(m) {
+  const t = m?.attachment?.type;
+  return (t === "video" || t === "image") && !m.text && !m.attachment?.formCheck && !m.replyTo;
+}
+
 // `media` (#319): a photo/video with no text sits in a thin frame (p-1), not a
 // text bubble's padding, which drew a thick band around coach chat videos.
 export function ChatBubble({ mine, first, last, dark, time, children, wide = false, reactions, myReaction, onReact, media = false }) {
