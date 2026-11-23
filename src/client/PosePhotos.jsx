@@ -88,7 +88,7 @@ function Viewfinder({ pose, L }) {
 
 // Full-screen guide for one pose; after a photo is added it moves on to the
 // next pose not done yet, and closes once all three are in.
-export function PosePhotoGuide({ open, pose: startPose, dark, onClose, onAdd, busy }) {
+export function PosePhotoGuide({ open, pose: startPose, dark, onClose, onAdd, busy, hideDate = false }) {
   const L = clientLook(dark);
   const [pose, setPose] = useState(startPose || "front");
   const [dateKey, setDateKey] = useState(() => localDateKey());
@@ -196,6 +196,7 @@ export function PosePhotoGuide({ open, pose: startPose, dark, onClose, onAdd, bu
           </div>
         </div>
 
+        {!hideDate && (
         <label className="flex items-center justify-between gap-3 py-3 border-t border-b" style={{ borderColor: L.line }}>
           <span className="text-[13px] font-semibold">Date taken</span>
           <input
@@ -207,6 +208,7 @@ export function PosePhotoGuide({ open, pose: startPose, dark, onClose, onAdd, bu
             style={{ color: L.ink, colorScheme: dark ? "dark" : "light" }}
           />
         </label>
+        )}
 
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={picked} data-testid="pose-camera-input" />
         <input ref={libraryRef} type="file" accept="image/*" className="hidden" onChange={picked} data-testid="pose-library-input" />
@@ -266,6 +268,63 @@ function PoseTile({ pose, latest, L, onClick }) {
         <Plus size={13} strokeWidth={3} /> Add {label}
       </span>
     </button>
+  );
+}
+
+// #326: the Log Body Stats sheet's photo slots — the SAME Front / Side / Back
+// and the same guide as Progress Photos, so clients see one way to do it.
+// items: [{ file, pose, url }] picked in the sheet, not saved yet.
+export function PoseSlots({ items, dark, onAdd, onRemove }) {
+  const L = clientLook(dark);
+  const [guidePose, setGuidePose] = useState(null);
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-2" data-testid="pose-slots">
+        {POSES.map(([id, label]) => {
+          const mine = items.filter((it) => it.pose === id);
+          const last = mine[mine.length - 1];
+          return (
+            <div key={id} className="relative">
+              <button
+                type="button"
+                onClick={() => setGuidePose(id)}
+                aria-label={`Add ${label}`}
+                className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden"
+                style={last ? { backgroundColor: "#111" } : { ...L.tile }}
+              >
+                {last ? (
+                  <img src={last.url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <span className="absolute inset-x-0 top-3 bottom-11 flex items-center justify-center">
+                    <PoseFigure pose={id} color={L.ink} className="h-full opacity-50" strokeWidth={2.2} />
+                  </span>
+                )}
+                <span
+                  className="absolute left-1.5 right-1.5 bottom-1.5 h-7 rounded-full flex items-center justify-center gap-1 text-[11.5px] font-bold"
+                  style={last ? { backgroundColor: "rgba(255,255,255,0.92)", color: "#0A0A0B" } : { backgroundColor: L.ink, color: L.onInk }}
+                >
+                  {last ? <Check size={12} strokeWidth={3} /> : <Plus size={12} strokeWidth={3} />} {last ? `${label}${mine.length > 1 ? ` ×${mine.length}` : ""}` : `Add ${label}`}
+                </span>
+              </button>
+              {last && (
+                <button
+                  type="button"
+                  aria-label={`Remove ${label} photo`}
+                  onClick={() => onRemove(last)}
+                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-[11.5px] leading-snug" style={{ color: L.muted }}>
+        Tap a pose for how to take it. Same spot, light and time each time, so your change is easy to see.
+      </p>
+      <PosePhotoGuide open={!!guidePose} pose={guidePose} dark={dark} hideDate onClose={() => setGuidePose(null)} onAdd={(files, _date, pose) => onAdd(files, pose)} />
+    </>
   );
 }
 
