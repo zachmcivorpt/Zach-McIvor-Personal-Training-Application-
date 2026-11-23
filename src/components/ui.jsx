@@ -518,7 +518,9 @@ export const SheetSurfaceContext = createContext(undefined);
 
 // `surface` (optional) overrides the fill for one sheet; otherwise the
 // nearest SheetSurfaceContext value (if any) applies.
-export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5", keyboardSafeScroll = false, surface: surfaceProp, backdropClassName = "bg-black/50" }) {
+// heightRatio (#321): how much of the visible screen the sheet may take
+// (default 88%); the client chat uses 94% so less of the page shows above it.
+export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5", keyboardSafeScroll = false, surface: surfaceProp, backdropClassName = "bg-black/50", heightRatio = 0.88 }) {
   const contextSurface = useContext(SheetSurfaceContext);
   const surface = surfaceProp || contextSurface;
   // Opening already slid up smoothly, but closing just vanished the instant
@@ -584,11 +586,14 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
           className={`relative w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-t-3xl overflow-y-auto overscroll-contain border-t transition-transform duration-300 ease-out ${
             dark ? "border-white/10" : "border-black/10"
           } ${visible ? "translate-y-0" : "translate-y-full"}`}
-          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, ...surface, maxHeight: Math.round(viewport.height * 0.88) }}
+          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, ...surface, maxHeight: Math.round(viewport.height * heightRatio) }}
         >
+          {/* z-10 + its own layer (#320): an iPhone <video> (and a reaction
+              badge) scrolled under the pinned header painted ON TOP of it. */}
           <div
-            className="sticky top-0 pt-3 pb-2 px-5 border-b flex items-center justify-between"
-            style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER, ...(surface && { backgroundColor: "transparent" }) }}
+            className="sticky top-0 z-10 pt-3 pb-2 px-5 border-b flex items-center justify-between"
+            style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER, transform: "translateZ(0)", ...(surface && { backgroundColor: "transparent" }) }}
+            data-testid="sheet-header"
           >
             <div className="w-8" />
             <div className={`w-10 h-1 rounded-full absolute left-1/2 -translate-x-1/2 top-2 ${dark ? "bg-white/20" : "bg-black/20"}`} />

@@ -94,7 +94,8 @@ import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase
 import { localDateKey } from "../lib/dateKey";
 import { QUEUED, localFirst, onLocalWriteFailed } from "../lib/offlineWrite";
 import { MessageComposerInput } from "../components/MessageComposerInput";
-import { ChatBubble, ChatComposer, ChatDayDivider, NO_TEXT_SELECT, bubbleTone, chatRows, chatTime } from "../components/Chat";
+import { useTextEntryFocused } from "../lib/textEntryFocus";
+import { ChatBubble, ChatComposer, ChatDayDivider, NO_TEXT_SELECT, bubbleTone, chatRows, chatTime, isMediaOnly, useStickToBottom } from "../components/Chat";
 import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
@@ -8244,7 +8245,7 @@ function CoachSheet({ open, onClose, ctx }) {
 }
 
 
-function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
+export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const dark = useClientDark();
   const { reactToMessage } = useApp();
   const [input, setInput] = useState("");
@@ -8272,15 +8273,26 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const pdfInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const endRef = useRef(null);
-
+  const swipeRef = useRef(null);
+  const typing = useTextEntryFocused();
+  // #321: the sheet's own scroller (BottomSheet's panel). scrollIntoView put
+  // the newest messages UNDER the pinned message box after every send.
+  const scrollRef = useMemo(() => ({ get current() { return endRef.current?.closest(".overflow-y-auto") || null; } }), []);
+  const stickToBottom = useStickToBottom(scrollRef, [open, thread.length]);
+  // Opening the chat always starts at the newest message.
   useEffect(() => {
-    if (open) setTimeout(() => endRef.current?.scrollIntoView({ block: "end" }), 50);
-  }, [open, thread.length]);
+    if (!open) return;
+    stickToBottom();
+    const t = setTimeout(stickToBottom, 150);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function send() {
     if (!input.trim()) return;
     onSend(input);
     setInput("");
+    stickToBottom();
   }
 
   async function handleVideoFile(e) {
@@ -8332,8 +8344,24 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title={coachName ? `${coachName}` : "Messages"}>
-      <div className="pb-3" style={NO_TEXT_SELECT}>
+    <BottomSheet dark={dark} open={open} onClose={onClose} title={coachName ? `${coachName}` : "Messages"} heightRatio={0.94}>
+      <div
+        className="pb-3"
+        style={NO_TEXT_SELECT}
+        // #320: drag the messages down to put the keyboard away (as on the
+        // coach side, #319).
+        onTouchStart={(e) => {
+          swipeRef.current = e.touches[0]?.clientY ?? null;
+        }}
+        onTouchMove={(e) => {
+          const y0 = swipeRef.current;
+          const y = e.touches[0]?.clientY;
+          if (y0 == null || y == null || y - y0 < 24) return;
+          swipeRef.current = null;
+          const el = document.activeElement;
+          if (el && el.tagName === "TEXTAREA") el.blur();
+        }}
+      >
         {thread.length === 0 && (
           <ChatBubble mine={false} first last dark={dark}>
             <p className="whitespace-pre-line">{`Hey, this is your 24/7 coach — ${coachName || "your coach"} will respond within due time. Ask any questions any time!`}</p>
@@ -8354,6 +8382,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
               reactions={m.reactions}
               myReaction={m.reactions?.client}
               onReact={(emoji) => reactToMessage(m.id, "client", emoji)}
+              media={isMediaOnly(m)}
             >
               {m.replyTo && <p className={`text-[11px] font-semibold mb-1 ${tone.muted}`}>Re: your form check · {m.replyTo.exerciseName}</p>}
               {m.text && !m.attachment?.formCheck && <p className="whitespace-pre-line break-words">{m.text}</p>}
@@ -8362,10 +8391,10 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
                 // On the blue bubble, mine + dark={false} gives white labels.
                 <VoiceNotePlayer attachment={m.attachment} mine={mine} dark={mine ? false : dark} />
               ) : m.attachment && m.attachment.type === "video" ? (
-                <video src={`${m.attachment.url}#t=0.001`} controls playsInline preload="metadata" className="mt-2 w-full max-w-[220px] rounded-xl bg-black" />
+                <video src={`${m.attachment.url}#t=0.001`} controls playsInline preload="metadata" className={`${isMediaOnly(m) ? "block rounded-[16px] max-w-[240px]" : "mt-2 rounded-xl max-w-[220px]"} w-full bg-black`} />
               ) : m.attachment && m.attachment.type === "image" ? (
-                <a href={m.attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
-                  <img src={m.attachment.url} alt={m.attachment.name || "Photo"} loading="eager" decoding="async" className="w-full max-w-[220px] rounded-xl object-cover" />
+                <a href={m.attachment.url} target="_blank" rel="noopener noreferrer" className={isMediaOnly(m) ? "block" : "block mt-2"}>
+                  <img src={m.attachment.url} alt={m.attachment.name || "Photo"} loading="eager" decoding="async" className={`w-full object-cover ${isMediaOnly(m) ? "max-w-[240px] rounded-[16px]" : "max-w-[220px] rounded-xl"}`} />
                 </a>
               ) : (
                 m.attachment && (
@@ -8381,7 +8410,9 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         <div ref={endRef} />
       </div>
       <div
-        className="sticky bottom-0 -mx-5 px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t"
+        // #321: no home-bar space while the keyboard is up (it left a gap
+        // between the message box and the keyboard).
+        className={`sticky bottom-0 z-10 -mx-5 px-5 pt-3 ${typing ? "pb-2" : "pb-[max(0.5rem,env(safe-area-inset-bottom))]"} border-t`}
         style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
       >
         {(uploadError || recorder.error) && (
@@ -8418,6 +8449,8 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
             canRecord={canRecord}
             onRecord={recorder.start}
             recordDisabled={recorder.state !== "idle"}
+            keepFocus
+            inputMaxHeight={220}
           />
         )}
       </div>
