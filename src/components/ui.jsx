@@ -518,9 +518,7 @@ export const SheetSurfaceContext = createContext(undefined);
 
 // `surface` (optional) overrides the fill for one sheet; otherwise the
 // nearest SheetSurfaceContext value (if any) applies.
-// heightRatio (#321): how much of the visible screen the sheet may take
-// (default 88%); the client chat uses 94% so less of the page shows above it.
-export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5", keyboardSafeScroll = false, surface: surfaceProp, backdropClassName = "bg-black/50", heightRatio = 0.88 }) {
+export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5", keyboardSafeScroll = false, surface: surfaceProp, backdropClassName = "bg-black/50" }) {
   const contextSurface = useContext(SheetSurfaceContext);
   const surface = surfaceProp || contextSurface;
   // Opening already slid up smoothly, but closing just vanished the instant
@@ -586,7 +584,7 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
           className={`relative w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-t-3xl overflow-y-auto overscroll-contain border-t transition-transform duration-300 ease-out ${
             dark ? "border-white/10" : "border-black/10"
           } ${visible ? "translate-y-0" : "translate-y-full"}`}
-          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, ...surface, maxHeight: Math.round(viewport.height * heightRatio) }}
+          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, ...surface, maxHeight: Math.round(viewport.height * 0.88) }}
         >
           {/* z-10 + its own layer (#320): an iPhone <video> (and a reaction
               badge) scrolled under the pinned header painted ON TOP of it. */}

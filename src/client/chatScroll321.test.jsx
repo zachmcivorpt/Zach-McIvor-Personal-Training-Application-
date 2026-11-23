@@ -38,7 +38,7 @@ describe("client chat stays on the newest message (#321)", () => {
     const props = { open: true, onClose() {}, user: { id: "c1", name: "Z" }, onSend: vi.fn(), coachName: "Coach" };
     const { rerender, baseElement } = render(<MessagesSheet {...props} thread={thread} />);
     act(() => vi.advanceTimersByTime(200));
-    const panel = baseElement.querySelector(".overflow-y-auto.rounded-t-3xl");
+    const panel = baseElement.querySelector("[data-testid=client-chat] .overflow-y-auto");
     expect(panel.scrollTop).toBe(2000);
     fireEvent.change(screen.getByPlaceholderText("Message your coach..."), { target: { value: "New one" } });
     panel.scrollTop = 0; // as if the list had jumped up
@@ -50,16 +50,29 @@ describe("client chat stays on the newest message (#321)", () => {
     expect(intoView).not.toHaveBeenCalled();
   });
 
-  it("no home-bar gap above the keyboard, and the sheet takes 94% of the screen", () => {
+  it("#322: a full-screen page — box right at the bottom, sits on the keyboard, the list can't drag past its ends", () => {
     const { baseElement } = render(<MessagesSheet open onClose={() => {}} user={{ id: "c1" }} thread={[msg(1)]} onSend={() => {}} coachName="Coach" />);
+    const page = screen.getByTestId("client-chat");
+    expect(page.className).toContain("fixed");
+    expect(page.style.height).toBe(`${window.innerHeight}px`); // the visible area
+    expect(baseElement.querySelector(".rounded-t-3xl")).toBeNull(); // not a sheet
+    const list = page.querySelector(".overflow-y-auto");
+    expect(list.className).toContain("overscroll-contain");
+    const bar = screen.getByTestId("client-chat-bar");
+    expect(bar.className).toContain("pb-[max(calc(env(safe-area-inset-bottom)-14px),8px)]");
     const box = screen.getByPlaceholderText("Message your coach...");
-    const bar = box.closest(".sticky");
-    expect(bar.className).toContain("pb-[max(0.5rem,env(safe-area-inset-bottom))]");
     act(() => box.focus());
-    expect(box.closest(".sticky").className).toContain("pb-2");
-    expect(box.closest(".sticky").className).not.toContain("safe-area");
-    const panel = baseElement.querySelector(".overflow-y-auto.rounded-t-3xl");
-    expect(panel.style.maxHeight).toBe(`${Math.round(window.innerHeight * 0.94)}px`);
+    expect(screen.getByTestId("client-chat-bar").className).toContain("pb-2");
+    expect(screen.getByTestId("client-chat-bar").className).not.toContain("safe-area");
+  });
+
+  it("#322: Back closes it; closed renders nothing", () => {
+    const onClose = vi.fn();
+    const { rerender } = render(<MessagesSheet open onClose={onClose} user={{ id: "c1" }} thread={[msg(1)]} onSend={() => {}} coachName="Coach" />);
+    fireEvent.click(screen.getByLabelText("Back"));
+    expect(onClose).toHaveBeenCalled();
+    rerender(<MessagesSheet open={false} onClose={onClose} user={{ id: "c1" }} thread={[msg(1)]} onSend={() => {}} coachName="Coach" />);
+    expect(screen.queryByTestId("client-chat")).toBeNull();
   });
 });
 

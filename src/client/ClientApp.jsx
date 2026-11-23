@@ -8245,6 +8245,30 @@ function CoachSheet({ open, onClose, ctx }) {
 }
 
 
+// #322: the part of the screen that's really visible (above the keyboard in
+// Safari; the iPhone app shrinks its whole web view for the keyboard, where
+// this is simply the full screen).
+function useVisibleViewport() {
+  const read = () => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    return { top: vv ? vv.offsetTop : 0, height: vv ? vv.height : typeof window !== "undefined" ? window.innerHeight : 800 };
+  };
+  const [v, setV] = useState(read);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const on = () => setV(read());
+    vv?.addEventListener("resize", on);
+    vv?.addEventListener("scroll", on);
+    window.addEventListener("resize", on);
+    return () => {
+      vv?.removeEventListener("resize", on);
+      vv?.removeEventListener("scroll", on);
+      window.removeEventListener("resize", on);
+    };
+  }, []);
+  return v;
+}
+
 export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const dark = useClientDark();
   const { reactToMessage } = useApp();
@@ -8275,10 +8299,11 @@ export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }
   const endRef = useRef(null);
   const swipeRef = useRef(null);
   const typing = useTextEntryFocused();
-  // #321: the sheet's own scroller (BottomSheet's panel). scrollIntoView put
-  // the newest messages UNDER the pinned message box after every send.
-  const scrollRef = useMemo(() => ({ get current() { return endRef.current?.closest(".overflow-y-auto") || null; } }), []);
-  const stickToBottom = useStickToBottom(scrollRef, [open, thread.length]);
+  // #321: scrolls the message list itself (scrollIntoView put the newest
+  // messages UNDER the message box after every send).
+  const listRef = useRef(null);
+  const stickToBottom = useStickToBottom(listRef, [open, thread.length]);
+  const viewport = useVisibleViewport();
   // Opening the chat always starts at the newest message.
   useEffect(() => {
     if (!open) return;
@@ -8343,11 +8368,31 @@ export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }
     }
   }
 
+  if (!open) return null;
+  const pageBg = dark ? CLIENT_DARK_BG : "#FFFFFF";
+  const line = dark ? CLIENT_DARK_BORDER : BORDER;
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title={coachName ? `${coachName}` : "Messages"} heightRatio={0.94}>
+    // #322 (owner): a full-screen chat page like Instagram's, not a pop-up
+    // sheet — header at the top, messages in between, the message box right
+    // at the bottom of the screen. Fixed to what's actually visible
+    // (useVisibleViewport) so it sits on the keyboard; the list's
+    // overscroll is contained, so dragging never shows white beyond it.
+    <FullScreenOverlay>
       <div
-        className="pb-3"
-        style={NO_TEXT_SELECT}
+        className="fixed left-0 right-0 z-[110] flex flex-col"
+        style={{ top: viewport.top, height: viewport.height, backgroundColor: pageBg }}
+        data-testid="client-chat"
+      >
+        <div className="shrink-0 flex items-center gap-2 px-2 pb-2 border-b pt-[calc(0.5rem+env(safe-area-inset-top))]" style={{ borderColor: line }}>
+          <button type="button" onClick={onClose} aria-label="Back" className={`w-10 h-10 flex items-center justify-center rounded-full ${dark ? "text-white" : "text-black"}`}>
+            <ChevronLeft size={24} />
+          </button>
+          <p className={`flex-1 min-w-0 truncate font-semibold text-[16px] ${dark ? "text-white" : "text-black"}`}>{coachName || "Messages"}</p>
+        </div>
+      <div
+        ref={listRef}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-3"
+        style={{ ...NO_TEXT_SELECT, WebkitOverflowScrolling: "touch" }}
         // #320: drag the messages down to put the keyboard away (as on the
         // coach side, #319).
         onTouchStart={(e) => {
@@ -8410,10 +8455,12 @@ export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }
         <div ref={endRef} />
       </div>
       <div
-        // #321: no home-bar space while the keyboard is up (it left a gap
-        // between the message box and the keyboard).
-        className={`sticky bottom-0 z-10 -mx-5 px-5 pt-3 ${typing ? "pb-2" : "pb-[max(0.5rem,env(safe-area-inset-bottom))]"} border-t`}
-        style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+        // #321/#322: right at the bottom — while typing it sits on the
+        // keyboard; otherwise only what the home bar needs (less 14px, like
+        // the tab bar), never the full inset plus padding.
+        className={`shrink-0 px-3 pt-2 ${typing ? "pb-2" : "pb-[max(calc(env(safe-area-inset-bottom)-14px),8px)]"} border-t`}
+        style={{ backgroundColor: pageBg, borderColor: line }}
+        data-testid="client-chat-bar"
       >
         {(uploadError || recorder.error) && (
           <div className="mb-2 flex items-center justify-between gap-2 bg-red-50 border border-red-100 text-red-700 text-xs px-3 py-2 rounded-lg">
@@ -8454,7 +8501,8 @@ export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }
           />
         )}
       </div>
-    </BottomSheet>
+      </div>
+    </FullScreenOverlay>
   );
 }
 

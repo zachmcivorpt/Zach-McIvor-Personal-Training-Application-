@@ -250,7 +250,7 @@ export function ThreadMessages({ client, aboveTabBar = false }) {
           </button>
         </div>
       )}
-      <div className={`px-4 md:px-6 pt-2.5 ${typing || aboveTabBar ? "pb-2.5" : "pb-[max(1.25rem,env(safe-area-inset-bottom))]"} border-t`} style={{ borderColor: CLIENT_DARK_BORDER }}>
+      <div className={`px-4 md:px-6 pt-2.5 ${typing || aboveTabBar ? "pb-2.5" : "pb-[max(calc(env(safe-area-inset-bottom)-14px),8px)]"} border-t`} style={{ borderColor: CLIENT_DARK_BORDER }}>
         <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
         <input ref={pdfInputRef} type="file" accept="application/pdf" onChange={handlePdfFile} className="hidden" />
         <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />

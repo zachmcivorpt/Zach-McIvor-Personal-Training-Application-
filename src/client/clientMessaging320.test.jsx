@@ -9,6 +9,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("../lib/AppContext", async (orig) => ({ ...(await orig()), useApp: () => ({ db: {}, reactToMessage: vi.fn() }) }));
 import { MessagesSheet } from "./ClientApp";
+import { BottomSheet } from "../components/ui";
 
 const user = { id: "c1", name: "Zach McIvor" };
 const thread = [
@@ -23,8 +24,12 @@ function setup() {
 afterEach(cleanup);
 
 describe("client chat on the iPhone (#320)", () => {
-  it("the sheet's header sits above scrolled videos (own layer, z-10)", () => {
-    setup();
+  it("every BottomSheet's pinned header sits above scrolled videos (own layer, z-10)", () => {
+    render(
+      <BottomSheet open onClose={() => {}} title="Any sheet">
+        <p>x</p>
+      </BottomSheet>
+    );
     const header = screen.getByTestId("sheet-header");
     expect(header.className).toContain("z-10");
     expect(header.style.transform).toBe("translateZ(0)");
@@ -49,7 +54,7 @@ describe("client chat on the iPhone (#320)", () => {
     fireEvent.click(send);
     expect(onSend).toHaveBeenCalledWith("Para one\n\nPara two");
     box.focus();
-    const list = baseElement.querySelector("video").closest("[style]").parentElement.closest(".pb-3");
+    const list = baseElement.querySelector("[data-testid=client-chat] .overflow-y-auto");
     fireEvent.touchStart(list, { touches: [{ clientY: 100 }] });
     fireEvent.touchMove(list, { touches: [{ clientY: 150 }] });
     expect(document.activeElement).not.toBe(box);

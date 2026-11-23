@@ -78,10 +78,10 @@ describe("coach Messages on the iPhone (#319)", () => {
 
   it("on the Messages tab the composer doesn't add the home-bar space again", () => {
     const tab = setup({ aboveTabBar: true }).container.innerHTML;
-    expect(tab).not.toContain("pb-[max(1.25rem,env(safe-area-inset-bottom))]");
+    expect(tab).not.toContain("safe-area-inset-bottom");
     cleanup();
-    const full = setup().container.innerHTML; // full-screen thread keeps it
-    expect(full).toContain("pb-[max(1.25rem,env(safe-area-inset-bottom))]");
+    const full = setup().container.innerHTML; // full-screen thread: home bar less 14px (#322)
+    expect(full).toContain("pb-[max(calc(env(safe-area-inset-bottom)-14px),8px)]");
     const src = fs.readFileSync(path.join(__dirname, "CoachMessages.jsx"), "utf8");
     expect(src).toContain('pb-[calc(53px+max(calc(env(safe-area-inset-bottom)-14px),4px))]');
     expect(src).not.toContain('"pb-[calc(4rem+env(safe-area-inset-bottom))]"');
