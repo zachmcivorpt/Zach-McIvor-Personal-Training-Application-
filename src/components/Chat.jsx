@@ -104,7 +104,9 @@ function ReactionPicker({ mine, dark, current, onPick, onClose }) {
   );
 }
 
-export function ChatBubble({ mine, first, last, dark, time, children, wide = false, reactions, myReaction, onReact }) {
+// `media` (#319): a photo/video with no text sits in a thin frame (p-1), not a
+// text bubble's padding, which drew a thick band around coach chat videos.
+export function ChatBubble({ mine, first, last, dark, time, children, wide = false, reactions, myReaction, onReact, media = false }) {
   const [picking, setPicking] = useState(false);
   const hold = useRef(null);
   const start = useRef(null);
@@ -148,7 +150,7 @@ export function ChatBubble({ mine, first, last, dark, time, children, wide = fal
       <div className={`relative ${wide ? "max-w-[85%]" : "max-w-[78%]"}`}>
         <div
           {...pressHandlers}
-          className={`rounded-[20px] ${tail} ${join} px-3.5 py-2.5 text-[14.5px] leading-[1.4] ${bubbleTone(mine, dark).text}`}
+          className={`rounded-[20px] ${tail} ${join} ${media ? "p-1" : "px-3.5 py-2.5"} text-[14.5px] leading-[1.4] ${bubbleTone(mine, dark).text}`}
           style={{ ...(mine ? { backgroundColor: MEASURE_BLUE } : theirs), ...(onReact ? { WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none" } : null) }}
         >
           {children}
@@ -195,7 +197,10 @@ function uploadIndicator(uploadPct, dark) {
 
 // The composer: one + for attachments (opens photo / video / PDF), the
 // growing message box, and a round blue send (or the mic when empty).
-export function ChatComposer({ value, onChange, onSend, placeholder, dark, uploadPct = null, onPickPhoto, onPickVideo, onPickPdf, videoLabel = "Video", canRecord, onRecord, recordDisabled }) {
+// `keepFocus` (#319): tapping Send keeps the message box focused, so the
+// keyboard stays up for the next message. `inputMaxHeight` lets a chat give
+// paragraphs more room before the box scrolls.
+export function ChatComposer({ value, onChange, onSend, placeholder, dark, uploadPct = null, onPickPhoto, onPickVideo, onPickPdf, videoLabel = "Video", canRecord, onRecord, recordDisabled, keepFocus = false, inputMaxHeight }) {
   const [attachOpen, setAttachOpen] = useState(false);
   const uploading = uploadPct !== null;
   const hasText = !!value.trim();
@@ -235,6 +240,7 @@ export function ChatComposer({ value, onChange, onSend, placeholder, dark, uploa
           onChange={onChange}
           onSend={onSend}
           placeholder={placeholder}
+          maxHeight={inputMaxHeight}
           className={`flex-1 min-w-0 rounded-[22px] px-4 py-3 text-[14.5px] outline-none ${dark ? "bg-white/[0.07] text-white placeholder:text-white/35" : "bg-black/[0.05] text-black placeholder:text-black/35"}`}
         />
         {canRecord && !hasText ? (
@@ -243,6 +249,10 @@ export function ChatComposer({ value, onChange, onSend, placeholder, dark, uploa
           <button
             type="button"
             onClick={onSend}
+            // Pressing a button normally takes focus from the text box and the
+            // iPhone keyboard drops; keepFocus stops that (#319).
+            onPointerDown={keepFocus ? (e) => e.preventDefault() : undefined}
+            onMouseDown={keepFocus ? (e) => e.preventDefault() : undefined}
             disabled={!hasText}
             aria-label="Send"
             className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-white transition-opacity disabled:opacity-35"

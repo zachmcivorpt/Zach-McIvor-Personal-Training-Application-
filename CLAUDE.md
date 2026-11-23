@@ -1019,6 +1019,7 @@ any Train Solo work from now on:
   a client can write equally narrow.
   The message LIST (not just the bubble) carries `NO_TEXT_SELECT`, or iOS
   turns the hold into Copy / Look Up / Translate (#131).
+- **Coach Messages on the iPhone** (#319, owner): Send keeps the message box focused (`ChatComposer keepFocus` — pointerdown/mousedown preventDefault), so the keyboard never drops between messages; dragging the messages down puts the keyboard away; the box grows to 220px (`inputMaxHeight`) for paragraphs; a photo/video with no text is a thin-framed bubble (`ChatBubble media`, `isMediaOnly`); on the Messages tab the composer adds no home-bar space (`aboveTabBar`) and the page reserves the tab bar's real height (53px + `TAB_BAR_BOTTOM`), never 4rem + the full inset. The full-screen thread (from a client page) keeps its own safe-area padding.
 - The coach console hides its mobile tab bar while a text field has focus
   (`useTextEntryFocused`, `src/lib/textEntryFocus.js`); screens that
   reserve space for the bar (Messages) drop it while typing too.

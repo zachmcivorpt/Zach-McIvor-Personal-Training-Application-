@@ -4123,6 +4123,13 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Fix**: `itemsForDate` items now carry their scheduled `entry`; `splitDay` marks non-training ones `training: false` with `isTrainingSession` (the same function #269 uses) and `weekSummary` skips them. The card still shows on the day.
 - **Tests**: `src/coach/calendarWeek317.test.jsx` — a scheduled cardio-only day shows but isn't counted (fails without the fix, checked by restoring it). Full suite green.
 
+### 319. Coach Messages on the iPhone: gap under the box, keyboard dropping, paragraphs, video frame (owner, 2026-11-23)
+
+- **Problem** (owner's screenshot): on the coach's Messages tab (1) a big empty band under the message box — the home-bar space was reserved twice (the page's 4rem + full inset, then the composer's own safe-area padding) and the page's reserve was taller than the tab bar; (2) the keyboard dropped after every Send — tapping the button took focus from the box; (3) writing a paragraph was cramped — the box stopped growing at ~6 lines (140px); (4) videos sat in a thick text-bubble frame.
+- **Fix**: `ThreadMessages aboveTabBar` (Messages tab) drops the composer's safe-area padding; the page reserves 53px + `TAB_BAR_BOTTOM` (the bar's real height). `ChatComposer keepFocus` stops Send taking focus. Dragging the messages down blurs the box (keyboard away). Box max 220px (`inputMaxHeight`), sentence capitals + autocorrect on. Photo/video with no text: `ChatBubble media` (p-1) + `AttachmentPill flush`. Shared Chat parts change only through opt-in props, so the client chats are unchanged.
+- **Tests**: `src/coach/coachMessaging319.test.jsx` renders the REAL ThreadMessages: Send's pointerdown/mousedown are prevented and the message (with its line breaks) is sent; a 10px drag keeps typing, a 40px drag blurs; the box's max height is 220px; a media-only video is in a p-1 frame without mt-2, one with text keeps the bubble; the Messages tab composer has no safe-area padding, the full-screen thread keeps it; the page reserve is 53px + TAB_BAR_BOTTOM. All 5 fail on the code before this fix (checked by restoring it). Checked in Chromium at 390px with touch: 10 lines → 204px box, focus kept after Send, thin photo frame, no sideways scroll.
+- **Manual (real iPhone)**: type two paragraphs, Send twice — keyboard stays up; drag the messages down — keyboard goes; no band under the box.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

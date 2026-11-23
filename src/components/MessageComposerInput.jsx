@@ -17,18 +17,19 @@ function touchDevice() {
   }
 }
 
-export function MessageComposerInput({ value, onChange, onSend, placeholder, className = "", style, inputRef }) {
+export function MessageComposerInput({ value, onChange, onSend, placeholder, className = "", style, inputRef, maxHeight }) {
   const ref = useRef(null);
   const el = inputRef || ref;
+  const MAX = maxHeight || MAX_HEIGHT;
 
   useLayoutEffect(() => {
     const node = el.current;
     if (!node) return;
     node.style.height = "auto";
-    const next = Math.min(node.scrollHeight, MAX_HEIGHT);
+    const next = Math.min(node.scrollHeight, MAX);
     node.style.height = `${next}px`;
-    node.style.overflowY = node.scrollHeight > MAX_HEIGHT ? "auto" : "hidden";
-  }, [value, el]);
+    node.style.overflowY = node.scrollHeight > MAX ? "auto" : "hidden";
+  }, [value, el, MAX]);
 
   return (
     <textarea
@@ -45,7 +46,10 @@ export function MessageComposerInput({ value, onChange, onSend, placeholder, cla
       placeholder={placeholder}
       enterKeyHint="enter"
       className={`resize-none leading-5 ${className}`}
-      style={{ maxHeight: MAX_HEIGHT, ...style }}
+      autoCapitalize="sentences"
+      autoCorrect="on"
+      spellCheck
+      style={{ maxHeight: MAX, ...style }}
     />
   );
 }

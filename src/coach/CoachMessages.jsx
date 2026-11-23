@@ -12,7 +12,7 @@ import { useTextEntryFocused } from "../lib/textEntryFocus";
 
 // tone="mine" = the coach's own (blue) bubble; tone="theirs" = the client's
 // (charcoal) bubble. Both need a light chip on the dark/blue fill.
-function AttachmentPill({ attachment, tone = "theirs" }) {
+function AttachmentPill({ attachment, tone = "theirs", flush = false }) {
   if (!attachment) return null;
   if (attachment.type === "audio") {
     // mine + dark={false} gives white labels, right on the blue bubble.
@@ -21,17 +21,17 @@ function AttachmentPill({ attachment, tone = "theirs" }) {
   if (attachment.type === "video") {
     // preload="metadata" + #t: shows the first frame without downloading
     // the clip until play is tapped (#129).
-    return <video src={`${attachment.url}#t=0.001`} controls playsInline preload="metadata" className="mt-2 w-full max-w-[220px] rounded-lg bg-black" />;
+    return <video src={`${attachment.url}#t=0.001`} controls playsInline preload="metadata" className={`${flush ? "block rounded-[16px] max-w-[240px]" : "mt-2 rounded-lg max-w-[220px]"} w-full bg-black`} />;
   }
   if (attachment.type === "image") {
     return (
-      <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
+      <a href={attachment.url} target="_blank" rel="noopener noreferrer" className={flush ? "block" : "block mt-2"}>
         <img
           src={attachment.url}
           alt={attachment.name || "Photo"}
           loading="eager"
           decoding="async"
-          className="w-full max-w-[220px] rounded-lg object-cover"
+          className={`w-full object-cover ${flush ? "max-w-[240px] rounded-[16px]" : "max-w-[220px] rounded-lg"}`}
         />
       </a>
     );
@@ -51,10 +51,19 @@ function AttachmentPill({ attachment, tone = "theirs" }) {
   );
 }
 
+// A photo or video sent with no text and no form-check / reply label.
+export function isMediaOnly(m) {
+  const t = m?.attachment?.type;
+  return (t === "video" || t === "image") && !m.text && !m.attachment?.formCheck && !m.replyTo;
+}
+
 // The message list + composer, with no header/chrome of its own — reused by
 // both the full-screen ThreadView (opened from a client's own profile) and
 // the inline right-hand panel of the desktop Messages screen.
-export function ThreadMessages({ client }) {
+// `aboveTabBar` (#319): on the Messages tab the console's tab bar already
+// holds the home-bar space, so the composer adds none of its own (it was
+// reserved twice — a big empty band under the message box).
+export function ThreadMessages({ client, aboveTabBar = false }) {
   const { db, sendMessage, updateUser, reactToMessage } = useApp();
   const typing = useTextEntryFocused();
   const [input, setInput] = useState("");
@@ -69,6 +78,7 @@ export function ThreadMessages({ client }) {
   const pdfInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const endRef = useRef(null);
+  const swipeRef = useRef(null);
   const thread = db.messages[client.id] || [];
 
   useEffect(() => {
@@ -162,7 +172,23 @@ export function ThreadMessages({ client }) {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-1 pb-4" style={NO_TEXT_SELECT}>
+      <div
+        className="flex-1 overflow-y-auto px-4 md:px-6 pt-1 pb-4"
+        style={NO_TEXT_SELECT}
+        // #319: drag the messages down to put the keyboard away, as in
+        // Messages on the iPhone.
+        onTouchStart={(e) => {
+          swipeRef.current = e.touches[0]?.clientY ?? null;
+        }}
+        onTouchMove={(e) => {
+          const y0 = swipeRef.current;
+          const y = e.touches[0]?.clientY;
+          if (y0 == null || y == null || y - y0 < 24) return;
+          swipeRef.current = null;
+          const el = document.activeElement;
+          if (el && el.tagName === "TEXTAREA") el.blur();
+        }}
+      >
         {thread.length === 0 && <p className="text-white/45 text-sm text-center py-14">No messages yet with {client.name?.split(" ")[0] || "them"}.</p>}
         {rows.map((row) => {
           if (row.type === "day") return <ChatDayDivider key={row.key} label={row.label} dark />;
@@ -179,13 +205,14 @@ export function ThreadMessages({ client }) {
               reactions={m.reactions}
               myReaction={m.reactions?.coach}
               onReact={(emoji) => reactToMessage(m.id, "coach", emoji)}
+              media={isMediaOnly(m)}
             >
               {m.attachment?.formCheck && (
                 <p className={`text-[10px] font-bold tracking-[0.1em] uppercase mb-1 ${tone.muted}`}>Form check · {formCheckLabel(m.attachment.formCheck)}</p>
               )}
               {m.replyTo && <p className={`text-[11px] font-semibold mb-1 ${tone.muted}`}>Re: form check · {m.replyTo.exerciseName}</p>}
               {m.text && !m.attachment?.formCheck && <p className="whitespace-pre-line break-words">{m.text}</p>}
-              <AttachmentPill attachment={m.attachment} tone={mine ? "mine" : "theirs"} />
+              <AttachmentPill attachment={m.attachment} tone={mine ? "mine" : "theirs"} flush={isMediaOnly(m)} />
               {!mine && m.attachment?.formCheck && (
                 <button
                   type="button"
@@ -226,7 +253,7 @@ export function ThreadMessages({ client }) {
           </button>
         </div>
       )}
-      <div className={`px-4 md:px-6 pt-2.5 ${typing ? "pb-2" : "pb-[max(1.25rem,env(safe-area-inset-bottom))]"} border-t`} style={{ borderColor: CLIENT_DARK_BORDER }}>
+      <div className={`px-4 md:px-6 pt-2.5 ${typing || aboveTabBar ? "pb-2.5" : "pb-[max(1.25rem,env(safe-area-inset-bottom))]"} border-t`} style={{ borderColor: CLIENT_DARK_BORDER }}>
         <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
         <input ref={pdfInputRef} type="file" accept="application/pdf" onChange={handlePdfFile} className="hidden" />
         <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
@@ -246,6 +273,8 @@ export function ThreadMessages({ client }) {
             canRecord={canRecord}
             onRecord={recorder.start}
             recordDisabled={recorder.state !== "idle"}
+            keepFocus
+            inputMaxHeight={220}
           />
         )}
       </div>
@@ -297,8 +326,10 @@ export default function CoachMessages() {
   return (
     <div
       // Fills the visible screen under CoachShell's bars, safe areas included
-      // (#190: 100vh ran under Safari's bars on iPad/iPhone).
-      className={`coach-full-height flex flex-col -mt-[calc(3.5rem+env(safe-area-inset-top))] -mb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top))] ${typing ? "pb-0" : "pb-[calc(4rem+env(safe-area-inset-bottom))]"} md:-mt-[env(safe-area-inset-top)] md:-mb-[env(safe-area-inset-bottom)] md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)]`}
+      // (#190: 100vh ran under Safari's bars on iPad/iPhone). The bottom
+      // reserve is the tab bar's real height — 53px + TAB_BAR_BOTTOM (#319;
+      // 4rem + the full inset left an empty band under the message box).
+      className={`coach-full-height flex flex-col -mt-[calc(3.5rem+env(safe-area-inset-top))] -mb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top))] ${typing ? "pb-0" : "pb-[calc(53px+max(calc(env(safe-area-inset-bottom)-14px),4px))]"} md:-mt-[env(safe-area-inset-top)] md:-mb-[env(safe-area-inset-bottom)] md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)]`}
       style={{ backgroundColor: CLIENT_DARK_BG }}
     >
       <div className={`px-4 pt-5 pb-4 md:px-8 md:pt-8 shrink-0 ${openClientId ? "hidden md:block" : ""}`}>
@@ -379,7 +410,7 @@ export default function CoachMessages() {
                   already got this for free (it unmounts through `null`
                   before showing a new thread); this key makes the desktop
                   split view behave the same way. */}
-              <ThreadMessages key={openClient.id} client={openClient} />
+              <ThreadMessages key={openClient.id} client={openClient} aboveTabBar />
             </>
           ) : (
             <div className="flex-1 flex-col items-center justify-center text-center hidden md:flex">
