@@ -94,7 +94,8 @@ import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase
 import { localDateKey } from "../lib/dateKey";
 import { QUEUED, localFirst, onLocalWriteFailed } from "../lib/offlineWrite";
 import { MessageComposerInput } from "../components/MessageComposerInput";
-import { ChatBubble, ChatComposer, ChatDayDivider, NO_TEXT_SELECT, bubbleTone, chatRows, chatTime, isMediaOnly } from "../components/Chat";
+import { useTextEntryFocused } from "../lib/textEntryFocus";
+import { ChatBubble, ChatComposer, ChatDayDivider, NO_TEXT_SELECT, bubbleTone, chatRows, chatTime, isMediaOnly, useStickToBottom } from "../components/Chat";
 import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
@@ -8273,15 +8274,25 @@ export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }
   const imageInputRef = useRef(null);
   const endRef = useRef(null);
   const swipeRef = useRef(null);
-
+  const typing = useTextEntryFocused();
+  // #321: the sheet's own scroller (BottomSheet's panel). scrollIntoView put
+  // the newest messages UNDER the pinned message box after every send.
+  const scrollRef = useMemo(() => ({ get current() { return endRef.current?.closest(".overflow-y-auto") || null; } }), []);
+  const stickToBottom = useStickToBottom(scrollRef, [open, thread.length]);
+  // Opening the chat always starts at the newest message.
   useEffect(() => {
-    if (open) setTimeout(() => endRef.current?.scrollIntoView({ block: "end" }), 50);
-  }, [open, thread.length]);
+    if (!open) return;
+    stickToBottom();
+    const t = setTimeout(stickToBottom, 150);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function send() {
     if (!input.trim()) return;
     onSend(input);
     setInput("");
+    stickToBottom();
   }
 
   async function handleVideoFile(e) {
@@ -8333,7 +8344,7 @@ export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title={coachName ? `${coachName}` : "Messages"}>
+    <BottomSheet dark={dark} open={open} onClose={onClose} title={coachName ? `${coachName}` : "Messages"} heightRatio={0.94}>
       <div
         className="pb-3"
         style={NO_TEXT_SELECT}
@@ -8399,7 +8410,9 @@ export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }
         <div ref={endRef} />
       </div>
       <div
-        className="sticky bottom-0 z-10 -mx-5 px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t"
+        // #321: no home-bar space while the keyboard is up (it left a gap
+        // between the message box and the keyboard).
+        className={`sticky bottom-0 z-10 -mx-5 px-5 pt-3 ${typing ? "pb-2" : "pb-[max(0.5rem,env(safe-area-inset-bottom))]"} border-t`}
         style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
       >
         {(uploadError || recorder.error) && (

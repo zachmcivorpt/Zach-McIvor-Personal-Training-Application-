@@ -7,7 +7,7 @@ import { useVoiceRecorder, voiceNotesSupported } from "../lib/voiceNote";
 import { VoiceRecordingBar, VoiceNotePlayer } from "../components/VoiceNote";
 import { formCheckLabel } from "../lib/formCheck";
 import { CLIENT_DARK_BG, CLIENT_DARK_BORDER, MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../theme";
-import { ChatBubble, ChatComposer, ChatDayDivider, NO_TEXT_SELECT, bubbleTone, chatRows, chatTime, isMediaOnly } from "../components/Chat";
+import { ChatBubble, ChatComposer, ChatDayDivider, NO_TEXT_SELECT, bubbleTone, chatRows, chatTime, isMediaOnly, useStickToBottom } from "../components/Chat";
 export { isMediaOnly };
 import { useTextEntryFocused } from "../lib/textEntryFocus";
 
@@ -73,12 +73,12 @@ export function ThreadMessages({ client, aboveTabBar = false }) {
   const pdfInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const endRef = useRef(null);
+  const listRef = useRef(null);
   const swipeRef = useRef(null);
   const thread = db.messages[client.id] || [];
 
-  useEffect(() => {
-    setTimeout(() => endRef.current?.scrollIntoView({ block: "end" }), 50);
-  }, [thread.length]);
+  // #321: newest message stays in view after a send / keyboard change.
+  const stickToBottom = useStickToBottom(listRef, [thread.length]);
 
   // Opening this thread is itself "the coach has seen it" — the
   // roster/nav "awaiting reply" badge (CoachClients.jsx, CoachShell.jsx)
@@ -96,6 +96,7 @@ export function ThreadMessages({ client, aboveTabBar = false }) {
     if (!input.trim()) return;
     sendMessage(client.id, "coach", input, undefined, replyTo ? { replyTo } : undefined);
     setInput("");
+    stickToBottom();
     setReplyTo(null);
   }
 
@@ -168,6 +169,7 @@ export function ThreadMessages({ client, aboveTabBar = false }) {
   return (
     <>
       <div
+        ref={listRef}
         className="flex-1 overflow-y-auto px-4 md:px-6 pt-1 pb-4"
         style={NO_TEXT_SELECT}
         // #319: drag the messages down to put the keyboard away, as in

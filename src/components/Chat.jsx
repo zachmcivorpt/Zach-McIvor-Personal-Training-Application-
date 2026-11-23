@@ -4,7 +4,7 @@
 // white on the client's light theme) with a hairline. Messages from the
 // same person within a few minutes are grouped — tighter spacing, one
 // time under the group — and each day starts with a small divider.
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Plus, X, ArrowUp, Video, Paperclip, Image as ImageIcon } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
 import { MessageComposerInput } from "./MessageComposerInput";
@@ -102,6 +102,51 @@ function ReactionPicker({ mine, dark, current, onPick, onClose }) {
       </div>
     </>
   );
+}
+
+// Keeps a chat scrolled to its newest message (#321). Scrolls the given
+// container itself (never scrollIntoView, which also scrolls the page and,
+// in the client's sheet, put the newest messages under the pinned message
+// box). Re-pins after a send, a new message, and when the keyboard opens or
+// closes (the visible area resizes) — but only if the reader was already at
+// the bottom (or just sent), so reading older messages is never interrupted.
+export function useStickToBottom(containerRef, deps = []) {
+  const atBottomRef = useRef(true);
+  const pin = () => {
+    const el = containerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  };
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const onResize = () => {
+      if (atBottomRef.current) requestAnimationFrame(pin);
+    };
+    window.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
+    };
+  });
+  useEffect(() => {
+    if (!atBottomRef.current) return;
+    pin();
+    // Images/videos can grow the list after the first paint.
+    const t = setTimeout(pin, 120);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  // Call on Send: the reader's own message always brings them to the bottom.
+  return () => {
+    atBottomRef.current = true;
+    pin();
+  };
 }
 
 // A photo or video sent with no text and no form-check / reply label

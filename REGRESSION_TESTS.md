@@ -4137,6 +4137,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Tests**: `src/client/clientMessaging320.test.jsx` renders the REAL MessagesSheet (exported for the test) and BottomSheet: header z-10 with its own layer; media-only video thin-framed, one with text keeps the bubble; Send's pointerdown is prevented and a two-paragraph message is sent intact; max 220px; a 50px drag blurs the box. All 3 fail on the code before this fix (checked by restoring it). `coachMessaging319.test.jsx` still passes. Checked in Chromium at 390px: scrolled photo stays under the header, thin frame, no sideways scroll.
 - **Manual (real iPhone)**: open the coach chat with a video in it, scroll it under the header — the title stays on top.
 
+### 321. Chats jumped back to older messages after Send; gaps around the message box (owner, 2026-11-23)
+
+- **Problem**: after sending, the chat looked like it jumped back up to older messages. Both chats used `endRef.scrollIntoView({ block: "end" })`: in the client's sheet that lined the list's end up with the sheet's bottom edge, so the pinned (sticky) message box covered the newest messages; in a WKWebView it can also scroll the page. The keyboard opening/closing never re-pinned. While typing the client's message bar kept the home-bar padding (a gap above the keyboard), and the client's sheet left 12% of the page showing above it.
+- **Fix**: `useStickToBottom` (Chat.jsx) sets the scroller's own `scrollTop` to the bottom — on a new message or a keyboard resize only if the reader was already at the bottom, always on their own Send, and on opening the client chat. The client bar is `pb-2` while typing; `BottomSheet heightRatio` (default 0.88) lets the client chat take 0.94.
+- **Tests**: `src/client/chatScroll321.test.jsx` renders the REAL MessagesSheet and coach ThreadMessages (scroll sizes stubbed — jsdom has no layout): opens at the bottom, a send and a new message keep it there, `scrollIntoView` is never called; the bar loses the safe-area padding while the box has focus; the sheet's max height is 94% of the screen; on the coach side a new message while reading older ones doesn't move the list and Send brings it to the bottom. All 3 fail on the code before this fix (checked by restoring it). Checked in Chromium at 390px with touch: after Send the newest message's bottom (718px) is above the message box (759px).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
