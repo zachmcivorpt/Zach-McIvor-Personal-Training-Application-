@@ -1911,7 +1911,9 @@ export function AppProvider({ children }) {
       // a client adding/removing a progress photo saw the upload sheet
       // close and got no error at all if the write actually failed,
       // identical to success from their side.
-      async addProgressPhoto(clientId, dataUrl, caption = "", dateKey) {
+      // #325: `pose` ("front" | "side" | "back") from the client's Add Front /
+      // Side / Back guide; left off when there's none.
+      async addProgressPhoto(clientId, dataUrl, caption = "", dateKey, pose) {
         const id = newDocId("progressPhotos");
         let date = Date.now();
         if (dateKey && dateKey !== localDateKey()) {
@@ -1919,10 +1921,20 @@ export function AppProvider({ children }) {
           date = new Date(y, m - 1, d, 12, 0, 0).getTime();
         }
         try {
-          await setDoc(doc(firestore, "progressPhotos", id), { id, clientId, url: dataUrl, date, caption });
+          await setDoc(doc(firestore, "progressPhotos", id), { id, clientId, url: dataUrl, date, caption, ...(pose === "front" || pose === "side" || pose === "back" ? { pose } : {}) });
         } catch (err) {
           logClientError(clientId, "Add progress photo", err.message || "unknown error");
           throw new Error("Couldn't save that photo — " + (err.message || "check your connection and try again."));
+        }
+      },
+
+      // #324: the coach tags a progress photo Front / Side / Back (null clears).
+      async setProgressPhotoPose(photoId, pose) {
+        const value = pose === "front" || pose === "side" || pose === "back" ? pose : deleteField();
+        try {
+          await updateDoc(doc(firestore, "progressPhotos", photoId), { pose: value });
+        } catch (err) {
+          throw new Error("Couldn't save that tag — " + (err.message || "check your connection and try again."));
         }
       },
 

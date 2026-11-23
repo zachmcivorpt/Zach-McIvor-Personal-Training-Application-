@@ -18,6 +18,8 @@ import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, CLIENT_DARK_BG, CLIENT_DARK_SURFACE
 import { DarkPanel, CoachGlass, GlassButton, GLASS, GLASS_BLUE, JARVIS_BACKDROP, SHEET_GLASS } from "./darkUI";
 import { nameConfirmed } from "../lib/clientRemoval";
 import CalendarWeekView, { CalendarViewSwitch } from "./CalendarWeekView";
+import ProgressPhotoViewer from "./ProgressPhotoViewer";
+import { POSES as PHOTO_POSES, POSE_LABEL as PHOTO_POSE_LABEL, filterByPose as filterPhotosByPose } from "../lib/progressPhotos";
 import { NutritionTargetsCard } from "./NutritionTargetsCard";
 import CoachFeedbackPanel from "./videoFeedback/CoachFeedbackPanel";
 // Re-exported for anything still importing it from here.
@@ -4825,8 +4827,12 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
 }
 
 export function ProgressPanel({ client, showToast }) {
-  const { db, logWeight, deleteWeighIn, logBodyMetric, deleteBodyMetric } = useApp();
+  const { db, logWeight, deleteWeighIn, logBodyMetric, deleteBodyMetric, setProgressPhotoPose } = useApp();
   const photos = db.progressPhotos[client.id] || [];
+  // #324: pose filter + the open photo viewer.
+  const [photoPose, setPhotoPose] = useState("all");
+  const [viewPhotoId, setViewPhotoId] = useState(null);
+  const shownPhotos = filterPhotosByPose(photos, photoPose);
   const logs = db.workoutLogs[client.id] || [];
   const weighIns = (db.weighIns || {})[client.id] || [];
   const bodyMetrics = (db.bodyMetrics || {})[client.id] || [];
@@ -4947,22 +4953,67 @@ export function ProgressPanel({ client, showToast }) {
             <p className="text-white text-sm">No photos uploaded by this client yet.</p>
           </div>
         ) : (
-          <div className="relative grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-            {photos.map((p) => {
-              const w = closestWeighIn(weighIns, p.date);
-              return (
-                <div key={p.id} className="relative aspect-square rounded-xl overflow-hidden bg-white/5">
-                  <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
-                  <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] font-medium px-1.5 py-1 text-center">
-                    {new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                    {w ? ` · ${w.weight}kg` : ""}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <>
+            {/* #324: Front / Side / Back filter; tap a photo to open it, tag it
+                and compare dates. */}
+            <div className="relative flex items-center gap-1.5 mb-3 overflow-x-auto no-scrollbar" role="group" aria-label="Filter photos">
+              {[["all", "All"], ...PHOTO_POSES].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={photoPose === id}
+                  onClick={() => setPhotoPose(id)}
+                  className="shrink-0 px-3 py-1.5 rounded-full text-[11.5px] font-semibold text-white"
+                  style={photoPose === id ? GLASS_BLUE : GLASS}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {shownPhotos.length === 0 ? (
+              <p className="relative text-white/60 text-sm py-4 text-center">No photos tagged {PHOTO_POSE_LABEL[photoPose]} yet. Open a photo to tag it.</p>
+            ) : (
+              <div className="relative grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                {shownPhotos.map((p) => {
+                  const w = closestWeighIn(weighIns, p.date);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setViewPhotoId(p.id)}
+                      aria-label={`Open photo ${new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+                      className="relative aspect-square rounded-xl overflow-hidden bg-white/5 text-left"
+                    >
+                      <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
+                      {p.pose && (
+                        <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[9.5px] font-semibold uppercase tracking-wide">
+                          {PHOTO_POSE_LABEL[p.pose]}
+                        </span>
+                      )}
+                      <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] font-medium px-1.5 py-1 text-center">
+                        {new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                        {w ? ` · ${w.weight}kg` : ""}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </DarkPanel>
+
+      {viewPhotoId && (
+        <ProgressPhotoViewer
+          photos={photos}
+          startId={viewPhotoId}
+          onClose={() => setViewPhotoId(null)}
+          weightFor={(p) => closestWeighIn(weighIns, p.date)?.weight ?? null}
+          onSetPose={(id, pose) =>
+            setProgressPhotoPose(id, pose).catch((err) => showToast?.(err.message || "Couldn't save that tag"))
+          }
+        />
+      )}
 
       {weightHistoryOpen && (
         <BodyMetricHistoryScreen
