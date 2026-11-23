@@ -8245,6 +8245,8 @@ function CoachSheet({ open, onClose, ctx }) {
 }
 
 
+const SWIPE_CLOSE_PX = 110; // #323: drag the chat down this far to close it
+
 // #322: the part of the screen that's really visible (above the keyboard in
 // Safari; the iPhone app shrinks its whole web view for the keyboard, where
 // this is simply the full screen).
@@ -8302,6 +8304,8 @@ export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }
   // #321: scrolls the message list itself (scrollIntoView put the newest
   // messages UNDER the message box after every send).
   const listRef = useRef(null);
+  const pageRef = useRef(null);
+  const pullRef = useRef(null);
   const stickToBottom = useStickToBottom(listRef, [open, thread.length]);
   const viewport = useVisibleViewport();
   // Opening the chat always starts at the newest message.
@@ -8378,12 +8382,54 @@ export function MessagesSheet({ open, onClose, user, thread, onSend, coachName }
     // (useVisibleViewport) so it sits on the keyboard; the list's
     // overscroll is contained, so dragging never shows white beyond it.
     <FullScreenOverlay>
+      {/* #323: the iPhone keyboard has see-through margins; the chat's own
+          colour runs on under it, so the page behind never shows through. */}
+      <div aria-hidden="true" data-testid="client-chat-underlay" className="fixed left-0 right-0 top-0 z-[109]" style={{ bottom: "-100vh", backgroundColor: pageBg }} />
       <div
+        ref={pageRef}
         className="fixed left-0 right-0 z-[110] flex flex-col"
         style={{ top: viewport.top, height: viewport.height, backgroundColor: pageBg }}
         data-testid="client-chat"
+        // #323: swipe down to close — from the header, or from the messages
+        // when they're already at the top (never while the keyboard is up:
+        // that drag puts the keyboard away instead).
+        onTouchStart={(e) => {
+          const y = e.touches[0]?.clientY;
+          const fromHeader = !!e.target.closest?.("[data-chat-header]");
+          const listAtTop = (listRef.current?.scrollTop || 0) <= 0;
+          const typingNow = document.activeElement?.tagName === "TEXTAREA";
+          pullRef.current = y != null && !typingNow && (fromHeader || listAtTop) ? { y0: y, dy: 0 } : null;
+        }}
+        onTouchMove={(e) => {
+          const p = pullRef.current;
+          const y = e.touches[0]?.clientY;
+          if (!p || y == null) return;
+          p.dy = Math.max(0, y - p.y0);
+          if (pageRef.current) pageRef.current.style.transform = p.dy ? `translateY(${p.dy}px)` : "";
+        }}
+        onTouchEnd={() => {
+          const p = pullRef.current;
+          pullRef.current = null;
+          if (!p) return;
+          if (p.dy > SWIPE_CLOSE_PX) {
+            onClose();
+            return;
+          }
+          if (pageRef.current) {
+            pageRef.current.style.transition = "transform 0.2s ease-out";
+            pageRef.current.style.transform = "";
+            setTimeout(() => {
+              if (pageRef.current) pageRef.current.style.transition = "";
+            }, 220);
+          }
+        }}
+        onTouchCancel={() => {
+          pullRef.current = null;
+          if (pageRef.current) pageRef.current.style.transform = "";
+        }}
       >
-        <div className="shrink-0 flex items-center gap-2 px-2 pb-2 border-b pt-[calc(0.5rem+env(safe-area-inset-top))]" style={{ borderColor: line }}>
+        <div data-chat-header className="shrink-0 relative flex items-center gap-2 px-2 pb-2 border-b pt-[calc(0.5rem+env(safe-area-inset-top))]" style={{ borderColor: line }}>
+          <div aria-hidden="true" className={`absolute left-1/2 -translate-x-1/2 bottom-1 w-9 h-1 rounded-full ${dark ? "bg-white/15" : "bg-black/12"}`} />
           <button type="button" onClick={onClose} aria-label="Back" className={`w-10 h-10 flex items-center justify-center rounded-full ${dark ? "text-white" : "text-black"}`}>
             <ChevronLeft size={24} />
           </button>
