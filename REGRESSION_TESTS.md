@@ -4175,6 +4175,12 @@ each lights exactly that muscle's outline (screenshots in the session).
 - **Also**: on the iPhone the sheet's DATE box ran past the right edge (owner's screenshot): iOS WebKit gives a native date input its own minimum width. `index.css` drops the native appearance on `input[type="date"]` (block, max-width 100%, left-aligned value), so every date box keeps its given width.
 - **Tests**: `src/client/bodyStatsPhotos326.test.jsx` (REAL BodyStatsCheckInSheet): the three Add buttons; Add Back opens the guide with all four Back steps and no date row; a chosen photo shows on the Back tile; SAVE CHECK-IN sends `files: [{ file, pose: "back" }]` on the sheet's date. Fails on the code before this change. `bodyStatsAndCardioEdit.test.jsx` still passes. Checked in Chromium at 390px: sheet and guide render, no errors.
 
+### 327. Nutrition Detail matches the Nutrition cards exactly; glass look (owner, 2026-11-24)
+
+- **Problem** (owner's screenshots): Nutrition Detail's donut said "1792 KCAL FROM MACROS" while the day's calories were 1803 (a separate 4/4/9 estimate), Fat past its target said "0g left", and the split's percentages added to 101% (23/52/26).
+- **Fix**: `nutritionDetailRows` (ClientApp.jsx) gives the page the cards' own figures: calories through `calorieStatus`, macros rounded to 0.1 g, bar colours from `targetBarColor`, and past target "X over" in red, never "0g left". The donut's centre is the day's logged calories ("KCAL LOGGED"); `macroEnergySplit` rounds the split so it always adds to 100. Restyled as frosted glass (`clientGlass`) on the client's own page colours with a faint blue glow, light and dark. Client app only; logging and training untouched.
+- **Tests**: `src/client/nutritionDetailMatch.test.jsx`: the screenshot's day (1803 kcal, fat over) gives 1,803 / 597 left on the page and in the donut, "1.5g over" for fat; percentages add to 100; renders the REAL NutritionDetailSheet in light and dark. Without the fix all fail (`nutritionDetailRows is not a function`).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
