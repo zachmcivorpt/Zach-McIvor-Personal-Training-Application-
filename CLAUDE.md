@@ -395,6 +395,7 @@ with numbers clients and coaches can trust. How it's built now:
   foods first, plain foods before brands/supplements, typo fallback; the
   AFCD list stays a last resort. `matchesSearch` (search.js) remains the
   plain filter for exercises and the builders.
+- **Nutrition Detail** (#327) shows exactly the cards' figures (`nutritionDetailRows`: same calories, rounding, left/over and colours) and the donut's centre is the day's logged calories, never a separate 4/4/9 total; split percentages add to 100 (`macroEnergySplit`). Frosted glass (`clientGlass`).
 - **Over the calorie target** shows how much over, in red (`calorieStatus`),
   never "0 left"; macro bars use `targetBarColor` (red past 10% over,
   protein exempt) on both Home and the Nutrition tab (#114).

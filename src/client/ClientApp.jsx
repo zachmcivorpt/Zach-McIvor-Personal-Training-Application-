@@ -4715,6 +4715,56 @@ function targetBarColor(value, target, { capped = true } = {}) {
   return MEASURE_BLUE;
 }
 
+// Nutrition Detail's goal rows (#327): the same figures, colours and
+// left/over maths as Home and the Nutrition tab — calories through
+// calorieStatus, macros rounded to 0.1 g like the cards, past target shown
+// as "over" (never "0g left").
+export function nutritionDetailRows(nutrition, targets) {
+  const n = nutrition || {};
+  const t = targets || {};
+  const cal = calorieStatus(n.calories, t.calories);
+  const rows = [{ key: "calories", label: "Calories", value: Math.round(Number(n.calories) || 0), target: Number(t.calories) || 0, unit: "", over: cal.over, amount: cal.amount, color: cal.color }];
+  [
+    ["protein", "Protein", false],
+    ["carbs", "Carbs", true],
+    ["fat", "Fat", true],
+  ].forEach(([key, label, capped]) => {
+    const value = round1(Number(n[key]) || 0);
+    const target = Number(t[key]) || 0;
+    const diff = round1(target - value);
+    const over = target > 0 && diff < 0;
+    rows.push({ key, label, value, target, unit: "g", over, amount: Math.abs(diff), color: over && capped ? OVER_RED : targetBarColor(value, target, { capped }) });
+  });
+  return rows;
+}
+
+// The macro split by energy (4/4/9 kcal per g), as whole percentages that
+// always add up to 100 (largest remainder), from the same rounded grams the
+// cards show.
+export function macroEnergySplit(nutrition) {
+  const n = nutrition || {};
+  const parts = [
+    { name: "Protein", value: round1(Number(n.protein) || 0) * 4, color: MACRO_COLORS.protein },
+    { name: "Carbs", value: round1(Number(n.carbs) || 0) * 4, color: MACRO_COLORS.carbs },
+    { name: "Fat", value: round1(Number(n.fat) || 0) * 9, color: MACRO_COLORS.fat },
+  ].filter((p) => p.value > 0);
+  const total = parts.reduce((a, p) => a + p.value, 0);
+  if (total <= 0) return [];
+  const raw = parts.map((p) => (p.value / total) * 100);
+  const pcts = raw.map(Math.floor);
+  let left = 100 - pcts.reduce((a, b) => a + b, 0);
+  raw
+    .map((r, i) => ({ i, rem: r - Math.floor(r) }))
+    .sort((a, b) => b.rem - a.rem)
+    .forEach(({ i }) => {
+      if (left > 0) {
+        pcts[i] += 1;
+        left -= 1;
+      }
+    });
+  return parts.map((p, i) => ({ ...p, pct: pcts[i] }));
+}
+
 // Percentage callout drawn just outside the donut with its own short leader
 // line — Recharts' hover tooltip alone doesn't help on a touch device, so
 // the split needs to be readable at a glance without tapping a slice.
@@ -4747,85 +4797,71 @@ function renderDonutPercentLabel({ cx, cy, midAngle, outerRadius, percent }, dar
   );
 }
 
-function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
+export function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
   const dark = useClientDark();
   if (!open) return null;
-
-  const macroRows = [
-    { key: "calories", label: "Calories", value: Math.round(nutrition.calories || 0), target: targets.calories, unit: "", color: MEASURE_BLUE },
-    { key: "protein", label: "Protein", value: round1(nutrition.protein), target: targets.protein, unit: "g", color: MACRO_COLORS.protein },
-    { key: "carbs", label: "Carbs", value: round1(nutrition.carbs), target: targets.carbs, unit: "g", color: MACRO_COLORS.carbs },
-    { key: "fat", label: "Fat", value: round1(nutrition.fat), target: targets.fat, unit: "g", color: MACRO_COLORS.fat },
-  ];
-
-  // Distribution is by energy contribution (protein/carbs = 4 kcal/g, fat =
-  // 9 kcal/g) — the standard convention — not raw grams, so the donut
-  // reflects actual share of calories rather than overweighting fat.
-  const proteinKcal = (nutrition.protein || 0) * 4;
-  const carbsKcal = (nutrition.carbs || 0) * 4;
-  const fatKcal = (nutrition.fat || 0) * 9;
-  const totalMacroKcal = proteinKcal + carbsKcal + fatKcal;
-  const donutData =
-    totalMacroKcal > 0
-      ? [
-          { name: "Protein", value: proteinKcal, color: MACRO_COLORS.protein },
-          { name: "Carbs", value: carbsKcal, color: MACRO_COLORS.carbs },
-          { name: "Fat", value: fatKcal, color: MACRO_COLORS.fat },
-        ].filter((d) => d.value > 0)
-      : [];
-
+  const L = clientLook(dark);
+  // #327: every figure is the one Home and the Nutrition tab show for the
+  // same day (nutritionDetailRows), and the donut's centre is the day's
+  // logged calories, never a separate 4/4/9 estimate that disagreed with it.
+  const macroRows = nutritionDetailRows(nutrition, targets);
+  const split = macroEnergySplit(nutrition);
+  const loggedKcal = Math.round(Number(nutrition?.calories) || 0);
+  const glass = { ...clientGlass(dark), borderRadius: 22 };
+  const label = dark ? "text-white/45 text-[10px] font-bold tracking-[0.16em]" : "text-black/40 text-[10px] font-bold tracking-[0.16em]";
+  const ink = dark ? "text-white" : "text-black";
+  const muted = dark ? "text-white/55" : "text-black/50";
   const microRows = MICRO_DV_ROWS;
 
   return (
     <FullScreenOverlay>
-      <div className={dark ? "fixed inset-0 z-[95] bg-black flex flex-col" : "fixed inset-0 z-[95] bg-white flex flex-col"}>
-        <div className={dark ? "flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
-          <button onClick={onClose} className={dark ? "text-white/60" : "text-black/60"}>
+      <div className="fixed inset-0 z-[95] flex flex-col" style={{ backgroundColor: L.page, backgroundImage: `radial-gradient(70% 35% at 85% 8%, ${dark ? "rgba(59,130,246,0.16)" : "rgba(59,130,246,0.10)"}, transparent 70%), ${L.pageImage}` }}>
+        <div className={`flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b ${dark ? "border-white/5" : "border-black/5"}`}>
+          <button onClick={onClose} aria-label="Close" className={dark ? "text-white/60" : "text-black/60"}>
             <X size={20} />
           </button>
-          <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Nutrition Detail</span>
+          <span className={`${ink} font-semibold tracking-[0.04em] text-[15px]`}>NUTRITION DETAIL</span>
           <div className="w-5" />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2.5 py-5 space-y-4">
-          <Card dark={dark}>
-            <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-4" : "text-black/35 text-[11px] font-bold tracking-wide mb-4"}>NUTRITION GOAL</p>
+        <div className="flex-1 overflow-y-auto px-2.5 py-5 space-y-3" style={{ overscrollBehavior: "contain" }}>
+          <div className="p-5" style={glass} data-testid="nutrition-detail-goal">
+            <p className={`${label} mb-4`}>NUTRITION GOAL</p>
             <div className="space-y-4">
-              {macroRows.map((m) => {
-                const pct = m.target > 0 ? Math.min(100, (m.value / m.target) * 100) : 0;
-                const remaining = Math.max(0, round1(m.target - m.value));
-                return (
-                  <div key={m.key}>
-                    <div className={dark ? "h-2.5 rounded-full bg-white/8 overflow-hidden" : "h-2.5 rounded-full bg-black/8 overflow-hidden"}>
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: m.color }} />
-                    </div>
-                    <div className="flex items-baseline justify-between mt-1.5">
-                      <span className={dark ? "text-white/60 text-sm" : "text-black/60 text-sm"}>
-                        {m.label} <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{m.value}{m.unit}</span>
+              {macroRows.map((m) => (
+                <div key={m.key} data-testid={`nd-${m.key}`}>
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <span className={`${muted} text-[13px]`}>
+                      {m.label}{" "}
+                      <span className={`${ink} font-semibold tabular-nums`}>
+                        {m.key === "calories" ? m.value.toLocaleString() : m.value}
+                        {m.unit}
                       </span>
-                      <span className="text-sm font-semibold" style={{ color: m.color }}>
-                        {remaining}
-                        {m.unit} left
-                      </span>
-                    </div>
+                      <span className={`${muted} tabular-nums`}> / {m.key === "calories" ? m.target.toLocaleString() : m.target}{m.unit}</span>
+                    </span>
+                    <span className="text-[13px] font-semibold tabular-nums" style={{ color: m.over ? OVER_RED : m.color }}>
+                      {m.key === "calories" ? m.amount.toLocaleString() : m.amount}
+                      {m.unit} {m.over ? "over" : "left"}
+                    </span>
                   </div>
-                );
-              })}
+                  <ProgressBar trackClassName={dark ? "bg-white/12" : "bg-black/8"} value={m.value} max={m.target} height={5} color={m.color} />
+                </div>
+              ))}
             </div>
-          </Card>
+          </div>
 
-          <Card dark={dark}>
-            <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-4" : "text-black/35 text-[11px] font-bold tracking-wide mb-4"}>MACRO DISTRIBUTION</p>
-            {donutData.length === 0 ? (
-              <p className={dark ? "text-white/30 text-sm text-center py-10" : "text-black/30 text-sm text-center py-10"}>Log a meal to see your macro split.</p>
+          <div className="p-5" style={glass}>
+            <p className={`${label} mb-4`}>MACRO DISTRIBUTION</p>
+            {split.length === 0 ? (
+              <p className={`${muted} text-sm text-center py-10`}>Log a meal to see your macro split.</p>
             ) : (
               <>
-                <div className="flex items-center gap-4 mb-3">
-                  {donutData.map((d) => (
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  {split.map((d) => (
                     <div key={d.name} className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-                      <span className={dark ? "text-white/60 text-xs" : "text-black/60 text-xs"}>
-                        {d.name} <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{Math.round((d.value / totalMacroKcal) * 100)}%</span>
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color, boxShadow: `0 0 8px ${d.color}` }} />
+                      <span className={`${muted} text-xs`}>
+                        {d.name} <span className={`${ink} font-semibold tabular-nums`}>{d.pct}%</span>
                       </span>
                     </div>
                   ))}
@@ -4834,70 +4870,56 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart margin={{ top: 16, right: 36, bottom: 16, left: 36 }}>
                       <Pie
-                        data={donutData}
+                        data={split}
                         dataKey="value"
-                        innerRadius="58%"
+                        innerRadius="62%"
                         outerRadius="78%"
                         paddingAngle={3}
+                        cornerRadius={6}
                         stroke="none"
                         isAnimationActive={false}
                         labelLine={false}
-                        label={(props) => renderDonutPercentLabel(props, dark)}
+                        label={(props) => renderDonutPercentLabel({ ...props, percent: (props.payload?.pct ?? props.pct ?? Math.round(props.percent * 100)) / 100 }, dark)}
                       >
-                        {donutData.map((d) => (
+                        {split.map((d) => (
                           <Cell key={d.name} fill={d.color} />
                         ))}
                       </Pie>
-                      <Tooltip
-                        formatter={(value, name) => [`${Math.round((value / totalMacroKcal) * 100)}%`, name]}
-                        contentStyle={{
-                          background: dark ? "#1C1C1C" : "#FFFFFF",
-                          border: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(10,10,11,0.1)",
-                          borderRadius: 12,
-                          fontSize: 12,
-                          color: dark ? "#FFFFFF" : "#0A0A0B",
-                        }}
-                      />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>{Math.round(totalMacroKcal)}</span>
-                    <span className={dark ? "text-white/35 text-[11px] tracking-wide" : "text-black/35 text-[11px] tracking-wide"}>KCAL FROM MACROS</span>
+                    <span className={`${ink} text-[30px] leading-none font-semibold tabular-nums tracking-[-0.02em]`} data-testid="nd-donut-kcal">{loggedKcal.toLocaleString()}</span>
+                    <span className={`${label} mt-1.5`}>KCAL LOGGED</span>
                   </div>
                 </div>
               </>
             )}
-          </Card>
+          </div>
 
-          <Card dark={dark}>
-            <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-2" : "text-black/35 text-[11px] font-bold tracking-wide mb-2"}>OTHER NUTRIENTS TODAY</p>
+          <div className="p-5" style={glass}>
+            <p className={`${label} mb-2`}>OTHER NUTRIENTS TODAY</p>
             <div>
               {microRows.map((r, i) => {
                 const value = round1(nutrition[r.key] || 0);
                 const over = r.dv != null && r.kind === "limit" && value > r.dv;
                 return (
-                  <div
-                    key={r.key}
-                    className={`flex items-center justify-between py-2.5 ${i > 0 ? (dark ? "border-t border-white/5" : "border-t border-black/5") : ""}`}
-                  >
-                    <span className={dark ? "text-white/70 text-sm" : "text-black/70 text-sm"}>{r.label}</span>
+                  <div key={r.key} className={`flex items-center justify-between py-2.5 ${i > 0 ? (dark ? "border-t border-white/8" : "border-t border-black/6") : ""}`}>
+                    <span className={`${dark ? "text-white/70" : "text-black/70"} text-sm`}>{r.label}</span>
                     <div className="text-right">
-                      <span className={over ? "text-red-500 font-medium text-sm" : dark ? "text-white font-medium text-sm" : "text-black font-medium text-sm"}>
+                      <span className={`font-medium text-sm tabular-nums ${over ? "" : ink}`} style={over ? { color: OVER_RED } : undefined}>
                         {value}
                         {r.unit}
                       </span>
-                      <span className={dark ? "text-white/30 text-xs ml-1" : "text-black/30 text-xs ml-1"}>
-                        {r.dv != null ? `/ ${r.dv}${r.unit} ${r.kind === "limit" ? "limit" : "DV"}` : r.note}
-                      </span>
+                      <span className={`${dark ? "text-white/30" : "text-black/30"} text-xs ml-1`}>{r.dv != null ? `/ ${r.dv}${r.unit} ${r.kind === "limit" ? "limit" : "DV"}` : r.note}</span>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <p className={dark ? "text-white/25 text-[11px] mt-3" : "text-black/25 text-[11px] mt-3"}>
+            <p className={`${dark ? "text-white/25" : "text-black/30"} text-[11px] mt-3`}>
               Reflects only foods with detailed nutrition info attached — a scanned barcode carries this automatically; anything else needs it filled in manually. Reference amounts are general adult Daily Values (FDA), not a target personalized to you.
             </p>
-          </Card>
+          </div>
         </div>
       </div>
     </FullScreenOverlay>
