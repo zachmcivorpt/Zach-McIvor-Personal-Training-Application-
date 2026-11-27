@@ -32,6 +32,9 @@ export function workoutInProgress(storage = typeof localStorage !== "undefined" 
   return false;
 }
 
+// Away this long (hidden, no workout open) and an update is applied on return.
+export const LONG_AWAY_MS = 8 * 60 * 60 * 1000;
+
 export function setupServiceWorkerUpdateChecks() {
   if (!('serviceWorker' in navigator)) return;
   // Defensive idempotency guard: this is only ever called once, from
@@ -75,24 +78,29 @@ export function setupServiceWorkerUpdateChecks() {
     document.body.appendChild(banner);
   }
 
-  // #274: never reload by itself while a workout is open (coached session or
-  // Train Solo draft on this phone). Locking the phone or switching to music
-  // between sets hides the app, and a reload there threw clients out of
-  // their session on a day with several releases. The reload waits for the
-  // first time the app is hidden with no workout open; the banner's Refresh
-  // is still the person's own choice.
-  const reloadWhenHidden = () => {
-    if (document.visibilityState !== "hidden" || workoutInProgress()) return;
-    document.removeEventListener("visibilitychange", reloadWhenHidden);
-    reloadNow();
-  };
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (document.visibilityState === "hidden" && !workoutInProgress()) {
-      reloadNow();
+  // #328 (owner: "should not load every time I go into another app and
+  // back"): a new release NEVER reloads the app just because it was hidden.
+  // Switching to music / messages / the camera between sets and coming back
+  // must land exactly where they were. The new version is used on the next
+  // fresh open (the iPhone app already loads it then, #121), from the
+  // banner's Refresh, or — only after a long time away (LONG_AWAY_MS, e.g.
+  // overnight) with no workout open (#274) — on coming back. A lazy screen
+  // whose old file is gone is still caught by index.html's stale-copy guard.
+  let updateReady = false;
+  let hiddenAt = null;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      hiddenAt = Date.now();
       return;
     }
+    const away = hiddenAt == null ? 0 : Date.now() - hiddenAt;
+    hiddenAt = null;
+    if (updateReady && away >= LONG_AWAY_MS && !workoutInProgress()) reloadNow();
+  });
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (updateReady) return;
+    updateReady = true;
     if (document.visibilityState !== "hidden") showUpdateBanner();
-    document.addEventListener("visibilitychange", reloadWhenHidden);
   });
 
   // A plain in-flight guard — reg.update() is safe to call concurrently on

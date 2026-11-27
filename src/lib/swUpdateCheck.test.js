@@ -172,22 +172,33 @@ describe("setupServiceWorkerUpdateChecks", () => {
     expect(sw.getRegistration).toHaveBeenCalledTimes(2);
   });
 
-  // The anti-flash fix must stay intact and is untouched by this change:
-  // an update becoming available while the app is VISIBLE only shows the
-  // banner, never an immediate reload — reload is deferred until the app
-  // goes hidden. (The module's own `reloading` latch is one-shot per real
-  // page load by design — once a reload is triggered the page is about to
-  // unload, so there's no scenario to re-test within one suite run; this
-  // is the single, last test in the file for exactly that reason.)
-  it("an update landing while visible shows the banner and does not reload immediately, reloading only once hidden", async () => {
+  // #328: an update NEVER reloads the app because it was hidden — going to
+  // another app and back keeps them exactly where they were. The banner
+  // still shows while visible; only after a long time away (8 h) with no
+  // workout open is the update applied on coming back. (The module's
+  // `reloading` latch is one-shot per page load, so this is the last test.)
+  it("an update shows the banner, never reloads on hide or a short trip away, and applies after 8 h away", async () => {
+    localStorage.clear();
     setVisibility("visible");
     controllerChangeHandlers.forEach((h) => h());
-
     expect(reloadSpy).not.toHaveBeenCalled();
     const banner = [...document.querySelectorAll("div")].find((el) => /new version of APEX is ready/i.test(el.textContent || ""));
     expect(banner).toBeTruthy();
 
+    // Off to another app for 10 minutes and back: no reload.
     setVisibility("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(reloadSpy).not.toHaveBeenCalled();
+    vi.setSystemTime(Date.now() + 10 * 60 * 1000);
+    setVisibility("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(reloadSpy).not.toHaveBeenCalled();
+
+    // Away overnight: applied on return.
+    setVisibility("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    vi.setSystemTime(Date.now() + 9 * 60 * 60 * 1000);
+    setVisibility("visible");
     document.dispatchEvent(new Event("visibilitychange"));
     expect(reloadSpy).toHaveBeenCalledTimes(1);
   });

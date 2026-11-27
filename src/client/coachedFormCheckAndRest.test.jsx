@@ -94,7 +94,7 @@ describe("coached workout: form checks and the lock-screen rest alert", () => {
     render(<LiveSessionHarness onSendFormCheck={vi.fn()} />);
     fireEvent.click(screen.getByText("Tap to start rest timer"));
     expect(posted.at(-1)).toEqual({ action: "schedule", seconds: 90, title: "Rest's up", body: "Time for your next set of Bench Press." });
-    fireEvent.click(screen.getByText("SKIP"));
+    fireEvent.click(screen.getByText("Skip"));
     expect(posted.at(-1)).toEqual({ action: "cancel" });
   });
 

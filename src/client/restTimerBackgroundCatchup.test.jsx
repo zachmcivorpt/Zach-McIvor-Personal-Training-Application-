@@ -194,7 +194,7 @@ describe("WorkoutSession rest timer — single interval, no leaks across rest pe
     expect(setIntervalSpy).toHaveBeenCalledTimes(1);
 
     act(() => {
-      fireEvent.click(screen.getByText("SKIP"));
+      fireEvent.click(screen.getByText("Skip"));
     });
     expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
 

@@ -290,6 +290,7 @@ rather than inventing new colors per screen:
   Every suggestion goes through `recommendForAnswers`.
 - **Workout set rows** (#170): Reps left of Kg; rest/set timers are
   `MEASURE_BLUE` (as in the client app), never the coach's branding accent.
+- **One rest timer** (#328, owner): the coached client's `RestBar` and Train Solo's `SoloRestRing` both render the shared `RestRing` (`src/components/RestRing.jsx`): the lit blue ring (Skip · time · +15s) as a low floating pill at the bottom (62px ring, ~70px tall) on clear, see-through frosted glass (`restGlass(dark)`: ~16–18% fill, specular sheen, lit rim, `blur(36px) saturate(200%)`), light and dark (owner: "smaller and more glass morphism"). Change the timer there, never per app; keep `restRing328.test.jsx` passing (+15s adds 15 s and re-schedules the lock-screen alert, Skip closes and cancels it).
 - **Estimated Max chart** removed from Progress (#202, owner).
 - **Team week / training partners** (#234, `SoloTeamWeek.jsx`, `partners.js`,
   `partnerStore.js`, `functions/soloPartners.js`): up to 4 partners
@@ -838,6 +839,7 @@ any Train Solo work from now on:
 
 - The coached client's open workout lives on the phone (`clientActiveSession_<uid>`) and reopens after any reload. Whether a saved one is still current is decided ONLY by the day it was started (`startedOn`, `isPersistedSessionStale`), never by the workout's scheduled date: Program-tab workouts have no date, and catch-up sessions are for an earlier day. Any new way to start a workout must stamp `sessionStartedOnRef`. A snapshot saved in the last 6 hours (`savedAt`) is always kept, so a workout running past midnight survives (#275).
 - A new release never reloads the app by itself while a workout is open (`workoutInProgress` in `swUpdateCheck.js`: a coached session or a Train Solo draft). Keep both keys in step if they're renamed.
+- **Going to another app and back never reloads** (#328, owner): a new release is NEVER applied because the app was hidden (`swUpdateCheck.js`). It's used on the next fresh open, from the banner's Refresh, or on coming back after `LONG_AWAY_MS` (8 h) with no workout open. Never add a reload on hide/visible. Every client save stays local-first (`localFirst`, #126) — workout sets live on the phone, Finish saves offline.
 
 ## Speed: local-first saves in the coached client app (#126)
 

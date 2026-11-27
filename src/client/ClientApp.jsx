@@ -160,6 +160,7 @@ import { diverseBestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch"
 import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import { PoseProgressSection, PoseSlots } from "./PosePhotos";
+import { RestRing } from "../components/RestRing";
 // Only a coach browsing as this client edits workouts here, so the editor
 // (and the coach exercise screens it pulls in) loads when first opened,
 // not with every client's app start (#126).
@@ -2236,31 +2237,11 @@ function PreWorkoutReadySheet({ open, onClose, onReady }) {
 // Exported (no behavior change — purely prop-driven, no useApp()) so Train
 // Solo's own workout session screen can reuse it directly rather than
 // duplicating it. See src/solo/SoloWorkoutSessionScreen.jsx.
+// #328 (owner): the rest timer is Train Solo's lit ring on see-through glass
+// (shared RestRing), in light and dark mode — no more solid black/white bar.
 export function RestBar({ restTime, restTotal, onSkip, onAdd15 }) {
   const dark = useClientDark();
-  const pct = restTotal > 0 ? ((restTotal - restTime) / restTotal) * 100 : 0;
-  return (
-    <div className="fixed top-0 left-0 right-0 z-[95] flex justify-center pt-safe animate-[slideDown_0.3s_ease-out]">
-      <div className={dark ? "w-full max-w-md bg-white text-black px-5 py-3.5 flex items-center gap-3 shadow-2xl" : "w-full max-w-md bg-black text-white px-5 py-3.5 flex items-center gap-3 shadow-2xl"}>
-        <div className="flex-1 min-w-0">
-          <p className={dark ? "text-black/50 text-[11px] tracking-wide truncate" : "text-white/50 text-[11px] tracking-wide truncate"}>RELAX AND HAVE A DRINK</p>
-          <p className={dark ? "text-black text-xl font-bold tabular-nums" : "text-white text-xl font-bold tabular-nums"}>
-            {Math.floor(Math.max(restTime, 0) / 60)}:{String(Math.max(restTime, 0) % 60).padStart(2, "0")}
-          </p>
-          <div className={dark ? "h-1 bg-black/15 rounded-full mt-1.5 overflow-hidden" : "h-1 bg-white/15 rounded-full mt-1.5 overflow-hidden"}>
-            <div className={dark ? "h-full bg-black rounded-full transition-all" : "h-full bg-white rounded-full transition-all"} style={{ width: `${pct}%` }} />
-          </div>
-        </div>
-        <button onClick={onAdd15} className={dark ? "bg-black/12 text-black text-xs font-semibold px-3 py-2.5 rounded-xl shrink-0" : "bg-white/12 text-white text-xs font-semibold px-3 py-2.5 rounded-xl shrink-0"}>
-          +15s
-        </button>
-        <button onClick={onSkip} className={dark ? "bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl shrink-0" : "bg-white text-black text-xs font-bold px-3 py-2.5 rounded-xl shrink-0"}>
-          SKIP
-        </button>
-      </div>
-      <style>{`@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}`}</style>
-    </div>
-  );
+  return <RestRing dark={dark} restTime={restTime} restTotal={restTotal} onSkip={onSkip} onAdd15={onAdd15} />;
 }
 
 // Tapping an exercise's name during a session opens this — its own demo
