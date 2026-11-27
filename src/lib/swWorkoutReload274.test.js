@@ -32,23 +32,31 @@ describe("no update reload during a workout (#274)", () => {
     expect(workoutInProgress()).toBe(true);
   });
 
-  it("an update while hidden mid-workout waits; it reloads the first time the app is hidden after the workout ends", () => {
+  it("an update never reloads on hide (#328); after 8 h away it waits while a workout is open (#274)", () => {
     localStorage.clear();
+    setVisibility("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    handlers.forEach((h) => h()); // update lands while hidden
+    expect(reload).not.toHaveBeenCalled();
+    // back after 9 h, mid-workout: still no reload
     localStorage.setItem("clientActiveSession_c1", "{}");
-    setVisibility("hidden");
-    handlers.forEach((h) => h());
-    expect(reload).not.toHaveBeenCalled();
-    // back to the app and away again, still training
+    vi.setSystemTime(Date.now() + 9 * 60 * 60 * 1000);
     setVisibility("visible");
     document.dispatchEvent(new Event("visibilitychange"));
-    setVisibility("hidden");
-    document.dispatchEvent(new Event("visibilitychange"));
     expect(reload).not.toHaveBeenCalled();
-    // workout finished, then the app is put away
+    // workout finished; another short trip away: still no reload
     localStorage.removeItem("clientActiveSession_c1");
+    setVisibility("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    vi.setSystemTime(Date.now() + 60 * 1000);
     setVisibility("visible");
     document.dispatchEvent(new Event("visibilitychange"));
+    expect(reload).not.toHaveBeenCalled();
+    // away overnight with no workout: applied on return
     setVisibility("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    vi.setSystemTime(Date.now() + 9 * 60 * 60 * 1000);
+    setVisibility("visible");
     document.dispatchEvent(new Event("visibilitychange"));
     expect(reload).toHaveBeenCalledTimes(1);
   });
